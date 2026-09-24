@@ -1,7 +1,8 @@
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { kindOf, posterUrl, titleOf, type MediaType, type TmdbItem } from './lib/tmdb'
-import { yearOf, scoreColor } from './lib/format'
+import { yearOf } from './lib/format'
+import { cachedRating } from './lib/ratings'
 import { PLATFORMS } from './lib/providers'
 import { useAppState } from './state'
 
@@ -69,25 +70,44 @@ function Header() {
   )
 }
 
+export function RatingBadge({ type, id, tmdbScore }: { type: MediaType; id: number; tmdbScore?: number }) {
+  const cached = cachedRating(type, id)
+  const label = cached.imdb || (tmdbScore ? tmdbScore.toFixed(1) : '')
+  if (!label) return null
+  return (
+    <div className="absolute bottom-1.5 right-1.5 rounded-md bg-black/80 px-1.5 py-0.5 leading-none backdrop-blur-sm">
+      <p className="font-mono text-[9px] uppercase tracking-wider text-[#f5c518]">IMDb</p>
+      <p className="text-right font-mono text-xs text-[#f5c518]">{label}</p>
+    </div>
+  )
+}
+
+export function PersonLink({ id, name, className = '' }: { id: number; name: string; className?: string }) {
+  return (
+    <Link to={`/person/${id}`} className={`text-ink underline decoration-hairline underline-offset-4 hover:decoration-accent ${className}`}>
+      {name}
+    </Link>
+  )
+}
+
 export function PosterCard({ item, type }: { item: TmdbItem; type?: MediaType }) {
   const media = type ?? kindOf(item)
   const poster = posterUrl(item.poster_path)
   const year = yearOf(item.release_date || item.first_air_date)
-  const score = item.vote_average ? item.vote_average.toFixed(1) : null
   return (
     <Link to={`/title/${media}/${item.id}`} className="group block w-[42vw] shrink-0 sm:w-40">
-      <div className="poster-hover overflow-hidden rounded-xl border border-hairline bg-card">
+      <div className="poster-hover relative overflow-hidden rounded-xl border border-hairline bg-card">
         {poster ? (
           <img src={poster} alt={titleOf(item)} className="aspect-[2/3] w-full object-cover" loading="lazy" />
         ) : (
           <div className="flex aspect-[2/3] items-end p-3 text-sm text-mute">{titleOf(item)}</div>
         )}
+        <RatingBadge type={media} id={item.id} tmdbScore={item.vote_average} />
       </div>
       <div className="mt-2 space-y-0.5">
         <p className="line-clamp-2 text-sm leading-snug">{titleOf(item)}</p>
         <p className="font-mono text-[11px] uppercase tracking-wider text-dim">
           {media === 'tv' ? 'сериал' : 'фильм'}{year ? ` · ${year}` : ''}
-          {score ? <span className={`ml-2 ${scoreColor(item.vote_average || 0)}`}>{score}</span> : null}
         </p>
       </div>
     </Link>

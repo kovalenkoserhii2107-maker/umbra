@@ -1,9 +1,9 @@
 import { Link, useParams } from 'react-router-dom'
-import { ErrorBox, NeedKey, PosterCard, useAsync } from '../components'
+import { useMemo, useState } from 'react'
+import { ErrorBox, NeedKey, useAsync } from '../components'
 import { hasApiKey, kindOf, posterUrl, tmdb, type CreditWork } from '../lib/tmdb'
 import { yearOf } from '../lib/format'
 import { useAppState } from '../state'
-import { useMemo, useState } from 'react'
 
 export function PersonPage() {
   const { id = '' } = useParams()
@@ -128,5 +128,3 @@ export function PersonPage() {
     </div>
   )
 }
-
-export const _keep = PosterCard

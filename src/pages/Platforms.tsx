@@ -2,7 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useState } from 'react'
 import { ErrorBox, Grid, NeedKey, useAsync } from '../components'
 import { PLATFORMS, platformBySlug } from '../lib/providers'
-import { hasApiKey, tmdb } from '../lib/tmdb'
+import { hasApiKey, tmdb, type TmdbItem, type TmdbPage } from '../lib/tmdb'
 import { useAppState } from '../state'
 
 export function PlatformsPage() {
@@ -40,9 +40,11 @@ export function PlatformPage() {
   const [tab, setTab] = useState<'movie' | 'tv'>('movie')
   const ready = hasApiKey()
 
-  const query = useAsync(
+  const query = useAsync<TmdbPage<TmdbItem>>(
     () => {
-      if (!platform) return Promise.resolve({ results: [] as never[] })
+      if (!platform) {
+        return Promise.resolve({ page: 1, results: [], total_pages: 0, total_results: 0 })
+      }
       return tmdb.discover(tab, platform.id, settings.region)
     },
     [platform?.id, tab, settings.region, settings.tmdbKey],

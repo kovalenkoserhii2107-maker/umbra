@@ -43,12 +43,43 @@ export type WatchGroup = {
   free?: WatchProvider[]
 }
 
+export type PersonRef = {
+  id: number
+  name: string
+  character?: string
+  job?: string
+  profile_path: string | null
+}
+
 export type Credits = {
-  cast: Array<{ id: number; name: string; character: string; profile_path: string | null }>
-  crew: Array<{ id: number; name: string; job: string }>
+  cast: PersonRef[]
+  crew: PersonRef[]
 }
 
 export type Video = { key: string; site: string; type: string; name: string; official: boolean }
+
+export type CreditWork = TmdbItem & {
+  character?: string
+  job?: string
+  department?: string
+  role?: string
+  media_type?: MediaType | 'person'
+}
+
+export type PersonDetails = {
+  id: number
+  name: string
+  biography?: string
+  birthday?: string
+  deathday?: string
+  place_of_birth?: string
+  profile_path?: string | null
+  known_for_department?: string
+  combined_credits?: {
+    cast: CreditWork[]
+    crew: CreditWork[]
+  }
+}
 
 export type TitleDetails = TmdbItem & {
   tagline?: string
@@ -60,6 +91,7 @@ export type TitleDetails = TmdbItem & {
   genres?: Array<{ id: number; name: string }>
   videos?: { results: Video[] }
   credits?: Credits
+  created_by?: PersonRef[]
   'watch/providers'?: { results: Record<string, WatchGroup> }
   external_ids?: { imdb_id?: string }
   similar?: TmdbPage<TmdbItem>
@@ -120,6 +152,10 @@ export const tmdb = {
   details: (type: MediaType, id: number) =>
     request<TitleDetails>(`/${type}/${id}`, {
       append_to_response: 'videos,credits,watch/providers,external_ids,similar',
+    }),
+  person: (id: number) =>
+    request<PersonDetails>(`/person/${id}`, {
+      append_to_response: 'combined_credits',
     }),
   discover: (type: MediaType, providerId: number, region: string, page = 1) =>
     request<TmdbPage<TmdbItem>>(`/discover/${type}`, {

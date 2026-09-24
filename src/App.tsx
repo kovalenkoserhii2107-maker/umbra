@@ -1,0 +1,24 @@
+import { Route, Routes } from 'react-router-dom'
+import { Layout } from './components'
+import { HomePage } from './pages/Home'
+import { LibraryPage } from './pages/Library'
+import { PlatformPage, PlatformsPage } from './pages/Platforms'
+import { SearchPage } from './pages/Search'
+import { SettingsPage } from './pages/Settings'
+import { TitlePage } from './pages/Title'
+
+export default function App() {
+  return (
+    <Layout>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/platforms" element={<PlatformsPage />} />
+        <Route path="/platforms/:slug" element={<PlatformPage />} />
+        <Route path="/library" element={<LibraryPage />} />
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/title/:type/:id" element={<TitlePage />} />
+      </Routes>
+    </Layout>
+  )
+}

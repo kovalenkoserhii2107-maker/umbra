@@ -1,0 +1,173 @@
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { kindOf, posterUrl, titleOf, type MediaType, type TmdbItem } from './lib/tmdb'
+import { yearOf, scoreColor } from './lib/format'
+import { PLATFORMS } from './lib/providers'
+import { useAppState } from './state'
+
+export function Layout({ children }: { children: ReactNode }) {
+  const location = useLocation()
+  useEffect(() => {
+    window.scrollTo({ top: 0 })
+  }, [location.pathname])
+
+  return (
+    <div className="min-h-dvh bg-canvas text-ink">
+      <Header />
+      <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-6 sm:px-6">{children}</main>
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-canvas/90 backdrop-blur-md md:hidden">
+        <div className="grid grid-cols-4">
+          <Tab to="/" label="Лента" />
+          <Tab to="/platforms" label="Платформы" />
+          <Tab to="/library" label="Полка" />
+          <Tab to="/settings" label="Ещё" />
+        </div>
+      </nav>
+    </div>
+  )
+}
+
+function Tab({ to, label }: { to: string; label: string }) {
+  return (
+    <NavLink
+      to={to}
+      end={to === '/'}
+      className={({ isActive }) => `py-3 text-center font-mono text-[11px] tracking-[0.14em] uppercase ${isActive ? 'text-ink' : 'text-dim'}`}
+    >
+      {label}
+    </NavLink>
+  )
+}
+
+function Header() {
+  const navigate = useNavigate()
+  const [q, setQ] = useState('')
+  function onSubmit(e: FormEvent) {
+    e.preventDefault()
+    const query = q.trim()
+    if (!query) return
+    navigate(`/search?q=${encodeURIComponent(query)}`)
+  }
+  return (
+    <header className="sticky top-0 z-40 border-b border-hairline bg-canvas/85 backdrop-blur-md">
+      <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
+        <Link to="/" className="shrink-0 font-medium tracking-tight">
+          Umbra
+          <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.22em] text-accent">каталог</span>
+        </Link>
+        <nav className="hidden items-center gap-5 text-sm text-mute md:flex">
+          <NavLink to="/" end className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Лента</NavLink>
+          <NavLink to="/platforms" className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Платформы</NavLink>
+          <NavLink to="/library" className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Полка</NavLink>
+          <NavLink to="/settings" className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Настройки</NavLink>
+        </nav>
+        <form onSubmit={onSubmit} className="ml-auto w-full max-w-sm">
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск фильмов и сериалов" className="w-full rounded-full border border-hairline bg-card px-4 py-2 text-sm text-ink outline-none placeholder:text-dim focus:border-accent/60" />
+        </form>
+      </div>
+    </header>
+  )
+}
+
+export function PosterCard({ item, type }: { item: TmdbItem; type?: MediaType }) {
+  const media = type ?? kindOf(item)
+  const poster = posterUrl(item.poster_path)
+  const year = yearOf(item.release_date || item.first_air_date)
+  const score = item.vote_average ? item.vote_average.toFixed(1) : null
+  return (
+    <Link to={`/title/${media}/${item.id}`} className="group block w-[42vw] shrink-0 sm:w-40">
+      <div className="poster-hover overflow-hidden rounded-xl border border-hairline bg-card">
+        {poster ? (
+          <img src={poster} alt={titleOf(item)} className="aspect-[2/3] w-full object-cover" loading="lazy" />
+        ) : (
+          <div className="flex aspect-[2/3] items-end p-3 text-sm text-mute">{titleOf(item)}</div>
+        )}
+      </div>
+      <div className="mt-2 space-y-0.5">
+        <p className="line-clamp-2 text-sm leading-snug">{titleOf(item)}</p>
+        <p className="font-mono text-[11px] uppercase tracking-wider text-dim">
+          {media === 'tv' ? 'сериал' : 'фильм'}{year ? ` · ${year}` : ''}
+          {score ? <span className={`ml-2 ${scoreColor(item.vote_average || 0)}`}>{score}</span> : null}
+        </p>
+      </div>
+    </Link>
+  )
+}
+
+export function Row({ title, items, type }: { title: string; items: TmdbItem[]; type?: MediaType }) {
+  if (!items.length) return null
+  return (
+    <section className="rise mb-10">
+      <div className="mb-3 flex items-end justify-between">
+        <h2 className="text-lg font-medium tracking-tight">{title}</h2>
+        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-dim">{items.length}</span>
+      </div>
+      <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
+        {items.filter((i) => i.media_type !== 'person').map((item) => (
+          <PosterCard key={`${kindOf(item)}-${item.id}`} item={item} type={type ?? kindOf(item)} />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+export function Grid({ items, type }: { items: TmdbItem[]; type?: MediaType }) {
+  return (
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      {items.filter((i) => i.media_type !== 'person').map((item) => (
+        <PosterCard key={`${kindOf(item)}-${item.id}`} item={item} type={type ?? kindOf(item)} />
+      ))}
+    </div>
+  )
+}
+
+export function NeedKey() {
+  return (
+    <div className="rise mx-auto max-w-lg rounded-2xl border border-hairline bg-card p-6">
+      <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-accent">нужен ключ</p>
+      <h1 className="mt-2 text-2xl tracking-tight">Подключи TMDB</h1>
+      <p className="mt-3 text-sm leading-relaxed text-mute">
+        Umbra берёт каталог, постеры и «где смотреть» из The Movie Database. Ключ бесплатный и хранится только в этом браузере.
+      </p>
+      <Link to="/settings" className="mt-5 inline-flex rounded-full bg-ink px-4 py-2 text-sm text-canvas">Открыть настройки</Link>
+    </div>
+  )
+}
+
+export function Empty({ text }: { text: string }) {
+  return <p className="py-16 text-center text-sm text-mute">{text}</p>
+}
+
+export function PlatformChip({ id }: { id: number }) {
+  const p = PLATFORMS.find((x) => x.id === id)
+  if (!p) return null
+  return (
+    <Link to={`/platforms/${p.slug}`} className="inline-flex items-center gap-2 rounded-full border border-hairline bg-card px-3 py-1 text-xs text-mute hover:text-ink">
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: p.tint }} />
+      {p.name}
+    </Link>
+  )
+}
+
+export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {
+  const [data, setData] = useState<T | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    let alive = true
+    setLoading(true)
+    setError(null)
+    fn().then((res) => { if (alive) setData(res) }).catch((err: Error) => { if (alive) setError(err.message) }).finally(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
+  }, deps)
+  return { data, error, loading }
+}
+
+export function ErrorBox({ code }: { code: string }) {
+  const { settings } = useAppState()
+  if (code === 'NO_KEY' || !settings.tmdbKey) return <NeedKey />
+  if (code === 'BAD_KEY') {
+    return <div className="rounded-2xl border border-hairline bg-card p-6 text-sm text-mute">Ключ TMDB отклонён. Проверь его в настройках.</div>
+  }
+  return <div className="rounded-2xl border border-hairline bg-card p-6 text-sm text-mute">Не удалось загрузить данные ({code}).</div>
+}

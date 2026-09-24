@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ErrorBox, NeedKey, PersonLink, PlatformChip, PosterCard, RatingBadge, useAsync } from '../components'
-import { backdropUrl, hasApiKey, kindOf, posterUrl, titleOf, tmdb, type MediaType } from '../lib/tmdb'
+import { ErrorBox, NeedKey, PlatformChip, PosterCard, RatingBadge, useAsync } from '../components'
+import { backdropUrl, hasApiKey, kindOf, posterUrl, titleOf, tmdb, type MediaType, type PersonRef } from '../lib/tmdb'
 import { fetchImdbRating, rememberRating } from '../lib/ratings'
 import { runtimeLabel, yearOf } from '../lib/format'
 import { PLATFORMS } from '../lib/providers'
@@ -13,6 +13,47 @@ const STATUSES: Array<{ id: Status; label: string }> = [
   { id: 'watched', label: 'Видел' },
   { id: 'dropped', label: 'Бросил' },
 ]
+
+const PRODUCER_JOBS = new Set(['Producer', 'Executive Producer'])
+const WRITER_JOBS = new Set(['Writer', 'Screenplay', 'Story', 'Teleplay', 'Series Composition'])
+
+function uniquePeople(list: PersonRef[]) {
+  const seen = new Set<number>()
+  return list.filter((p) => {
+    if (seen.has(p.id)) return false
+    seen.add(p.id)
+    return true
+  })
+}
+
+function PersonCard({ person, role }: { person: PersonRef; role: string }) {
+  return (
+    <Link to={`/person/${person.id}`} className="w-28 shrink-0">
+      {person.profile_path ? (
+        <img src={posterUrl(person.profile_path, 'w185')} alt="" className="aspect-[2/3] w-full rounded-xl object-cover" />
+      ) : (
+        <div className="aspect-[2/3] rounded-xl border border-hairline bg-card" />
+      )}
+      <p className="mt-1 line-clamp-2 text-sm">{person.name}</p>
+      <p className="line-clamp-1 font-mono text-[10px] text-dim">{role}</p>
+    </Link>
+  )
+}
+
+function CrewColumn({ title, people, role }: { title: string; people: PersonRef[]; role: string }) {
+  return (
+    <div className="min-w-0 flex-1">
+      <h2 className="text-lg tracking-tight">{title}</h2>
+      <div className="row-scroll mt-3 flex gap-3 overflow-x-auto pb-2">
+        {people.length ? people.slice(0, 6).map((p) => (
+          <PersonCard key={`${role}-${p.id}`} person={p} role={role} />
+        )) : (
+          <p className="text-sm text-mute">Не указан</p>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export function TitlePage() {
   const { type = 'movie', id = '' } = useParams()
@@ -47,8 +88,13 @@ export function TitlePage() {
   const trailer =
     item.videos?.results.find((v) => v.site === 'YouTube' && v.type === 'Trailer') ||
     item.videos?.results.find((v) => v.site === 'YouTube')
-  const directors = (item.credits?.crew || []).filter((c) => c.job === 'Director')
-  const creators = item.created_by || []
+  const crew = item.credits?.crew || []
+  const directors = uniquePeople([
+    ...crew.filter((c) => c.job === 'Director'),
+    ...(item.created_by || []),
+  ])
+  const producers = uniquePeople(crew.filter((c) => c.job && PRODUCER_JOBS.has(c.job)))
+  const writers = uniquePeople(crew.filter((c) => c.job && WRITER_JOBS.has(c.job)))
   const region = item['watch/providers']?.results[settings.region] || item['watch/providers']?.results.US
   const flatrate = region?.flatrate ?? []
   const knownIds = new Set(PLATFORMS.map((p) => p.id))
@@ -91,55 +137,19 @@ export function TitlePage() {
             </p>
             <h1 className="mt-1 text-3xl tracking-tight sm:text-4xl">{title}</h1>
             {item.tagline ? <p className="mt-1 text-sm text-mute">{item.tagline}</p> : null}
+            <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-mute">
+              {score ? <span className="font-mono text-base font-bold text-[#f5c518]">{score}</span> : null}
+              {runtime ? <span>{runtimeLabel(runtime)}</span> : null}
+              {item.number_of_seasons ? <span>{item.number_of_seasons} сез.</span> : null}
+              {item.genres?.slice(0, 3).map((g) => (
+                <span key={g.id} className="rounded-full border border-hairline px-2 py-0.5 text-xs">{g.name}</span>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      <section className="rounded-2xl border border-hairline bg-card p-4">
-        <div className="flex flex-wrap items-start gap-4">
-          <div className="relative w-28 shrink-0 overflow-hidden rounded-xl border border-hairline sm:hidden">
-            {item.poster_path ? <img src={posterUrl(item.poster_path, 'w185')} alt="" className="w-full" /> : <div className="aspect-[2/3] bg-canvas" />}
-            <RatingBadge type={media} id={item.id} tmdbScore={item.vote_average} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-dim">режиссёр</p>
-            {directors.length ? (
-              <p className="mt-1 text-lg">
-                {directors.map((d, i) => (
-                  <span key={d.id}>
-                    {i > 0 ? ', ' : ''}
-                    <PersonLink id={d.id} name={d.name} />
-                  </span>
-                ))}
-              </p>
-            ) : creators.length ? (
-              <p className="mt-1 text-lg">
-                {creators.map((d, i) => (
-                  <span key={d.id}>
-                    {i > 0 ? ', ' : ''}
-                    <PersonLink id={d.id} name={d.name} />
-                  </span>
-                ))}
-                <span className="ml-2 font-mono text-[11px] uppercase text-dim">создатели</span>
-              </p>
-            ) : (
-              <p className="mt-1 text-mute">Режиссёр не указан в TMDB</p>
-            )}
-            <div className="mt-3 flex flex-wrap gap-3 text-sm text-mute">
-              {score ? <span className="font-mono text-base font-bold text-[#f5c518]">{score}</span> : null}
-              {runtime ? <span>{runtimeLabel(runtime)}</span> : null}
-              {item.number_of_seasons ? <span>{item.number_of_seasons} сез.</span> : null}
-              {item.external_ids?.imdb_id ? (
-                <a className="text-accent" href={`https://www.imdb.com/title/${item.external_ids.imdb_id}/`} target="_blank" rel="noreferrer">
-                  открыть IMDb
-                </a>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {item.overview ? <p className="mt-5 max-w-3xl text-[15px] leading-7 text-ink/90">{item.overview}</p> : null}
+      {item.overview ? <p className="max-w-3xl text-[15px] leading-7 text-ink/90">{item.overview}</p> : null}
 
       <section className="mt-8 rounded-2xl border border-hairline bg-card p-4">
         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-dim">на полке</p>
@@ -187,16 +197,20 @@ export function TitlePage() {
         </section>
       ) : null}
 
+      <section className="mt-8">
+        <div className="grid gap-6 md:grid-cols-3">
+          <CrewColumn title="Режиссёр" people={directors} role="режиссёр" />
+          <CrewColumn title="Продюсер" people={producers} role="продюсер" />
+          <CrewColumn title="Сценарист" people={writers} role="сценарист" />
+        </div>
+      </section>
+
       {item.credits?.cast?.length ? (
         <section className="mt-8">
           <h2 className="text-lg tracking-tight">Актёры</h2>
           <div className="row-scroll mt-3 flex gap-3 overflow-x-auto pb-2">
             {item.credits.cast.slice(0, 16).map((c) => (
-              <Link key={c.id} to={`/person/${c.id}`} className="w-28 shrink-0">
-                {c.profile_path ? <img src={posterUrl(c.profile_path, 'w185')} alt="" className="aspect-[2/3] w-full rounded-xl object-cover" /> : <div className="aspect-[2/3] rounded-xl border border-hairline bg-card" />}
-                <p className="mt-1 line-clamp-2 text-sm">{c.name}</p>
-                <p className="line-clamp-1 font-mono text-[10px] text-dim">{c.character}</p>
-              </Link>
+              <PersonCard key={c.id} person={c} role={c.character || 'роль'} />
             ))}
           </div>
         </section>

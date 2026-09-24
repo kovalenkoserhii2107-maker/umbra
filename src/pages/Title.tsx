@@ -126,7 +126,7 @@ export function TitlePage() {
               <p className="mt-1 text-mute">Режиссёр не указан в TMDB</p>
             )}
             <div className="mt-3 flex flex-wrap gap-3 text-sm text-mute">
-              {score ? <span className="text-[#f5c518]">IMDb {score}</span> : null}
+              {score ? <span className="font-mono text-base font-bold text-[#f5c518]">{score}</span> : null}
               {runtime ? <span>{runtimeLabel(runtime)}</span> : null}
               {item.number_of_seasons ? <span>{item.number_of_seasons} сез.</span> : null}
               {item.external_ids?.imdb_id ? (

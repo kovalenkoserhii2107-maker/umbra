@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { Layout } from './components'
 import { HomePage } from './pages/Home'
 import { LibraryPage } from './pages/Library'
+import { PersonPage } from './pages/Person'
 import { PlatformPage, PlatformsPage } from './pages/Platforms'
 import { SearchPage } from './pages/Search'
 import { SettingsPage } from './pages/Settings'
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/search" element={<SearchPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/title/:type/:id" element={<TitlePage />} />
+        <Route path="/person/:id" element={<PersonPage />} />
       </Routes>
     </Layout>
   )

@@ -1,7 +1,9 @@
-import { useParams } from 'react-router-dom'
-import { ErrorBox, NeedKey, PlatformChip, PosterCard, useAsync } from '../components'
+import { useEffect, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { ErrorBox, NeedKey, PersonLink, PlatformChip, PosterCard, RatingBadge, useAsync } from '../components'
 import { backdropUrl, hasApiKey, kindOf, posterUrl, titleOf, tmdb, type MediaType } from '../lib/tmdb'
-import { runtimeLabel, scoreColor, yearOf } from '../lib/format'
+import { fetchImdbRating, rememberRating } from '../lib/ratings'
+import { runtimeLabel, yearOf } from '../lib/format'
 import { PLATFORMS } from '../lib/providers'
 import { useAppState, type Status } from '../state'
 
@@ -19,6 +21,20 @@ export function TitlePage() {
   const ready = hasApiKey()
   const query = useAsync(() => tmdb.details(media, Number(id)), [media, id, settings.tmdbKey])
   const mine = get(media, Number(id))
+  const [imdb, setImdb] = useState<string | null>(null)
+
+  useEffect(() => {
+    const item = query.data
+    if (!item) return
+    if (item.vote_average) rememberRating(media, item.id, { tmdb: item.vote_average })
+    const imdbId = item.external_ids?.imdb_id
+    if (!imdbId) return
+    fetchImdbRating(imdbId).then((value) => {
+      if (!value) return
+      setImdb(value)
+      rememberRating(media, item.id, { imdb: value })
+    }).catch(() => undefined)
+  }, [query.data, media])
 
   if (!ready) return <NeedKey />
   if (query.error) return <ErrorBox code={query.error} />
@@ -31,10 +47,12 @@ export function TitlePage() {
   const trailer =
     item.videos?.results.find((v) => v.site === 'YouTube' && v.type === 'Trailer') ||
     item.videos?.results.find((v) => v.site === 'YouTube')
-  const director = item.credits?.crew.find((c) => c.job === 'Director')
+  const directors = (item.credits?.crew || []).filter((c) => c.job === 'Director')
+  const creators = item.created_by || []
   const region = item['watch/providers']?.results[settings.region] || item['watch/providers']?.results.US
   const flatrate = region?.flatrate ?? []
   const knownIds = new Set(PLATFORMS.map((p) => p.id))
+  const score = imdb || (item.vote_average ? item.vote_average.toFixed(1) : '')
 
   function setStatus(status: Status) {
     upsert({
@@ -62,7 +80,10 @@ export function TitlePage() {
         <div className="absolute inset-0 bg-gradient-to-t from-canvas via-canvas/40 to-transparent" />
         <div className="absolute bottom-0 flex items-end gap-4 p-4 sm:p-6">
           {item.poster_path ? (
-            <img src={posterUrl(item.poster_path, 'w185')} alt="" className="hidden w-24 rounded-xl border border-hairline sm:block" />
+            <div className="relative hidden w-24 overflow-hidden rounded-xl border border-hairline sm:block">
+              <img src={posterUrl(item.poster_path, 'w185')} alt="" className="w-full" />
+              <RatingBadge type={media} id={item.id} tmdbScore={item.vote_average} />
+            </div>
           ) : null}
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-accent">
@@ -74,15 +95,49 @@ export function TitlePage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 text-sm text-mute">
-        {item.vote_average ? <span className={scoreColor(item.vote_average)}>TMDB {item.vote_average.toFixed(1)}</span> : null}
-        {runtime ? <span>{runtimeLabel(runtime)}</span> : null}
-        {item.number_of_seasons ? <span>{item.number_of_seasons} сез.</span> : null}
-        {director ? <span>реж. {director.name}</span> : null}
-        {item.genres?.slice(0, 3).map((g) => (
-          <span key={g.id} className="rounded-full border border-hairline px-2 py-0.5 text-xs">{g.name}</span>
-        ))}
-      </div>
+      <section className="rounded-2xl border border-hairline bg-card p-4">
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="relative w-28 shrink-0 overflow-hidden rounded-xl border border-hairline sm:hidden">
+            {item.poster_path ? <img src={posterUrl(item.poster_path, 'w185')} alt="" className="w-full" /> : <div className="aspect-[2/3] bg-canvas" />}
+            <RatingBadge type={media} id={item.id} tmdbScore={item.vote_average} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-dim">режиссёр</p>
+            {directors.length ? (
+              <p className="mt-1 text-lg">
+                {directors.map((d, i) => (
+                  <span key={d.id}>
+                    {i > 0 ? ', ' : ''}
+                    <PersonLink id={d.id} name={d.name} />
+                  </span>
+                ))}
+              </p>
+            ) : creators.length ? (
+              <p className="mt-1 text-lg">
+                {creators.map((d, i) => (
+                  <span key={d.id}>
+                    {i > 0 ? ', ' : ''}
+                    <PersonLink id={d.id} name={d.name} />
+                  </span>
+                ))}
+                <span className="ml-2 font-mono text-[11px] uppercase text-dim">создатели</span>
+              </p>
+            ) : (
+              <p className="mt-1 text-mute">Режиссёр не указан в TMDB</p>
+            )}
+            <div className="mt-3 flex flex-wrap gap-3 text-sm text-mute">
+              {score ? <span className="text-[#f5c518]">IMDb {score}</span> : null}
+              {runtime ? <span>{runtimeLabel(runtime)}</span> : null}
+              {item.number_of_seasons ? <span>{item.number_of_seasons} сез.</span> : null}
+              {item.external_ids?.imdb_id ? (
+                <a className="text-accent" href={`https://www.imdb.com/title/${item.external_ids.imdb_id}/`} target="_blank" rel="noreferrer">
+                  открыть IMDb
+                </a>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {item.overview ? <p className="mt-5 max-w-3xl text-[15px] leading-7 text-ink/90">{item.overview}</p> : null}
 
@@ -121,7 +176,6 @@ export function TitlePage() {
             <p className="text-sm text-mute">В этом регионе подписка не найдена. Смени регион в настройках.</p>
           )}
         </div>
-        {region?.link ? <a href={region.link} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm text-accent">Открыть на JustWatch</a> : null}
       </section>
 
       {trailer ? (
@@ -137,12 +191,12 @@ export function TitlePage() {
         <section className="mt-8">
           <h2 className="text-lg tracking-tight">Актёры</h2>
           <div className="row-scroll mt-3 flex gap-3 overflow-x-auto pb-2">
-            {item.credits.cast.slice(0, 14).map((c) => (
-              <div key={c.id} className="w-28 shrink-0">
+            {item.credits.cast.slice(0, 16).map((c) => (
+              <Link key={c.id} to={`/person/${c.id}`} className="w-28 shrink-0">
                 {c.profile_path ? <img src={posterUrl(c.profile_path, 'w185')} alt="" className="aspect-[2/3] w-full rounded-xl object-cover" /> : <div className="aspect-[2/3] rounded-xl border border-hairline bg-card" />}
                 <p className="mt-1 line-clamp-2 text-sm">{c.name}</p>
                 <p className="line-clamp-1 font-mono text-[10px] text-dim">{c.character}</p>
-              </div>
+              </Link>
             ))}
           </div>
         </section>

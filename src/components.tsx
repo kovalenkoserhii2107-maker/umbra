@@ -75,9 +75,8 @@ export function RatingBadge({ type, id, tmdbScore }: { type: MediaType; id: numb
   const label = cached.imdb || (tmdbScore ? tmdbScore.toFixed(1) : '')
   if (!label) return null
   return (
-    <div className="absolute bottom-1.5 right-1.5 rounded-md bg-black/80 px-1.5 py-0.5 leading-none backdrop-blur-sm">
-      <p className="font-mono text-[9px] uppercase tracking-wider text-[#f5c518]">IMDb</p>
-      <p className="text-right font-mono text-xs text-[#f5c518]">{label}</p>
+    <div className="absolute bottom-1.5 right-1.5 rounded-md bg-black/75 px-1.5 py-0.5 leading-none backdrop-blur-sm">
+      <p className="font-mono text-sm font-bold text-[#f5c518]">{label}</p>
     </div>
   )
 }

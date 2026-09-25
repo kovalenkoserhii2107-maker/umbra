@@ -14,10 +14,28 @@ export function getGoogleClientId() {
   return GOOGLE_CLIENT_ID
 }
 
+function repairText(value: string) {
+  if (!value) return value
+  if (!/[\u00C0-\u00FF]/.test(value)) return value
+  try {
+    return new TextDecoder('utf-8').decode(Uint8Array.from(value, (ch) => ch.charCodeAt(0) & 0xff))
+  } catch {
+    return value
+  }
+}
+
 export function loadAccount(): Account | null {
   try {
     const raw = localStorage.getItem(ACCOUNT_KEY)
-    return raw ? (JSON.parse(raw) as Account) : null
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Account
+    const fixed: Account = {
+      ...parsed,
+      name: repairText(parsed.name || ''),
+      email: repairText(parsed.email || ''),
+    }
+    if (fixed.name !== parsed.name) saveAccount(fixed)
+    return fixed
   } catch {
     return null
   }
@@ -40,15 +58,22 @@ function emit() {
   listeners.forEach((fn) => fn())
 }
 
-export function parseCredential(credential: string): Account {
+function decodeJwtJson(credential: string) {
   const payload = credential.split('.')[1]
   if (!payload) throw new Error('BAD_TOKEN')
-  const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) as {
+  const b64 = payload.replace(/-/g, '+').replace(/_/g, '/')
+  const pad = '='.repeat((4 - (b64.length % 4)) % 4)
+  const bytes = Uint8Array.from(atob(b64 + pad), (ch) => ch.charCodeAt(0))
+  return JSON.parse(new TextDecoder().decode(bytes)) as {
     sub?: string
     email?: string
     name?: string
     picture?: string
   }
+}
+
+export function parseCredential(credential: string): Account {
+  const json = decodeJwtJson(credential)
   if (!json.sub || !json.email) throw new Error('BAD_TOKEN')
   return {
     sub: json.sub,

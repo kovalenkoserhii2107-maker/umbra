@@ -26,11 +26,6 @@ export function AccountMenu() {
     }
   }, [open])
 
-  function go(path: string) {
-    setOpen(false)
-    navigate(path)
-  }
-
   function signOut() {
     saveAccount(null)
     setOpen(false)
@@ -61,13 +56,19 @@ export function AccountMenu() {
               )}
               <div className="min-w-0">
                 <p className="truncate text-sm">{account.name}</p>
-                <p className="truncate font-mono text-[10px] uppercase tracking-[0.12em] text-dim">{account.email}</p>
+                <p className="truncate text-xs text-mute">{account.email}</p>
               </div>
             </div>
           ) : null}
-          <Link to="/cabinet" onClick={() => setOpen(false)} className="block px-4 py-3 text-sm hover:bg-white/5">
-            Личный кабинет
-          </Link>
+          {account ? (
+            <Link to="/cabinet" onClick={() => setOpen(false)} className="block px-4 py-3 text-sm hover:bg-white/5">
+              Личный кабинет
+            </Link>
+          ) : (
+            <Link to="/login" onClick={() => setOpen(false)} className="block px-4 py-3 text-sm text-accent hover:bg-white/5">
+              Войти
+            </Link>
+          )}
           <Link to="/settings" onClick={() => setOpen(false)} className="block px-4 py-3 text-sm hover:bg-white/5">
             Настройки
           </Link>
@@ -75,11 +76,7 @@ export function AccountMenu() {
             <button onClick={signOut} className="block w-full px-4 py-3 text-left text-sm text-mute hover:bg-white/5">
               Выйти из аккаунта
             </button>
-          ) : (
-            <button onClick={() => go('/cabinet')} className="block w-full px-4 py-3 text-left text-sm text-accent hover:bg-white/5">
-              Войти через Google
-            </button>
-          )}
+          ) : null}
         </div>
       ) : null}
     </div>

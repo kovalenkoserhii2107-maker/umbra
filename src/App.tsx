@@ -3,6 +3,7 @@ import { Layout } from './components'
 import { FeedPage } from './pages/Feed'
 import { HomePage } from './pages/Home'
 import { LibraryPage } from './pages/Library'
+import { LoginPage } from './pages/Login'
 import { PersonPage } from './pages/Person'
 import { PlatformPage, PlatformsPage } from './pages/Platforms'
 import { SearchPage } from './pages/Search'
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/platforms/:slug" element={<PlatformPage />} />
         <Route path="/library" element={<LibraryPage />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/cabinet" element={<CabinetPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/title/:type/:id" element={<TitlePage />} />

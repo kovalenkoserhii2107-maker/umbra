@@ -1,9 +1,22 @@
 export function BrandMark({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden="true">
-      <rect width="64" height="64" rx="15" fill="#0a0a0a"/>
-      <path fill="#fcfcfc" fillRule="evenodd" d="M30 14.5a17.5 17.5 0 1 0 0 35 17.5 17.5 0 0 0 0-35Zm7.2 0a17.5 17.5 0 1 0 0 35 17.5 17.5 0 0 0 0-35Z"/>
-      <path d="M30 15.6a16.4 16.4 0 0 0 0 32.8" stroke="#ff9e64" strokeWidth="2.2" strokeLinecap="round"/>
+      <rect width="64" height="64" rx="15" fill="#0a0a0a" />
+      <circle cx="32" cy="32" r="22" fill="url(#umbra-corona)" />
+      <circle cx="32" cy="32" r="16.2" fill="url(#umbra-sun)" />
+      <circle cx="32.6" cy="32" r="14.6" fill="#0a0a0a" />
+      <defs>
+        <radialGradient id="umbra-corona" cx="32" cy="32" r="22" gradientUnits="userSpaceOnUse">
+          <stop offset="0.58" stopColor="#ffb07a" stopOpacity="0" />
+          <stop offset="0.72" stopColor="#ff9e64" stopOpacity="0.55" />
+          <stop offset="1" stopColor="#ff9e64" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id="umbra-sun" cx="30" cy="29" r="16" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#fff6e8" />
+          <stop offset="0.7" stopColor="#ffd09a" />
+          <stop offset="1" stopColor="#ff9e64" />
+        </radialGradient>
+      </defs>
     </svg>
   )
 }

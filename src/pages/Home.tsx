@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { Row, ErrorBox, RatingBadge, useAsync } from '../components'
-import { BrandLockup } from '../components/Brand'
 import { loadFeedPage, FEEDS } from '../lib/feeds'
 import { useAppState } from '../state'
 import { backdropUrl, kindOf, titleOf, type MediaType, type TmdbItem } from '../lib/tmdb'
@@ -64,9 +63,6 @@ export function HomePage() {
 
   return (
     <div className="rise space-y-2">
-      <section className="mb-8">
-        <BrandLockup size="lg" />
-      </section>
       {hero ? <Featured item={hero} /> : null}
       <Row title={preview('theaters').title} items={theaterRest} type="movie" to="/feed/theaters" />
       <Row title={preview('trending').title} items={trending.data?.results ?? []} to="/feed/trending" />

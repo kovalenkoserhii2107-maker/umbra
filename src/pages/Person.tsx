@@ -1,15 +1,12 @@
 import { Link, useParams } from 'react-router-dom'
 import { useMemo, useState } from 'react'
-import { ErrorBox, NeedKey, useAsync } from '../components'
-import { hasApiKey, kindOf, posterUrl, tmdb, type CreditWork } from '../lib/tmdb'
+import { ErrorBox, useAsync } from '../components'
+import { kindOf, posterUrl, tmdb, type CreditWork } from '../lib/tmdb'
 import { yearOf } from '../lib/format'
-import { useAppState } from '../state'
 
 export function PersonPage() {
   const { id = '' } = useParams()
-  const { settings } = useAppState()
-  const ready = hasApiKey()
-  const query = useAsync(() => tmdb.person(Number(id)), [id, settings.tmdbKey])
+  const query = useAsync(() => tmdb.person(Number(id)), [id])
   const [tab, setTab] = useState<'all' | 'director' | 'actor'>('all')
 
   const works = useMemo(() => {
@@ -57,7 +54,6 @@ export function PersonPage() {
     return true
   })
 
-  if (!ready) return <NeedKey />
   if (query.error) return <ErrorBox code={query.error} />
   if (query.loading || !query.data) return <p className="text-sm text-mute">Собираю фильмографию…</p>
 

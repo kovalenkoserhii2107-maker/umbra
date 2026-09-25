@@ -5,7 +5,6 @@ import {
   loadAccount,
   parseCredential,
   saveAccount,
-  setGoogleClientId,
   subscribeAccount,
   type Account,
 } from '../lib/auth'
@@ -17,9 +16,13 @@ declare global {
     google?: {
       accounts: {
         id: {
-          initialize: (cfg: { client_id: string; callback: (res: { credential?: string }) => void }) => void
+          initialize: (cfg: {
+            client_id: string
+            callback: (res: { credential?: string }) => void
+            auto_select?: boolean
+            ux_mode?: string
+          }) => void
           renderButton: (el: HTMLElement, cfg: Record<string, string | number>) => void
-          prompt: () => void
         }
       }
     }
@@ -52,21 +55,20 @@ function loadGsi() {
 export function CabinetPage() {
   const { settings, setSettings, exportJson, importJson, items } = useAppState()
   const [account, setAccount] = useState<Account | null>(() => loadAccount())
-  const [clientId, setClientId] = useState(getGoogleClientId())
   const [status, setStatus] = useState('')
   const buttonRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => subscribeAccount(() => setAccount(loadAccount())), [])
 
   useEffect(() => {
-    const id = getGoogleClientId()
-    if (!id || account) return
+    if (account) return
     let gone = false
     loadGsi()
       .then(() => {
         if (gone || !buttonRef.current || !window.google) return
         window.google.accounts.id.initialize({
-          client_id: id,
+          client_id: getGoogleClientId(),
+          ux_mode: 'popup',
           callback: (res) => {
             try {
               if (!res.credential) throw new Error('NO_CRED')
@@ -92,7 +94,7 @@ export function CabinetPage() {
     return () => {
       gone = true
     }
-  }, [account, clientId])
+  }, [account])
 
   function toggleProvider(id: number) {
     const has = settings.subscribed.includes(id)
@@ -139,11 +141,6 @@ export function CabinetPage() {
     window.location.replace(`${import.meta.env.BASE_URL}?v=${APP_VERSION}#/`)
   }
 
-  function saveClient() {
-    setGoogleClientId(clientId)
-    setStatus('Идентификатор сохранён. Кнопка Google появится ниже.')
-  }
-
   return (
     <div className="rise max-w-2xl space-y-10">
       <div>
@@ -173,27 +170,8 @@ export function CabinetPage() {
             <h2 className="text-lg">Вход через Google</h2>
             <p className="text-sm text-mute">
               Регистрация отдельно не нужна — Google создаёт аккаунт при первом входе.
-              Сессия хранится на этом устройстве.
             </p>
-            {getGoogleClientId() ? (
-              <div ref={buttonRef} className="min-h-10" />
-            ) : (
-              <div className="space-y-3">
-                <p className="text-sm text-mute">
-                  Создай Web Client ID в Google Cloud Console и разреши источник
-                  {' '}<span className="text-ink">https://kovalenkoserhii2107-maker.github.io</span>.
-                </p>
-                <input
-                  value={clientId}
-                  onChange={(e) => setClientId(e.target.value)}
-                  placeholder="xxx.apps.googleusercontent.com"
-                  className="w-full rounded-xl border border-hairline bg-canvas px-3 py-2 text-sm outline-none focus:border-accent/60"
-                />
-                <button onClick={saveClient} className="rounded-full bg-ink px-4 py-2 text-sm text-canvas">
-                  Сохранить Client ID
-                </button>
-              </div>
-            )}
+            <div ref={buttonRef} className="min-h-10" />
             {status ? <p className="text-sm text-accent">{status}</p> : null}
           </div>
         )}

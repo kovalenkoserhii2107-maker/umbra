@@ -5,19 +5,13 @@ export type Account = {
   picture: string
 }
 
+export const GOOGLE_CLIENT_ID = '199998842717-pfe821bnk7cjp3rnhfaj1r7k67eo55l8.apps.googleusercontent.com'
+
 const ACCOUNT_KEY = 'umbra.account'
-const CLIENT_KEY = 'umbra.googleClientId'
 const listeners = new Set<() => void>()
 
 export function getGoogleClientId() {
-  return localStorage.getItem(CLIENT_KEY)?.trim() || ''
-}
-
-export function setGoogleClientId(id: string) {
-  const value = id.trim()
-  if (value) localStorage.setItem(CLIENT_KEY, value)
-  else localStorage.removeItem(CLIENT_KEY)
-  emit()
+  return GOOGLE_CLIENT_ID
 }
 
 export function loadAccount(): Account | null {

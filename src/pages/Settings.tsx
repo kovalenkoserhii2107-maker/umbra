@@ -38,6 +38,11 @@ export function SettingsPage() {
     URL.revokeObjectURL(url)
   }
 
+  function showInstallAgain() {
+    localStorage.removeItem('umbra.installDismissed')
+    window.location.assign(`${import.meta.env.BASE_URL}#/`)
+  }
+
   return (
     <div className="rise max-w-2xl space-y-10">
       <div>
@@ -58,6 +63,14 @@ export function SettingsPage() {
         />
         <button onClick={saveKey} className="mt-3 rounded-full bg-ink px-4 py-2 text-sm text-canvas">
           {saved ? 'Сохранено' : 'Сохранить ключ'}
+        </button>
+      </section>
+
+      <section className="rounded-2xl border border-hairline bg-card p-5">
+        <h2 className="text-lg">Установка</h2>
+        <p className="mt-2 text-sm text-mute">Добавить Umbra на телефон или рабочий стол как отдельное приложение.</p>
+        <button onClick={showInstallAgain} className="mt-4 rounded-full border border-hairline px-4 py-2 text-sm">
+          Показать кнопку установки
         </button>
       </section>
 

@@ -5,6 +5,7 @@ import { yearOf } from './lib/format'
 import { cachedRating } from './lib/ratings'
 import { PLATFORMS } from './lib/providers'
 import { useAppState } from './state'
+import { InstallPrompt } from './components/InstallPrompt'
 
 export function Layout({ children }: { children: ReactNode }) {
   const location = useLocation()
@@ -16,6 +17,7 @@ export function Layout({ children }: { children: ReactNode }) {
     <div className="min-h-dvh bg-canvas text-ink">
       <Header />
       <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-6 sm:px-6">{children}</main>
+      <InstallPrompt />
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-canvas/90 backdrop-blur-md md:hidden">
         <div className="grid grid-cols-4">
           <Tab to="/" label="Лента" />
@@ -52,9 +54,10 @@ function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-hairline bg-canvas/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
-        <Link to="/" className="shrink-0 font-medium tracking-tight">
-          Umbra
-          <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.22em] text-accent">каталог</span>
+        <Link to="/" className="flex shrink-0 items-center gap-2 tracking-tight">
+          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="Umbra" className="h-8 w-8 rounded-lg" />
+          <span className="font-medium">Umbra</span>
+          <span className="hidden font-mono text-[10px] uppercase tracking-[0.22em] text-accent sm:inline">каталог</span>
         </Link>
         <nav className="hidden items-center gap-5 text-sm text-mute md:flex">
           <NavLink to="/" end className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Лента</NavLink>

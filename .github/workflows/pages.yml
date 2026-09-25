@@ -3,10 +3,12 @@ name: Deploy GitHub Pages
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'assets/**'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -24,6 +26,22 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npm run build
+      - name: Publish assets for branch Pages
+        run: |
+          mkdir -p assets
+          cp -f dist/assets/index.js assets/index.js
+          cp -f dist/assets/index.css assets/index.css
+          cp -f dist/favicon.svg favicon.svg || true
+          cp -f dist/icon.svg icon.svg || true
+          git config user.name "umbra-pages"
+          git config user.email "pages@users.noreply.github.com"
+          git add assets favicon.svg icon.svg
+          if git diff --staged --quiet; then
+            echo "no asset changes"
+          else
+            git commit -m "Publish built assets for GitHub Pages"
+            git push
+          fi
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

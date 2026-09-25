@@ -6,6 +6,7 @@ import { SEARCH_GENRES, applySearch, defaultFilters, type SearchFilters, type Se
 import { tmdb, type TmdbItem } from '../lib/tmdb'
 
 const YEARS = Array.from({ length: 36 }, (_, i) => String(new Date().getFullYear() - i))
+const SCORES = [0, 5, 6, 7, 8, 9]
 
 export function SearchPage() {
   const [params, setParams] = useSearchParams()
@@ -22,21 +23,17 @@ export function SearchPage() {
   useEffect(() => setDraft(q), [q])
 
   useEffect(() => {
-    if (!q) {
-      setItems([])
-      setPeople([])
-      setPages(1)
-      setError(null)
-      return
-    }
     let alive = true
     setLoading(true)
     setError(null)
-    Promise.all([tmdb.searchCatalog(q, 1), catalog.people(q, 1)])
-      .then(([data, persons]) => {
+    const request = q
+      ? Promise.all([tmdb.searchCatalog(q, 1), catalog.people(q, 1)]).then(([data, persons]) => ({ data, persons: persons.results.slice(0, 12) }))
+      : catalog.browseFiltered(filters, 1).then((data) => ({ data, persons: [] as PersonHit[] }))
+    request
+      .then(({ data, persons }) => {
         if (!alive) return
         setItems(data.results)
-        setPeople(persons.results.slice(0, 12))
+        setPeople(persons)
         setPage(1)
         setPages(data.total_pages)
       })
@@ -49,9 +46,9 @@ export function SearchPage() {
     return () => {
       alive = false
     }
-  }, [q])
+  }, [q, q ? '' : JSON.stringify(filters)])
 
-  const shown = useMemo(() => applySearch(items, q, filters), [items, q, filters])
+  const shown = useMemo(() => applySearch(items, q, q ? filters : { ...filters, year: '', genre: null, minScore: 0 }), [items, q, filters])
 
   function commitQuery(value: string) {
     const next = value.trim()
@@ -65,7 +62,7 @@ export function SearchPage() {
     if (loading || page >= pages) return
     setLoading(true)
     try {
-      const data = await tmdb.searchCatalog(q, page + 1)
+      const data = q ? await tmdb.searchCatalog(q, page + 1) : await catalog.browseFiltered(filters, page + 1)
       setItems((list) => {
         const seen = new Set(list.map((item) => `${item.media_type}:${item.id}`))
         return list.concat(data.results.filter((item) => !seen.has(`${item.media_type}:${item.id}`)))
@@ -108,12 +105,12 @@ export function SearchPage() {
           ))}
         </div>
         <div className="flex flex-wrap gap-2">
-          {([['relevance', 'По смыслу'], ['popular', 'Популярные'], ['rating', 'Оценка'], ['year', 'Новизна']] as Array<[SearchSort, string]>).map(([id, label]) => (
+          {([['relevance', 'По смыслу'], ['popular', 'Популярные'], ['rating', 'Рейтинг'], ['year', 'Новизна']] as Array<[SearchSort, string]>).map(([id, label]) => (
             <button key={id} className={chip(filters.sort === id)} onClick={() => setFilters((f) => ({ ...f, sort: id }))}>{label}</button>
           ))}
         </div>
         <div className="flex flex-wrap gap-2">
-          {[0, 6, 7, 8].map((n) => (
+          {SCORES.map((n) => (
             <button key={n} className={chip(filters.minScore === n)} onClick={() => setFilters((f) => ({ ...f, minScore: n }))}>
               {n === 0 ? 'Любой рейтинг' : `${n}+`}
             </button>
@@ -133,9 +130,7 @@ export function SearchPage() {
         </div>
       </div>
 
-      {!q ? (
-        <Empty text="Введи название или имя. Или открой справочник по жанрам." />
-      ) : loading && !items.length ? (
+      {loading && !items.length ? (
         <p className="mt-6 text-sm text-mute">Ищу…</p>
       ) : (
         <div className="mt-6 space-y-8">
@@ -158,7 +153,7 @@ export function SearchPage() {
           ) : null}
           {shown.length ? (
             <section>
-              <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.16em] text-dim">{shown.length} из {items.length}</p>
+              <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.16em] text-dim">{shown.length} тайтлов</p>
               <Grid items={shown} />
               {page < pages ? (
                 <div className="mt-8 flex justify-center">

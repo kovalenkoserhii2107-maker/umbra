@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Row, ErrorBox, RatingBadge, useAsync } from '../components'
+import { BrandLockup } from '../components/Brand'
 import { loadFeedPage, FEEDS } from '../lib/feeds'
 import { useAppState } from '../state'
 import { backdropUrl, kindOf, titleOf, type MediaType, type TmdbItem } from '../lib/tmdb'
@@ -22,7 +23,7 @@ function Featured({ item }: { item: TmdbItem }) {
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6">
         <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-accent">сейчас в кино</p>
-        <h1 className="mt-1 text-2xl tracking-tight text-white sm:text-3xl">{titleOf(item)}</h1>
+        <p className="mt-1 text-2xl tracking-tight text-white sm:text-3xl">{titleOf(item)}</p>
       </div>
       <RatingBadge type={media} id={item.id} tmdbScore={item.vote_average} />
     </Link>
@@ -63,6 +64,9 @@ export function HomePage() {
 
   return (
     <div className="rise space-y-2">
+      <section className="mb-8">
+        <BrandLockup size="lg" />
+      </section>
       {hero ? <Featured item={hero} /> : null}
       <Row title={preview('theaters').title} items={theaterRest} type="movie" to="/feed/theaters" />
       <Row title={preview('trending').title} items={trending.data?.results ?? []} to="/feed/trending" />

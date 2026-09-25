@@ -5,6 +5,15 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   base: '/umbra/',
+  build: {
+    rollupOptions: {
+      output: {
+        entryFileNames: 'assets/index.js',
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: 'assets/[name][extname]',
+      },
+    },
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -19,7 +28,7 @@ export default defineConfig({
         background_color: '#0a0a0a',
         display: 'standalone',
         orientation: 'any',
-        start_url: '/umbra/?v=0.2.0',
+        start_url: '/umbra/',
         scope: '/umbra/',
         lang: 'ru',
         icons: [
@@ -29,25 +38,11 @@ export default defineConfig({
         ],
       },
       workbox: {
-        cacheId: 'umbra-0.2.0',
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
-        globPatterns: ['**/*.{js,css,svg,woff2,ico}'],
-        globIgnores: ['**/version.json'],
+        globPatterns: ['**/*.{js,css,svg,woff2,ico,html}'],
         runtimeCaching: [
-          {
-            urlPattern: /\/umbra\/version\.json/i,
-            handler: 'NetworkOnly',
-          },
-          {
-            urlPattern: ({ request }) => request.mode === 'navigate',
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'umbra-pages-0.2.0',
-              networkTimeoutSeconds: 3,
-            },
-          },
           {
             urlPattern: /^https:\/\/image\.tmdb\.org\/.*/i,
             handler: 'CacheFirst',

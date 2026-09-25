@@ -1,6 +1,8 @@
 const BASE = 'https://api.themoviedb.org/3'
 const IMG = 'https://image.tmdb.org/t/p'
 
+export const DEFAULT_TMDB_KEY = 'efe08a32a1ab86042a1bc8f93ad63cc8'
+
 export type MediaType = 'movie' | 'tv'
 
 export type TmdbItem = {
@@ -98,7 +100,7 @@ export type TitleDetails = TmdbItem & {
 }
 
 function keyFromStore() {
-  return localStorage.getItem('umbra.tmdbKey')?.trim() || ''
+  return localStorage.getItem('umbra.tmdbKey')?.trim() || DEFAULT_TMDB_KEY
 }
 
 export function hasApiKey() {

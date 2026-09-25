@@ -31,7 +31,9 @@ export function saveAccount(account: Account | null) {
 
 export function subscribeAccount(fn: () => void) {
   listeners.add(fn)
-  return () => listeners.delete(fn)
+  return () => {
+    listeners.delete(fn)
+  }
 }
 
 function emit() {

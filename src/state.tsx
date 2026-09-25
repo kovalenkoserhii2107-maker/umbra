@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { MediaType } from './lib/tmdb'
+import { DEFAULT_TMDB_KEY, type MediaType } from './lib/tmdb'
 
 export type Status = 'watchlist' | 'watching' | 'watched' | 'dropped'
 
@@ -28,7 +28,7 @@ const LIBRARY_KEY = 'umbra.library'
 const LEGACY_KEY = 'umbra.tmdbKey'
 
 const defaultSettings: Settings = {
-  tmdbKey: localStorage.getItem(LEGACY_KEY) || '',
+  tmdbKey: localStorage.getItem(LEGACY_KEY) || DEFAULT_TMDB_KEY,
   region: 'UA',
   subscribed: [8, 337, 9, 1899, 350, 192],
 }
@@ -37,7 +37,12 @@ function loadSettings(): Settings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
     if (!raw) return { ...defaultSettings }
-    return { ...defaultSettings, ...JSON.parse(raw) as Settings }
+    const parsed = JSON.parse(raw) as Settings
+    return {
+      ...defaultSettings,
+      ...parsed,
+      tmdbKey: parsed.tmdbKey || DEFAULT_TMDB_KEY,
+    }
   } catch {
     return { ...defaultSettings }
   }

@@ -19,7 +19,7 @@ export default defineConfig({
         background_color: '#0a0a0a',
         display: 'standalone',
         orientation: 'any',
-        start_url: '/umbra/',
+        start_url: '/umbra/?v=0.2.0',
         scope: '/umbra/',
         lang: 'ru',
         icons: [
@@ -29,12 +29,25 @@ export default defineConfig({
         ],
       },
       workbox: {
-        cacheId: 'umbra-20260925b',
+        cacheId: 'umbra-0.2.0',
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
-        globPatterns: ['**/*.{js,css,html,svg,woff2,ico}'],
+        globPatterns: ['**/*.{js,css,svg,woff2,ico}'],
+        globIgnores: ['**/version.json'],
         runtimeCaching: [
+          {
+            urlPattern: /\/umbra\/version\.json/i,
+            handler: 'NetworkOnly',
+          },
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'umbra-pages-0.2.0',
+              networkTimeoutSeconds: 3,
+            },
+          },
           {
             urlPattern: /^https:\/\/image\.tmdb\.org\/.*/i,
             handler: 'CacheFirst',

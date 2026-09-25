@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Empty, ErrorBox, Grid } from '../components'
+import { catalog, profileUrl, type PersonHit } from '../lib/catalog'
 import { SEARCH_GENRES, applySearch, defaultFilters, type SearchFilters, type SearchKind, type SearchSort } from '../lib/search'
 import { tmdb, type TmdbItem } from '../lib/tmdb'
 
@@ -12,6 +13,7 @@ export function SearchPage() {
   const [draft, setDraft] = useState(q)
   const [filters, setFilters] = useState<SearchFilters>(defaultFilters)
   const [items, setItems] = useState<TmdbItem[]>([])
+  const [people, setPeople] = useState<PersonHit[]>([])
   const [page, setPage] = useState(1)
   const [pages, setPages] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -22,6 +24,7 @@ export function SearchPage() {
   useEffect(() => {
     if (!q) {
       setItems([])
+      setPeople([])
       setPages(1)
       setError(null)
       return
@@ -29,10 +32,11 @@ export function SearchPage() {
     let alive = true
     setLoading(true)
     setError(null)
-    tmdb.searchCatalog(q, 1)
-      .then((data) => {
+    Promise.all([tmdb.searchCatalog(q, 1), catalog.people(q, 1)])
+      .then(([data, persons]) => {
         if (!alive) return
         setItems(data.results)
+        setPeople(persons.results.slice(0, 12))
         setPage(1)
         setPages(data.total_pages)
       })
@@ -64,8 +68,7 @@ export function SearchPage() {
       const data = await tmdb.searchCatalog(q, page + 1)
       setItems((list) => {
         const seen = new Set(list.map((item) => `${item.media_type}:${item.id}`))
-        const extra = data.results.filter((item) => !seen.has(`${item.media_type}:${item.id}`))
-        return list.concat(extra)
+        return list.concat(data.results.filter((item) => !seen.has(`${item.media_type}:${item.id}`)))
       })
       setPage(data.page)
       setPages(data.total_pages)
@@ -87,40 +90,25 @@ export function SearchPage() {
   return (
     <div className="rise">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">поиск</p>
-      <h1 className="mt-1 text-3xl tracking-tight">{q || 'Найти фильм или сериал'}</h1>
+      <h1 className="mt-1 text-3xl tracking-tight">{q || 'Найти фильм, сериал или человека'}</h1>
 
-      <form
-        className="mt-5"
-        onSubmit={(e) => {
-          e.preventDefault()
-          commitQuery(draft)
-        }}
-      >
+      <form className="mt-5" onSubmit={(e) => { e.preventDefault(); commitQuery(draft) }}>
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Название, франшиза, оригинальное имя"
+          placeholder="Название, актёр, режиссёр"
           className="w-full rounded-full border border-hairline bg-card px-4 py-3 text-sm outline-none focus:border-accent/60"
         />
       </form>
 
       <div className="mt-5 space-y-3">
         <div className="flex flex-wrap gap-2">
-          {([
-            ['all', 'Всё'],
-            ['movie', 'Фильмы'],
-            ['tv', 'Сериалы'],
-          ] as Array<[SearchKind, string]>).map(([id, label]) => (
+          {([['all', 'Всё'], ['movie', 'Фильмы'], ['tv', 'Сериалы']] as Array<[SearchKind, string]>).map(([id, label]) => (
             <button key={id} className={chip(filters.kind === id)} onClick={() => setFilters((f) => ({ ...f, kind: id }))}>{label}</button>
           ))}
         </div>
         <div className="flex flex-wrap gap-2">
-          {([
-            ['relevance', 'По смыслу'],
-            ['popular', 'Популярные'],
-            ['rating', 'Оценка'],
-            ['year', 'Новизна'],
-          ] as Array<[SearchSort, string]>).map(([id, label]) => (
+          {([['relevance', 'По смыслу'], ['popular', 'Популярные'], ['rating', 'Оценка'], ['year', 'Новизна']] as Array<[SearchSort, string]>).map(([id, label]) => (
             <button key={id} className={chip(filters.sort === id)} onClick={() => setFilters((f) => ({ ...f, sort: id }))}>{label}</button>
           ))}
         </div>
@@ -146,23 +134,44 @@ export function SearchPage() {
       </div>
 
       {!q ? (
-        <Empty text="Введи название — сначала точные совпадения, потом популярные и высоко оценённые." />
+        <Empty text="Введи название или имя. Или открой справочник по жанрам." />
       ) : loading && !items.length ? (
         <p className="mt-6 text-sm text-mute">Ищу…</p>
-      ) : shown.length ? (
-        <div className="mt-6">
-          <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.16em] text-dim">{shown.length} из {items.length}</p>
-          <Grid items={shown} />
-          {page < pages ? (
-            <div className="mt-8 flex justify-center">
-              <button onClick={loadMore} className="rounded-full border border-hairline px-4 py-2 text-sm" disabled={loading}>
-                {loading ? 'Загрузка…' : 'Ещё результаты'}
-              </button>
-            </div>
-          ) : null}
-        </div>
       ) : (
-        <Empty text="Ничего не подошло. Сбрось фильтры или поменяй запрос." />
+        <div className="mt-6 space-y-8">
+          {people.length ? (
+            <section>
+              <h2 className="mb-3 text-lg">Люди</h2>
+              <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
+                {people.map((person) => (
+                  <Link key={person.id} to={`/person/${person.id}`} className="w-20 shrink-0 text-center">
+                    {person.profile_path ? (
+                      <img src={profileUrl(person.profile_path)} alt="" className="mx-auto h-20 w-20 rounded-full object-cover" />
+                    ) : (
+                      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-card text-sm text-mute">{person.name.slice(0, 1)}</div>
+                    )}
+                    <p className="mt-2 line-clamp-2 text-xs">{person.name}</p>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ) : null}
+          {shown.length ? (
+            <section>
+              <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.16em] text-dim">{shown.length} из {items.length}</p>
+              <Grid items={shown} />
+              {page < pages ? (
+                <div className="mt-8 flex justify-center">
+                  <button onClick={loadMore} className="rounded-full border border-hairline px-4 py-2 text-sm" disabled={loading}>
+                    {loading ? 'Загрузка…' : 'Ещё результаты'}
+                  </button>
+                </div>
+              ) : null}
+            </section>
+          ) : (
+            <Empty text="Ничего не подошло. Сбрось фильтры или поменяй запрос." />
+          )}
+        </div>
       )}
     </div>
   )

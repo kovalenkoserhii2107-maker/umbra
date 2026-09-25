@@ -3,6 +3,11 @@ import { loadFeedPage, FEEDS } from '../lib/feeds'
 import { useAppState } from '../state'
 import type { MediaType, TmdbItem } from '../lib/tmdb'
 
+function posterPathFromStored(url: string) {
+  const match = url.match(/\/t\/p\/w\d+(\/.+)$/)
+  return match ? match[1] : null
+}
+
 export function HomePage() {
   const { items } = useAppState()
   const seed = items.find((x) => x.status === 'watched' || x.status === 'watchlist') || items[0]
@@ -26,7 +31,7 @@ export function HomePage() {
       id: x.id,
       title: x.type === 'movie' ? x.title : undefined,
       name: x.type === 'tv' ? x.title : undefined,
-      poster_path: x.poster.includes('/t/p/') ? x.poster.slice(x.poster.indexOf('/t/p/') + 11) : null,
+      poster_path: posterPathFromStored(x.poster),
       media_type: x.type,
       release_date: x.year,
     }))

@@ -1,6 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Umbra">
   <rect width="512" height="512" fill="#0a0a0a"/>
-  <circle cx="232" cy="256" r="108" fill="#fcfcfc"/>
-  <circle cx="280" cy="256" r="108" fill="#0a0a0a"/>
-  <path d="M232 148c59.6 0 108 48.4 108 108s-48.4 108-108 108" fill="none" stroke="#ff9e64" stroke-width="16" stroke-linecap="round"/>
+  <path fill="#fcfcfc" fill-rule="evenodd" d="M240 136a120 120 0 1 0 0 240 120 120 0 0 0 0-240Zm50 0a120 120 0 1 0 0 240 120 120 0 0 0 0-240Z"/>
+  <path d="M240 145a111 111 0 0 0 0 222" fill="none" stroke="#ff9e64" stroke-width="14" stroke-linecap="round"/>
 </svg>

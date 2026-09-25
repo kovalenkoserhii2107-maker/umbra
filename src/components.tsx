@@ -61,7 +61,7 @@ function Header() {
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
         <Link to="/" className="flex shrink-0 items-center gap-2 tracking-tight">
           <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="Umbra" className="h-8 w-8 rounded-lg" />
-          <span className="hidden font-medium xs:inline sm:inline">Umbra</span>
+          <span className="hidden font-medium sm:inline">Umbra</span>
         </Link>
         <nav className="hidden items-center gap-5 text-sm text-mute md:flex">
           <NavLink to="/" end className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Лента</NavLink>
@@ -96,12 +96,12 @@ export function PersonLink({ id, name, className = '' }: { id: number; name: str
   )
 }
 
-export function PosterCard({ item, type }: { item: TmdbItem; type?: MediaType }) {
+export function PosterCard({ item, type, layout = 'row' }: { item: TmdbItem; type?: MediaType; layout?: 'row' | 'grid' }) {
   const media = type ?? kindOf(item)
   const poster = posterUrl(item.poster_path)
   const year = yearOf(item.release_date || item.first_air_date)
   return (
-    <Link to={`/title/${media}/${item.id}`} className="group block w-[42vw] shrink-0 sm:w-40">
+    <Link to={`/title/${media}/${item.id}`} className={`group block ${layout === 'grid' ? 'w-full' : 'w-[42vw] shrink-0 sm:w-40'}`}>
       <div className="poster-hover relative overflow-hidden rounded-xl border border-hairline bg-card">
         {poster ? (
           <img src={poster} alt={titleOf(item)} className="aspect-[2/3] w-full object-cover" loading="lazy" />
@@ -120,18 +120,24 @@ export function PosterCard({ item, type }: { item: TmdbItem; type?: MediaType })
   )
 }
 
-export function Row({ title, items, type }: { title: string; items: TmdbItem[]; type?: MediaType }) {
+export function Row({ title, items, type, to }: { title: string; items: TmdbItem[]; type?: MediaType; to?: string }) {
   if (!items.length) return null
   return (
     <section className="rise mb-10">
-      <div className="mb-3 flex items-end justify-between">
+      <div className="mb-3 flex items-end justify-between gap-3">
         <h2 className="text-lg font-medium tracking-tight">{title}</h2>
-        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-dim">{items.length}</span>
+        {to ? <Link to={to} className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">Все</Link> : null}
       </div>
       <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
         {items.filter((i) => i.media_type !== 'person').map((item) => (
           <PosterCard key={`${kindOf(item)}-${item.id}`} item={item} type={type ?? kindOf(item)} />
         ))}
+        {to ? (
+          <Link to={to} className="flex w-[42vw] shrink-0 flex-col items-center justify-center rounded-xl border border-hairline bg-card text-center sm:w-40">
+            <span className="text-2xl text-accent">→</span>
+            <span className="mt-2 font-mono text-[11px] uppercase tracking-[0.14em] text-mute">Ещё</span>
+          </Link>
+        ) : null}
       </div>
     </section>
   )
@@ -141,7 +147,7 @@ export function Grid({ items, type }: { items: TmdbItem[]; type?: MediaType }) {
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
       {items.filter((i) => i.media_type !== 'person').map((item) => (
-        <PosterCard key={`${kindOf(item)}-${item.id}`} item={item} type={type ?? kindOf(item)} />
+        <PosterCard key={`${kindOf(item)}-${item.id}`} item={item} type={type ?? kindOf(item)} layout="grid" />
       ))}
     </div>
   )

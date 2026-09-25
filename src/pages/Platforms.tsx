@@ -1,8 +1,8 @@
 import { Link, useParams } from 'react-router-dom'
 import { useState } from 'react'
-import { ErrorBox, Grid, NeedKey, useAsync } from '../components'
+import { ErrorBox, Grid, useAsync } from '../components'
 import { PLATFORMS, platformBySlug } from '../lib/providers'
-import { hasApiKey, tmdb, type TmdbItem, type TmdbPage } from '../lib/tmdb'
+import { tmdb, type TmdbItem, type TmdbPage } from '../lib/tmdb'
 import { useAppState } from '../state'
 
 export function PlatformsPage() {
@@ -38,7 +38,6 @@ export function PlatformPage() {
   const platform = platformBySlug(slug)
   const { settings } = useAppState()
   const [tab, setTab] = useState<'movie' | 'tv'>('movie')
-  const ready = hasApiKey()
 
   const query = useAsync<TmdbPage<TmdbItem>>(
     () => {
@@ -47,11 +46,10 @@ export function PlatformPage() {
       }
       return tmdb.discover(tab, platform.id, settings.region)
     },
-    [platform?.id, tab, settings.region, settings.tmdbKey],
+    [platform?.id, tab, settings.region],
   )
 
   if (!platform) return <p className="text-sm text-mute">Платформа не найдена.</p>
-  if (!ready) return <NeedKey />
   if (query.error) return <ErrorBox code={query.error} />
 
   return (

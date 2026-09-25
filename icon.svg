@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Umbra">
+  <rect width="512" height="512" rx="118" fill="#0a0a0a"/>
+  <path fill="#fcfcfc" fill-rule="evenodd" d="M240 116a140 140 0 1 0 0 280 140 140 0 0 0 0-280Zm58 0a140 140 0 1 0 0 280 140 140 0 0 0 0-280Z"/>
+  <path d="M240 126a130 130 0 0 0 0 260" fill="none" stroke="#ff9e64" stroke-width="16" stroke-linecap="round"/>
+</svg>

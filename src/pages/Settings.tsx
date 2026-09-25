@@ -1,5 +1,6 @@
 import { PLATFORMS, REGIONS } from '../lib/providers'
 import { useAppState } from '../state'
+import { APP_VERSION } from '../version'
 
 export function SettingsPage() {
   const { settings, setSettings, exportJson, importJson, items } = useAppState()
@@ -14,7 +15,7 @@ export function SettingsPage() {
   function onImport(file: File) {
     const reader = new FileReader()
     reader.onload = () => {
-      try { importJson(String(reader.result)) } catch { alert('Не получилось прочитать файл') }
+      try { importJson(String(reader.result)) } catch { alert('Не получилось прочить файл') }
     }
     reader.readAsText(file)
   }
@@ -45,7 +46,8 @@ export function SettingsPage() {
     } catch {
       /* ignore */
     }
-    window.location.replace(`${import.meta.env.BASE_URL}?v=250925b#/`)
+    localStorage.setItem('umbra.appVersion', APP_VERSION)
+    window.location.replace(`${import.meta.env.BASE_URL}?v=${APP_VERSION}#/`)
   }
 
   return (
@@ -53,13 +55,14 @@ export function SettingsPage() {
       <div>
         <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">настройки</p>
         <h1 className="mt-1 text-3xl tracking-tight">Как тебе удобно</h1>
+        <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.16em] text-dim">сборка {APP_VERSION}</p>
       </div>
 
       <section className="rounded-2xl border border-hairline bg-card p-5">
         <h2 className="text-lg">Обновление</h2>
-        <p className="mt-2 text-sm text-mute">Если лента старая — сбрось кэш приложения на этом телефоне.</p>
+        <p className="mt-2 text-sm text-mute">Сброс кэша и перезагрузка до текущей сборки.</p>
         <button onClick={forceUpdate} className="mt-4 rounded-full bg-ink px-4 py-2 text-sm text-canvas">
-          Обновить приложение
+          Обновить до {APP_VERSION}
         </button>
       </section>
 

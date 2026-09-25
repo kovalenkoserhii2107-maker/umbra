@@ -6,6 +6,7 @@ import { cachedRating, ensureImdbRating, subscribeRatings } from './lib/ratings'
 import { PLATFORMS } from './lib/providers'
 import { InstallPrompt } from './components/InstallPrompt'
 import { BrandLockup } from './components/Brand'
+import { AccountMenu } from './components/AccountMenu'
 
 export function Layout({ children }: { children: ReactNode }) {
   const location = useLocation()
@@ -22,11 +23,10 @@ export function Layout({ children }: { children: ReactNode }) {
         className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-canvas/90 backdrop-blur-md md:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-3">
           <Tab to="/" label="Лента" />
           <Tab to="/platforms" label="Платформы" />
           <Tab to="/library" label="Полка" />
-          <Tab to="/cabinet" label="Кабинет" />
         </div>
       </nav>
     </div>
@@ -67,11 +67,11 @@ function Header() {
           <NavLink to="/" end className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Лента</NavLink>
           <NavLink to="/platforms" className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Платформы</NavLink>
           <NavLink to="/library" className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Полка</NavLink>
-          <NavLink to="/cabinet" className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Кабинет</NavLink>
         </nav>
         <form onSubmit={onSubmit} className="ml-auto min-w-0 flex-1 max-w-sm">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск" className="w-full rounded-full border border-hairline bg-card px-4 py-2 text-sm text-ink outline-none placeholder:text-dim focus:border-accent/60" />
         </form>
+        <AccountMenu />
       </div>
     </header>
   )

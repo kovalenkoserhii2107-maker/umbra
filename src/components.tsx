@@ -2,7 +2,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { kindOf, posterUrl, titleOf, type MediaType, type TmdbItem } from './lib/tmdb'
 import { yearOf } from './lib/format'
-import { cachedRating } from './lib/ratings'
+import { cachedRating, ensureImdbRating, subscribeRatings } from './lib/ratings'
 import { PLATFORMS } from './lib/providers'
 import { InstallPrompt } from './components/InstallPrompt'
 
@@ -78,6 +78,11 @@ function Header() {
 }
 
 export function RatingBadge({ type, id, tmdbScore }: { type: MediaType; id: number; tmdbScore?: number }) {
+  const [, setTick] = useState(0)
+  useEffect(() => subscribeRatings(() => setTick((n) => n + 1)), [])
+  useEffect(() => {
+    ensureImdbRating(type, id).catch(() => undefined)
+  }, [type, id])
   const cached = cachedRating(type, id)
   const label = cached.imdb || (tmdbScore ? tmdbScore.toFixed(1) : '')
   if (!label) return null

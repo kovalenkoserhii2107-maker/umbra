@@ -1,18 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Umbra">
   <rect width="512" height="512" rx="118" fill="#0a0a0a"/>
-  <defs>
-    <radialGradient id="c" cx="256" cy="256" r="210" gradientUnits="userSpaceOnUse">
-      <stop offset="0.52" stop-color="#ffb07a" stop-opacity="0"/>
-      <stop offset="0.68" stop-color="#ff9e64" stop-opacity="0.7"/>
-      <stop offset="1" stop-color="#ff9e64" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="s" cx="236" cy="228" r="150" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#fff6e8"/>
-      <stop offset="0.65" stop-color="#ffc27a"/>
-      <stop offset="1" stop-color="#ff9e64"/>
-    </radialGradient>
-  </defs>
-  <circle cx="256" cy="256" r="200" fill="url(#c)"/>
-  <circle cx="256" cy="256" r="138" fill="url(#s)"/>
-  <circle cx="268" cy="256" r="118" fill="#0a0a0a"/>
+  <circle cx="256" cy="256" r="154" fill="#ffb87a"/>
+  <circle cx="272" cy="256" r="137" fill="#0a0a0a"/>
 </svg>

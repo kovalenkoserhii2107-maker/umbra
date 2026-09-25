@@ -34,12 +34,34 @@ export function SettingsPage() {
     window.location.assign(`${import.meta.env.BASE_URL}#/`)
   }
 
+  async function forceUpdate() {
+    try {
+      const regs = await navigator.serviceWorker?.getRegistrations()
+      await Promise.all((regs || []).map((r) => r.unregister()))
+      if ('caches' in window) {
+        const keys = await caches.keys()
+        await Promise.all(keys.map((k) => caches.delete(k)))
+      }
+    } catch {
+      /* ignore */
+    }
+    window.location.replace(`${import.meta.env.BASE_URL}?v=250925b#/`)
+  }
+
   return (
     <div className="rise max-w-2xl space-y-10">
       <div>
         <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">настройки</p>
         <h1 className="mt-1 text-3xl tracking-tight">Как тебе удобно</h1>
       </div>
+
+      <section className="rounded-2xl border border-hairline bg-card p-5">
+        <h2 className="text-lg">Обновление</h2>
+        <p className="mt-2 text-sm text-mute">Если лента старая — сбрось кэш приложения на этом телефоне.</p>
+        <button onClick={forceUpdate} className="mt-4 rounded-full bg-ink px-4 py-2 text-sm text-canvas">
+          Обновить приложение
+        </button>
+      </section>
 
       <section className="rounded-2xl border border-hairline bg-card p-5">
         <h2 className="text-lg">Установка</h2>

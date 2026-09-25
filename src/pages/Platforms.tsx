@@ -1,8 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
-import { useState } from 'react'
-import { ErrorBox, Grid, useAsync } from '../components'
+import { ErrorBox, Grid, Row, useAsync } from '../components'
 import { PLATFORMS, platformBySlug } from '../lib/providers'
-import { tmdb, type TmdbItem, type TmdbPage } from '../lib/tmdb'
+import { tmdb } from '../lib/tmdb'
 import { useAppState } from '../state'
 
 export function PlatformsPage() {
@@ -15,7 +14,7 @@ export function PlatformsPage() {
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">платформы</p>
       <h1 className="mt-1 text-3xl tracking-tight">Где смотреть</h1>
       <p className="mt-2 max-w-xl text-sm text-mute">
-        Каталоги глобальных сервисов по региону {settings.region}. Состав подписок меняется в настройках.
+        Сначала новые оригиналы сервиса, потом остальной каталог. Регион: {settings.region}.
       </p>
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
         {shown.map((p) => (
@@ -25,7 +24,7 @@ export function PlatformsPage() {
               <span className="h-2 w-2 rounded-full" style={{ background: p.tint }} />
             </div>
             <h2 className="mt-6 text-2xl tracking-tight">{p.name}</h2>
-            <p className="mt-1 text-sm text-mute">Фильмы и сериалы сервиса</p>
+            <p className="mt-1 text-sm text-mute">Новое и каталог сервиса</p>
           </Link>
         ))}
       </div>
@@ -37,40 +36,39 @@ export function PlatformPage() {
   const { slug = '' } = useParams()
   const platform = platformBySlug(slug)
   const { settings } = useAppState()
-  const [tab, setTab] = useState<'movie' | 'tv'>('movie')
 
-  const query = useAsync<TmdbPage<TmdbItem>>(
-    () => {
-      if (!platform) {
-        return Promise.resolve({ page: 1, results: [], total_pages: 0, total_results: 0 })
-      }
-      return tmdb.discover(tab, platform.id, settings.region)
-    },
-    [platform?.id, tab, settings.region],
+  const newest = useAsync(
+    () => platform
+      ? tmdb.platformNewest(platform.id, settings.region, platform.movieCompanies, platform.tvNetworks)
+      : Promise.resolve([]),
+    [platform?.id, settings.region],
+  )
+  const movies = useAsync(
+    () => platform ? tmdb.discover('movie', platform.id, settings.region) : Promise.resolve({ results: [] }),
+    [platform?.id, settings.region],
+  )
+  const shows = useAsync(
+    () => platform ? tmdb.discover('tv', platform.id, settings.region) : Promise.resolve({ results: [] }),
+    [platform?.id, settings.region],
   )
 
   if (!platform) return <p className="text-sm text-mute">Платформа не найдена.</p>
-  if (query.error) return <ErrorBox code={query.error} />
+  const err = newest.error || movies.error || shows.error
+  if (err && !newest.data && !movies.data) return <ErrorBox code={err} />
 
   return (
     <div className="rise">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">{platform.short}</p>
-      <h1 className="mt-1 text-3xl tracking-tight">{platform.name}</h1>
-      <p className="mt-2 text-sm text-mute">Регион доступности: {settings.region}</p>
-      <div className="mt-6 mb-6 flex gap-2">
-        {(['movie', 'tv'] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`rounded-full border px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.14em] ${
-              tab === t ? 'border-ink bg-ink text-canvas' : 'border-hairline text-mute'
-            }`}
-          >
-            {t === 'movie' ? 'Фильмы' : 'Сериалы'}
-          </button>
-        ))}
-      </div>
-      {query.loading ? <p className="text-sm text-mute">Загрузка каталога…</p> : <Grid items={query.data?.results ?? []} type={tab} />}
+      <h1 className="mt-1 mb-8 text-3xl tracking-tight">{platform.name}</h1>
+      <Row title="Новое от сервиса" items={newest.data ?? []} />
+      <section className="mb-10">
+        <h2 className="mb-3 text-lg font-medium tracking-tight">Фильмы в каталоге</h2>
+        {movies.loading ? <p className="text-sm text-mute">Загрузка…</p> : <Grid items={movies.data?.results ?? []} type="movie" />}
+      </section>
+      <section className="mb-10">
+        <h2 className="mb-3 text-lg font-medium tracking-tight">Сериалы в каталоге</h2>
+        {shows.loading ? <p className="text-sm text-mute">Загрузка…</p> : <Grid items={shows.data?.results ?? []} type="tv" />}
+      </section>
     </div>
   )
 }

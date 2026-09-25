@@ -1,18 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Umbra">
   <rect width="64" height="64" rx="15" fill="#0a0a0a"/>
   <defs>
-    <radialGradient id="c" cx="32" cy="32" r="22" gradientUnits="userSpaceOnUse">
-      <stop offset="0.58" stop-color="#ffb07a" stop-opacity="0"/>
-      <stop offset="0.72" stop-color="#ff9e64" stop-opacity="0.55"/>
+    <radialGradient id="c" cx="32" cy="32" r="26" gradientUnits="userSpaceOnUse">
+      <stop offset="0.52" stop-color="#ffb07a" stop-opacity="0"/>
+      <stop offset="0.7" stop-color="#ff9e64" stop-opacity="0.7"/>
       <stop offset="1" stop-color="#ff9e64" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="s" cx="30" cy="29" r="16" gradientUnits="userSpaceOnUse">
+    <radialGradient id="s" cx="29" cy="28" r="18" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#fff6e8"/>
-      <stop offset="0.7" stop-color="#ffd09a"/>
+      <stop offset="0.65" stop-color="#ffc27a"/>
       <stop offset="1" stop-color="#ff9e64"/>
     </radialGradient>
   </defs>
-  <circle cx="32" cy="32" r="22" fill="url(#c)"/>
-  <circle cx="32" cy="32" r="16.2" fill="url(#s)"/>
-  <circle cx="32.6" cy="32" r="14.6" fill="#0a0a0a"/>
+  <circle cx="32" cy="32" r="25" fill="url(#c)"/>
+  <circle cx="32" cy="32" r="17.2" fill="url(#s)"/>
+  <circle cx="33.6" cy="32" r="14.7" fill="#0a0a0a"/>
 </svg>

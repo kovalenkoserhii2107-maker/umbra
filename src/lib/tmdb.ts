@@ -179,6 +179,10 @@ async function chartIds(kind: MediaType): Promise<string[]> {
   return ids
 }
 
+function dateOf(item: TmdbItem) {
+  return item.release_date || item.first_air_date || ''
+}
+
 export const tmdb = {
   trending: (window: 'day' | 'week' = 'week', page = 1) => request<TmdbPage<TmdbItem>>(`/trending/all/${window}`, { page }),
   nowPlaying: (page = 1) => request<TmdbPage<TmdbItem>>('/movie/now_playing', { page }),
@@ -218,6 +222,61 @@ export const tmdb = {
       sort_by: 'popularity.desc',
       page,
     }),
+  discoverNewest: (type: MediaType, providerId: number, region: string, page = 1) =>
+    request<TmdbPage<TmdbItem>>(`/discover/${type}`, {
+      with_watch_providers: providerId,
+      watch_region: region,
+      with_watch_monetization_types: 'flatrate|free|ads',
+      sort_by: type === 'tv' ? 'first_air_date.desc' : 'primary_release_date.desc',
+      page,
+    }),
+  discoverOriginals: (type: MediaType, companies?: number[], networks?: number[], page = 1) => {
+    const params: Record<string, string | number | undefined> = {
+      page,
+      sort_by: type === 'tv' ? 'first_air_date.desc' : 'primary_release_date.desc',
+    }
+    if (type === 'movie' && companies?.length) params.with_companies = companies.join('|')
+    if (type === 'tv' && networks?.length) params.with_networks = networks.join('|')
+    else if (type === 'tv' && companies?.length) params.with_companies = companies.join('|')
+    return request<TmdbPage<TmdbItem>>(`/discover/${type}`, params)
+  },
+  platformNewest: async (
+    providerId: number,
+    region: string,
+    companies?: number[],
+    networks?: number[],
+  ): Promise<TmdbItem[]> => {
+    const originals = companies?.length || networks?.length
+    const [om, ot, nm, nt] = await Promise.all([
+      originals ? tmdb.discoverOriginals('movie', companies, networks, 1) : Promise.resolve({ results: [] as TmdbItem[] }),
+      originals ? tmdb.discoverOriginals('tv', companies, networks, 1) : Promise.resolve({ results: [] as TmdbItem[] }),
+      tmdb.discoverNewest('movie', providerId, region, 1),
+      tmdb.discoverNewest('tv', providerId, region, 1),
+    ])
+    const seen = new Set<string>()
+    const merged: TmdbItem[] = []
+    const push = (item: TmdbItem, type: MediaType) => {
+      const key = `${type}:${item.id}`
+      if (seen.has(key)) return
+      seen.add(key)
+      merged.push({ ...item, media_type: type })
+    }
+    om.results.forEach((item) => push(item, 'movie'))
+    ot.results.forEach((item) => push(item, 'tv'))
+    merged.sort((a, b) => dateOf(b).localeCompare(dateOf(a)))
+    const extras: TmdbItem[] = []
+    ;[
+      ...nm.results.map((item) => ({ ...item, media_type: 'movie' as const })),
+      ...nt.results.map((item) => ({ ...item, media_type: 'tv' as const })),
+    ].forEach((item) => {
+      const key = `${kindOf(item)}:${item.id}`
+      if (seen.has(key)) return
+      seen.add(key)
+      extras.push(item)
+    })
+    extras.sort((a, b) => dateOf(b).localeCompare(dateOf(a)))
+    return [...merged, ...extras].slice(0, 20)
+  },
   imdbChart: async (kind: MediaType, page = 1): Promise<TmdbPage<TmdbItem>> => {
     try {
       const ids = await chartIds(kind)

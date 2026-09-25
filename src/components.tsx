@@ -5,6 +5,7 @@ import { yearOf } from './lib/format'
 import { cachedRating, ensureImdbRating, subscribeRatings } from './lib/ratings'
 import { PLATFORMS } from './lib/providers'
 import { InstallPrompt } from './components/InstallPrompt'
+import { BrandLockup } from './components/Brand'
 
 export function Layout({ children }: { children: ReactNode }) {
   const location = useLocation()
@@ -59,9 +60,8 @@ function Header() {
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
-        <Link to="/" className="flex shrink-0 items-center gap-2 tracking-tight">
-          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="Umbra" className="h-8 w-8 rounded-lg" />
-          <span className="hidden font-medium sm:inline">Umbra</span>
+        <Link to="/" className="shrink-0">
+          <BrandLockup />
         </Link>
         <nav className="hidden items-center gap-5 text-sm text-mute md:flex">
           <NavLink to="/" end className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Лента</NavLink>
@@ -117,7 +117,7 @@ export function PosterCard({ item, type, layout = 'row' }: { item: TmdbItem; typ
       </div>
       <div className="mt-2 space-y-0.5">
         <p className="line-clamp-2 text-sm leading-snug">{titleOf(item)}</p>
-        <p className="font-mono text-[11px] uppercase tracking-wider text-dim">
+        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
           {media === 'tv' ? 'сериал' : 'фильм'}{year ? ` · ${year}` : ''}
         </p>
       </div>

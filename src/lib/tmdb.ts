@@ -144,12 +144,55 @@ async function request<T>(path: string, params: Record<string, string | number |
   return res.json() as Promise<T>
 }
 
+const CHART_CACHE = 'umbra.imdbCharts'
+
+async function chartIds(kind: MediaType): Promise<string[]> {
+  try {
+    const raw = localStorage.getItem(CHART_CACHE)
+    if (raw) {
+      const parsed = JSON.parse(raw) as { at: number; movie: string[]; tv: string[] }
+      if (Date.now() - parsed.at < 1000 * 60 * 60 * 12 && parsed[kind]?.length) return parsed[kind]
+    }
+  } catch {
+    /* ignore */
+  }
+  const url = kind === 'movie'
+    ? 'https://imdb-top250.mmdju.workers.dev/top250'
+    : 'https://imdb-top250.mmdju.workers.dev/toptv'
+  const res = await fetch(url)
+  if (!res.ok) throw new Error('CHART')
+  const json = await res.json() as { data?: Array<{ id: string }>; id?: string }
+  const list = Array.isArray((json as { data?: Array<{ id: string }> }).data)
+    ? (json as { data: Array<{ id: string }> }).data.map((x) => x.id)
+    : Array.isArray(json)
+      ? (json as Array<{ id: string }>).map((x) => x.id)
+      : []
+  const ids = list.filter(Boolean)
+  try {
+    const prev = JSON.parse(localStorage.getItem(CHART_CACHE) || '{}') as { movie?: string[]; tv?: string[] }
+    localStorage.setItem(CHART_CACHE, JSON.stringify({ at: Date.now(), movie: kind === 'movie' ? ids : prev.movie || [], tv: kind === 'tv' ? ids : prev.tv || [] }))
+  } catch {
+    /* ignore */
+  }
+  return ids
+}
+
 export const tmdb = {
-  trending: (window: 'day' | 'week' = 'week') => request<TmdbPage<TmdbItem>>(`/trending/all/${window}`),
-  nowPlaying: () => request<TmdbPage<TmdbItem>>('/movie/now_playing'),
-  upcoming: () => request<TmdbPage<TmdbItem>>('/movie/upcoming'),
-  airingToday: () => request<TmdbPage<TmdbItem>>('/tv/airing_today'),
-  popularTv: () => request<TmdbPage<TmdbItem>>('/tv/popular'),
+  trending: (window: 'day' | 'week' = 'week', page = 1) => request<TmdbPage<TmdbItem>>(`/trending/all/${window}`, { page }),
+  nowPlaying: (page = 1) => request<TmdbPage<TmdbItem>>('/movie/now_playing', { page }),
+  upcoming: (page = 1) => request<TmdbPage<TmdbItem>>('/movie/upcoming', { page }),
+  upcomingWindow: (page: number, from: string, to: string) =>
+    request<TmdbPage<TmdbItem>>('/discover/movie', {
+      page,
+      sort_by: 'popularity.desc',
+      'primary_release_date.gte': from,
+      'primary_release_date.lte': to,
+    }),
+  airingToday: (page = 1) => request<TmdbPage<TmdbItem>>('/tv/airing_today', { page }),
+  popularTv: (page = 1) => request<TmdbPage<TmdbItem>>('/tv/popular', { page }),
+  topRated: (type: MediaType, page = 1) => request<TmdbPage<TmdbItem>>(`/${type}/top_rated`, { page }),
+  recommendations: (type: MediaType, id: number, page = 1) =>
+    request<TmdbPage<TmdbItem>>(`/${type}/${id}/recommendations`, { page }),
   search: (query: string, page = 1) => request<TmdbPage<TmdbItem>>('/search/multi', { query, page }),
   details: (type: MediaType, id: number) =>
     request<TitleDetails>(`/${type}/${id}`, {
@@ -159,6 +202,10 @@ export const tmdb = {
     request<PersonDetails>(`/person/${id}`, {
       append_to_response: 'combined_credits',
     }),
+  find: (imdbId: string) =>
+    request<{ movie_results: TmdbItem[]; tv_results: TmdbItem[] }>(`/find/${imdbId}`, {
+      external_source: 'imdb_id',
+    }),
   discover: (type: MediaType, providerId: number, region: string, page = 1) =>
     request<TmdbPage<TmdbItem>>(`/discover/${type}`, {
       with_watch_providers: providerId,
@@ -167,4 +214,24 @@ export const tmdb = {
       sort_by: 'popularity.desc',
       page,
     }),
+  imdbChart: async (kind: MediaType, page = 1): Promise<TmdbPage<TmdbItem>> => {
+    try {
+      const ids = await chartIds(kind)
+      const size = 20
+      const slice = ids.slice((page - 1) * size, page * size)
+      const found = await Promise.all(slice.map(async (imdbId) => {
+        const hit = await tmdb.find(imdbId)
+        const row = kind === 'tv' ? hit.tv_results[0] : hit.movie_results[0]
+        return row ? { ...row, media_type: kind } : null
+      }))
+      return {
+        page,
+        results: found.filter((x): x is TmdbItem => Boolean(x)),
+        total_pages: Math.ceil(ids.length / size),
+        total_results: ids.length,
+      }
+    } catch {
+      return tmdb.topRated(kind, page)
+    }
+  },
 }

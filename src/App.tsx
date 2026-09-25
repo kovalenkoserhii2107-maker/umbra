@@ -22,8 +22,8 @@ export default function App() {
         <Route path="/platforms/:slug" element={<PlatformPage />} />
         <Route path="/library" element={<LibraryPage />} />
         <Route path="/guide" element={<GuidePage />} />
-        <Route path="/guide/:genreId" element={<GuideListPage />} />
         <Route path="/guide/year/:year" element={<GuideListPage />} />
+        <Route path="/guide/:genreId" element={<GuideListPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/cabinet" element={<CabinetPage />} />

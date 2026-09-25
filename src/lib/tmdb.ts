@@ -200,6 +200,8 @@ export const tmdb = {
     request<TitleDetails>(`/${type}/${id}`, {
       append_to_response: 'videos,credits,watch/providers,external_ids,similar',
     }),
+  externalIds: (type: MediaType, id: number) =>
+    request<{ imdb_id?: string }>(`/${type}/${id}/external_ids`),
   person: (id: number) =>
     request<PersonDetails>(`/person/${id}`, {
       append_to_response: 'combined_credits',

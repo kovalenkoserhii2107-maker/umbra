@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths-ignore:
       - 'assets/**'
+      - 'apple-touch-icon.png'
   workflow_dispatch:
 
 permissions:
@@ -24,6 +25,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - run: python3 scripts/write-apple-icon.py
       - run: npm install
       - run: npm run build
       - name: Publish assets for branch Pages
@@ -33,9 +35,10 @@ jobs:
           cp -f dist/assets/index.css assets/index.css
           cp -f dist/favicon.svg favicon.svg || true
           cp -f dist/icon.svg icon.svg || true
+          cp -f apple-touch-icon.png public/apple-touch-icon.png || true
           git config user.name "umbra-pages"
           git config user.email "pages@users.noreply.github.com"
-          git add assets favicon.svg icon.svg
+          git add assets favicon.svg icon.svg apple-touch-icon.png public/apple-touch-icon.png
           if git diff --staged --quiet; then
             echo "no asset changes"
           else

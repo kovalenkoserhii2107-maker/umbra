@@ -26,7 +26,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <Tab to="/" label="Лента" />
           <Tab to="/platforms" label="Платформы" />
           <Tab to="/library" label="Полка" />
-          <Tab to="/settings" label="Ещё" />
+          <Tab to="/cabinet" label="Кабинет" />
         </div>
       </nav>
     </div>
@@ -67,7 +67,7 @@ function Header() {
           <NavLink to="/" end className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Лента</NavLink>
           <NavLink to="/platforms" className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Платформы</NavLink>
           <NavLink to="/library" className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Полка</NavLink>
-          <NavLink to="/settings" className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Настройки</NavLink>
+          <NavLink to="/cabinet" className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Кабинет</NavLink>
         </nav>
         <form onSubmit={onSubmit} className="ml-auto min-w-0 flex-1 max-w-sm">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск" className="w-full rounded-full border border-hairline bg-card px-4 py-2 text-sm text-ink outline-none placeholder:text-dim focus:border-accent/60" />

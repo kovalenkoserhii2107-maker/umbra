@@ -4,7 +4,6 @@ import { kindOf, posterUrl, titleOf, type MediaType, type TmdbItem } from './lib
 import { yearOf } from './lib/format'
 import { cachedRating } from './lib/ratings'
 import { PLATFORMS } from './lib/providers'
-import { useAppState } from './state'
 import { InstallPrompt } from './components/InstallPrompt'
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -16,9 +15,12 @@ export function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh bg-canvas text-ink">
       <Header />
-      <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-6 sm:px-6">{children}</main>
+      <main className="mx-auto w-full max-w-6xl px-4 pb-32 pt-6 sm:px-6">{children}</main>
       <InstallPrompt />
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-canvas/90 backdrop-blur-md md:hidden">
+      <nav
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-canvas/90 backdrop-blur-md md:hidden"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         <div className="grid grid-cols-4">
           <Tab to="/" label="Лента" />
           <Tab to="/platforms" label="Платформы" />
@@ -52,12 +54,14 @@ function Header() {
     navigate(`/search?q=${encodeURIComponent(query)}`)
   }
   return (
-    <header className="sticky top-0 z-40 border-b border-hairline bg-canvas/85 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
+    <header
+      className="sticky top-0 z-40 border-b border-hairline bg-canvas/85 backdrop-blur-md"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+    >
+      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
         <Link to="/" className="flex shrink-0 items-center gap-2 tracking-tight">
           <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="Umbra" className="h-8 w-8 rounded-lg" />
-          <span className="font-medium">Umbra</span>
-          <span className="hidden font-mono text-[10px] uppercase tracking-[0.22em] text-accent sm:inline">каталог</span>
+          <span className="hidden font-medium xs:inline sm:inline">Umbra</span>
         </Link>
         <nav className="hidden items-center gap-5 text-sm text-mute md:flex">
           <NavLink to="/" end className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Лента</NavLink>
@@ -65,8 +69,8 @@ function Header() {
           <NavLink to="/library" className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Полка</NavLink>
           <NavLink to="/settings" className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Настройки</NavLink>
         </nav>
-        <form onSubmit={onSubmit} className="ml-auto w-full max-w-sm">
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск фильмов и сериалов" className="w-full rounded-full border border-hairline bg-card px-4 py-2 text-sm text-ink outline-none placeholder:text-dim focus:border-accent/60" />
+        <form onSubmit={onSubmit} className="ml-auto min-w-0 flex-1 max-w-sm">
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск" className="w-full rounded-full border border-hairline bg-card px-4 py-2 text-sm text-ink outline-none placeholder:text-dim focus:border-accent/60" />
         </form>
       </div>
     </header>
@@ -143,19 +147,6 @@ export function Grid({ items, type }: { items: TmdbItem[]; type?: MediaType }) {
   )
 }
 
-export function NeedKey() {
-  return (
-    <div className="rise mx-auto max-w-lg rounded-2xl border border-hairline bg-card p-6">
-      <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-accent">нужен ключ</p>
-      <h1 className="mt-2 text-2xl tracking-tight">Подключи TMDB</h1>
-      <p className="mt-3 text-sm leading-relaxed text-mute">
-        Umbra берёт каталог, постеры и «где смотреть» из The Movie Database. Ключ бесплатный и хранится только в этом браузере.
-      </p>
-      <Link to="/settings" className="mt-5 inline-flex rounded-full bg-ink px-4 py-2 text-sm text-canvas">Открыть настройки</Link>
-    </div>
-  )
-}
-
 export function Empty({ text }: { text: string }) {
   return <p className="py-16 text-center text-sm text-mute">{text}</p>
 }
@@ -186,10 +177,8 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {
 }
 
 export function ErrorBox({ code }: { code: string }) {
-  const { settings } = useAppState()
-  if (code === 'NO_KEY' || !settings.tmdbKey) return <NeedKey />
   if (code === 'BAD_KEY') {
-    return <div className="rounded-2xl border border-hairline bg-card p-6 text-sm text-mute">Ключ TMDB отклонён. Проверь его в настройках.</div>
+    return <div className="rounded-2xl border border-hairline bg-card p-6 text-sm text-mute">Не удалось подключить каталог TMDB.</div>
   }
   return <div className="rounded-2xl border border-hairline bg-card p-6 text-sm text-mute">Не удалось загрузить данные ({code}).</div>
 }

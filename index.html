@@ -16,31 +16,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <title>UMBRA</title>
-    <script>
-      (function () {
-        var v = '0.2.2'
-        var k = 'umbra.appVersion'
-        var prev = localStorage.getItem(k)
-        if (prev === v) return
-        localStorage.setItem(k, v)
-        if (!prev) return
-        var go = function () {
-          location.replace('/umbra/?v=' + v + (location.hash || '#/'))
-        }
-        var tasks = []
-        if (navigator.serviceWorker) {
-          tasks.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
-            return Promise.all(rs.map(function (r) { return r.unregister() }))
-          }))
-        }
-        if (window.caches) {
-          tasks.push(caches.keys().then(function (keys) {
-            return Promise.all(keys.map(function (key) { return caches.delete(key) }))
-          }))
-        }
-        Promise.all(tasks).then(go).catch(go)
-      })()
-    </script>
   </head>
   <body>
     <div id="root"></div>

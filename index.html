@@ -16,9 +16,18 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <title>UMBRA</title>
+    <link rel="stylesheet" href="/umbra/assets/index.css" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if (location.hostname.indexOf('github.io') !== -1) {
+        var s = document.createElement('script')
+        s.type = 'module'
+        s.src = '/umbra/assets/index.js'
+        document.body.appendChild(s)
+      }
+    </script>
   </body>
 </html>

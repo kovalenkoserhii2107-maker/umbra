@@ -1,19 +1,15 @@
 import { useSearchParams } from 'react-router-dom'
-import { ErrorBox, Grid, NeedKey, useAsync } from '../components'
-import { hasApiKey, tmdb } from '../lib/tmdb'
-import { useAppState } from '../state'
+import { ErrorBox, Grid, useAsync } from '../components'
+import { tmdb } from '../lib/tmdb'
 
 export function SearchPage() {
   const [params] = useSearchParams()
   const q = params.get('q')?.trim() || ''
-  const { settings } = useAppState()
-  const ready = hasApiKey()
   const result = useAsync(
-    () => (q ? tmdb.search(q) : Promise.resolve({ results: [] })),
-    [q, settings.tmdbKey],
+    () => (q ? tmdb.search(q) : Promise.resolve({ page: 1, results: [], total_pages: 0, total_results: 0 })),
+    [q],
   )
 
-  if (!ready) return <NeedKey />
   if (result.error) return <ErrorBox code={result.error} />
 
   return (

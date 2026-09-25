@@ -1,17 +1,12 @@
-import { Row, ErrorBox, NeedKey, useAsync } from '../components'
-import { hasApiKey, tmdb } from '../lib/tmdb'
-import { useAppState } from '../state'
+import { Row, ErrorBox, useAsync } from '../components'
+import { tmdb } from '../lib/tmdb'
 
 export function HomePage() {
-  const { settings } = useAppState()
-  const ready = hasApiKey()
-  const trending = useAsync(() => tmdb.trending('week'), [settings.tmdbKey])
-  const now = useAsync(() => tmdb.nowPlaying(), [settings.tmdbKey])
-  const airing = useAsync(() => tmdb.airingToday(), [settings.tmdbKey])
-  const upcoming = useAsync(() => tmdb.upcoming(), [settings.tmdbKey])
-  const popularTv = useAsync(() => tmdb.popularTv(), [settings.tmdbKey])
-
-  if (!ready) return <NeedKey />
+  const trending = useAsync(() => tmdb.trending('week'), [])
+  const now = useAsync(() => tmdb.nowPlaying(), [])
+  const airing = useAsync(() => tmdb.airingToday(), [])
+  const upcoming = useAsync(() => tmdb.upcoming(), [])
+  const popularTv = useAsync(() => tmdb.popularTv(), [])
 
   const firstError = [trending, now, airing].find((x) => x.error)?.error
   if (firstError && !trending.data) return <ErrorBox code={firstError} />

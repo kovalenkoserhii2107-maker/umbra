@@ -1,17 +1,8 @@
-import { useState } from 'react'
 import { PLATFORMS, REGIONS } from '../lib/providers'
 import { useAppState } from '../state'
 
 export function SettingsPage() {
   const { settings, setSettings, exportJson, importJson, items } = useAppState()
-  const [keyDraft, setKeyDraft] = useState(settings.tmdbKey)
-  const [saved, setSaved] = useState(false)
-
-  function saveKey() {
-    setSettings({ tmdbKey: keyDraft.trim() })
-    setSaved(true)
-    window.setTimeout(() => setSaved(false), 1600)
-  }
 
   function toggleProvider(id: number) {
     const has = settings.subscribed.includes(id)
@@ -51,26 +42,10 @@ export function SettingsPage() {
       </div>
 
       <section className="rounded-2xl border border-hairline bg-card p-5">
-        <h2 className="text-lg">Ключ TMDB</h2>
-        <p className="mt-2 text-sm leading-relaxed text-mute">
-          Бесплатный ключ: themoviedb.org → Settings → API. Хранится локально, в репозиторий не попадает.
-        </p>
-        <input
-          value={keyDraft}
-          onChange={(e) => setKeyDraft(e.target.value)}
-          placeholder="v3 api key"
-          className="mt-4 w-full rounded-xl border border-hairline bg-canvas px-3 py-2 font-mono text-sm outline-none focus:border-accent/60"
-        />
-        <button onClick={saveKey} className="mt-3 rounded-full bg-ink px-4 py-2 text-sm text-canvas">
-          {saved ? 'Сохранено' : 'Сохранить ключ'}
-        </button>
-      </section>
-
-      <section className="rounded-2xl border border-hairline bg-card p-5">
         <h2 className="text-lg">Установка</h2>
-        <p className="mt-2 text-sm text-mute">Добавить Umbra на телефон или рабочий стол как отдельное приложение.</p>
+        <p className="mt-2 text-sm text-mute">На iPhone: Поделиться → На экран «Домой». Safari не даёт системную кнопку «Установить».</p>
         <button onClick={showInstallAgain} className="mt-4 rounded-full border border-hairline px-4 py-2 text-sm">
-          Показать кнопку установки
+          Показать подсказку снова
         </button>
       </section>
 

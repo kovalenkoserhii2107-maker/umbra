@@ -200,6 +200,32 @@ export const tmdb = {
   recommendations: (type: MediaType, id: number, page = 1) =>
     request<TmdbPage<TmdbItem>>(`/${type}/${id}/recommendations`, { page }),
   search: (query: string, page = 1) => request<TmdbPage<TmdbItem>>('/search/multi', { query, page }),
+  searchCatalog: async (query: string, page = 1): Promise<TmdbPage<TmdbItem>> => {
+    const [movies, shows] = await Promise.all([
+      request<TmdbPage<TmdbItem>>('/search/movie', { query, page }),
+      request<TmdbPage<TmdbItem>>('/search/tv', { query, page }),
+    ])
+    const seen = new Set<string>()
+    const results: TmdbItem[] = []
+    for (const item of movies.results) {
+      const key = `movie:${item.id}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      results.push({ ...item, media_type: 'movie' })
+    }
+    for (const item of shows.results) {
+      const key = `tv:${item.id}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      results.push({ ...item, media_type: 'tv' })
+    }
+    return {
+      page,
+      results,
+      total_pages: Math.max(movies.total_pages, shows.total_pages),
+      total_results: movies.total_results + shows.total_results,
+    }
+  },
   details: (type: MediaType, id: number) =>
     request<TitleDetails>(`/${type}/${id}`, {
       append_to_response: 'videos,credits,watch/providers,external_ids,similar',

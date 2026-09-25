@@ -1,5 +1,5 @@
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { Link, NavLink, useLocation, type ReactNode } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { kindOf, posterUrl, titleOf, type MediaType, type TmdbItem } from './lib/tmdb'
 import { yearOf } from './lib/format'
 import { cachedRating, ensureImdbRating, subscribeRatings } from './lib/ratings'
@@ -7,6 +7,7 @@ import { PLATFORMS } from './lib/providers'
 import { InstallPrompt } from './components/InstallPrompt'
 import { BrandLockup } from './components/Brand'
 import { AccountMenu } from './components/AccountMenu'
+import { SearchBox } from './components/SearchBox'
 
 export function Layout({ children }: { children: ReactNode }) {
   const location = useLocation()
@@ -23,10 +24,11 @@ export function Layout({ children }: { children: ReactNode }) {
         className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-canvas/90 backdrop-blur-md md:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        <div className="grid grid-cols-3">
+        <div className="grid grid-cols-4">
           <Tab to="/" label="Лента" />
           <Tab to="/platforms" label="Платформы" />
           <Tab to="/library" label="Полка" />
+          <Tab to="/guide" label="Жанры" />
         </div>
       </nav>
     </div>
@@ -46,14 +48,6 @@ function Tab({ to, label }: { to: string; label: string }) {
 }
 
 function Header() {
-  const navigate = useNavigate()
-  const [q, setQ] = useState('')
-  function onSubmit(e: FormEvent) {
-    e.preventDefault()
-    const query = q.trim()
-    if (!query) return
-    navigate(`/search?q=${encodeURIComponent(query)}`)
-  }
   return (
     <header
       className="sticky top-0 z-40 border-b border-hairline bg-canvas/85 backdrop-blur-md"
@@ -67,10 +61,9 @@ function Header() {
           <NavLink to="/" end className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Лента</NavLink>
           <NavLink to="/platforms" className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Платформы</NavLink>
           <NavLink to="/library" className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Полка</NavLink>
+          <NavLink to="/guide" className={({ isActive }) => isActive ? 'text-ink' : 'hover:text-ink'}>Справочник</NavLink>
         </nav>
-        <form onSubmit={onSubmit} className="ml-auto min-w-0 flex-1 max-w-sm">
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск" className="w-full rounded-full border border-hairline bg-card px-4 py-2 text-sm text-ink outline-none placeholder:text-dim focus:border-accent/60" />
-        </form>
+        <SearchBox />
         <AccountMenu />
       </div>
     </header>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ErrorBox, NeedKey, PlatformChip, PosterCard, RatingBadge, useAsync } from '../components'
-import { backdropUrl, hasApiKey, kindOf, posterUrl, titleOf, tmdb, type MediaType, type PersonRef } from '../lib/tmdb'
+import { ErrorBox, PlatformChip, PosterCard, RatingBadge, useAsync } from '../components'
+import { backdropUrl, kindOf, posterUrl, titleOf, tmdb, type MediaType, type PersonRef } from '../lib/tmdb'
 import { fetchImdbRating, rememberRating } from '../lib/ratings'
 import { runtimeLabel, yearOf } from '../lib/format'
 import { PLATFORMS } from '../lib/providers'
@@ -59,8 +59,7 @@ export function TitlePage() {
   const { type = 'movie', id = '' } = useParams()
   const media = (type === 'tv' ? 'tv' : 'movie') as MediaType
   const { settings, get, upsert, remove } = useAppState()
-  const ready = hasApiKey()
-  const query = useAsync(() => tmdb.details(media, Number(id)), [media, id, settings.tmdbKey])
+  const query = useAsync(() => tmdb.details(media, Number(id)), [media, id])
   const mine = get(media, Number(id))
   const [imdb, setImdb] = useState<string | null>(null)
 
@@ -77,7 +76,6 @@ export function TitlePage() {
     }).catch(() => undefined)
   }, [query.data, media])
 
-  if (!ready) return <NeedKey />
   if (query.error) return <ErrorBox code={query.error} />
   if (query.loading || !query.data) return <p className="text-sm text-mute">Собираю карточку…</p>
 

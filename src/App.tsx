@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router-dom'
 import { Layout } from './components'
 import { FeedPage } from './pages/Feed'
+import { GuideListPage, GuidePage } from './pages/Guide'
 import { HomePage } from './pages/Home'
 import { LibraryPage } from './pages/Library'
 import { LoginPage } from './pages/Login'
@@ -20,6 +21,9 @@ export default function App() {
         <Route path="/platforms" element={<PlatformsPage />} />
         <Route path="/platforms/:slug" element={<PlatformPage />} />
         <Route path="/library" element={<LibraryPage />} />
+        <Route path="/guide" element={<GuidePage />} />
+        <Route path="/guide/:genreId" element={<GuideListPage />} />
+        <Route path="/guide/year/:year" element={<GuideListPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/cabinet" element={<CabinetPage />} />

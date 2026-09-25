@@ -6,10 +6,10 @@ import './index.css'
 import App from './App.tsx'
 import { AppStateProvider } from './state.tsx'
 
-registerSW({
+const updateSW = registerSW({
   immediate: true,
-  onNeedRefresh(update) {
-    update(true)
+  onNeedRefresh() {
+    updateSW(true)
   },
 })
 

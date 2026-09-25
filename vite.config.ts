@@ -29,6 +29,10 @@ export default defineConfig({
         ],
       },
       workbox: {
+        cacheId: 'umbra-20260925b',
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,svg,woff2,ico}'],
         runtimeCaching: [
           {

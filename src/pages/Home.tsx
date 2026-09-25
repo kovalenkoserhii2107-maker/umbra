@@ -1,11 +1,32 @@
-import { Row, ErrorBox, useAsync } from '../components'
+import { Link } from 'react-router-dom'
+import { Row, ErrorBox, RatingBadge, useAsync } from '../components'
 import { loadFeedPage, FEEDS } from '../lib/feeds'
 import { useAppState } from '../state'
-import type { MediaType, TmdbItem } from '../lib/tmdb'
+import { backdropUrl, kindOf, titleOf, type MediaType, type TmdbItem } from '../lib/tmdb'
 
 function posterPathFromStored(url: string) {
   const match = url.match(/\/t\/p\/w\d+(\/.+)$/)
   return match ? match[1] : null
+}
+
+function Featured({ item }: { item: TmdbItem }) {
+  const media = kindOf(item)
+  const bg = backdropUrl(item.backdrop_path) || backdropUrl(item.poster_path, 'w780')
+  return (
+    <Link to={`/title/${media}/${item.id}`} className="relative mb-10 block overflow-hidden rounded-2xl border border-hairline bg-card">
+      {bg ? (
+        <img src={bg} alt="" className="aspect-[16/9] w-full object-cover sm:aspect-[21/9]" />
+      ) : (
+        <div className="aspect-[16/9] sm:aspect-[21/9]" />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6">
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-accent">сейчас в кино</p>
+        <h1 className="mt-1 text-2xl tracking-tight text-white sm:text-3xl">{titleOf(item)}</h1>
+      </div>
+      <RatingBadge type={media} id={item.id} tmdbScore={item.vote_average} />
+    </Link>
+  )
 }
 
 export function HomePage() {
@@ -37,14 +58,13 @@ export function HomePage() {
     }))
 
   const preview = (id: (typeof FEEDS)[number]['id']) => FEEDS.find((f) => f.id === id)!
+  const hero = theaters.data?.results?.[0] || trending.data?.results?.[0]
+  const theaterRest = (theaters.data?.results ?? []).slice(hero && theaters.data?.results?.[0]?.id === hero.id ? 1 : 0)
 
   return (
     <div className="rise space-y-2">
-      <section className="mb-10">
-        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">лента</p>
-        <h1 className="mt-1 text-3xl tracking-tight">Что смотреть</h1>
-      </section>
-      <Row title={preview('theaters').title} items={theaters.data?.results ?? []} type="movie" to="/feed/theaters" />
+      {hero ? <Featured item={hero} /> : null}
+      <Row title={preview('theaters').title} items={theaterRest} type="movie" to="/feed/theaters" />
       <Row title={preview('trending').title} items={trending.data?.results ?? []} to="/feed/trending" />
       <Row title={preview('airing').title} items={airing.data?.results ?? []} type="tv" to="/feed/airing" />
       <Row title={preview('upcoming').title} items={upcoming.data?.results ?? []} type="movie" to="/feed/upcoming" />

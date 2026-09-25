@@ -27,21 +27,24 @@ export function rememberRating(type: MediaType, id: number, patch: Entry) {
   localStorage.setItem(CACHE_KEY, JSON.stringify(all))
 }
 
+function formatScore(value: number | string) {
+  const n = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(n) || n <= 0) return null
+  return n.toFixed(1)
+}
+
 export async function fetchImdbRating(imdbId?: string | null): Promise<string | null> {
   if (!imdbId) return null
-  let omdbKey = ''
   try {
-    omdbKey = (JSON.parse(localStorage.getItem('umbra.settings') || '{}') as { omdbKey?: string }).omdbKey || ''
+    const res = await fetch(`https://api.agregarr.org/api/ratings?id=${encodeURIComponent(imdbId)}`)
+    if (res.ok) {
+      const data = await res.json()
+      const row = Array.isArray(data) ? data[0] : data
+      const score = formatScore(row?.rating)
+      if (score) return score
+    }
   } catch {
-    omdbKey = ''
+    /* сеть или CORS */
   }
-  if (!omdbKey) return null
-  const url = new URL('https://www.omdbapi.com/')
-  url.searchParams.set('i', imdbId)
-  url.searchParams.set('apikey', omdbKey)
-  const res = await fetch(url.toString())
-  if (!res.ok) return null
-  const data = (await res.json()) as { imdbRating?: string }
-  if (!data.imdbRating || data.imdbRating === 'N/A') return null
-  return data.imdbRating
+  return null
 }

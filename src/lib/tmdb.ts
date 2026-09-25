@@ -161,16 +161,18 @@ async function chartIds(kind: MediaType): Promise<string[]> {
     : 'https://imdb-top250.mmdju.workers.dev/toptv'
   const res = await fetch(url)
   if (!res.ok) throw new Error('CHART')
-  const json = await res.json() as { data?: Array<{ id: string }>; id?: string }
-  const list = Array.isArray((json as { data?: Array<{ id: string }> }).data)
-    ? (json as { data: Array<{ id: string }> }).data.map((x) => x.id)
-    : Array.isArray(json)
-      ? (json as Array<{ id: string }>).map((x) => x.id)
-      : []
+  const json = await res.json() as { data?: Array<{ id: string }> } | Array<{ id: string }>
+  const list = Array.isArray(json)
+    ? json.map((x) => x.id)
+    : (json.data || []).map((x) => x.id)
   const ids = list.filter(Boolean)
   try {
     const prev = JSON.parse(localStorage.getItem(CHART_CACHE) || '{}') as { movie?: string[]; tv?: string[] }
-    localStorage.setItem(CHART_CACHE, JSON.stringify({ at: Date.now(), movie: kind === 'movie' ? ids : prev.movie || [], tv: kind === 'tv' ? ids : prev.tv || [] }))
+    localStorage.setItem(CHART_CACHE, JSON.stringify({
+      at: Date.now(),
+      movie: kind === 'movie' ? ids : prev.movie || [],
+      tv: kind === 'tv' ? ids : prev.tv || [],
+    }))
   } catch {
     /* ignore */
   }
@@ -222,12 +224,15 @@ export const tmdb = {
       const found = await Promise.all(slice.map(async (imdbId) => {
         const hit = await tmdb.find(imdbId)
         const row = kind === 'tv' ? hit.tv_results[0] : hit.movie_results[0]
-        return row ? { ...row, media_type: kind } : null
+        if (!row) return null
+        const item: TmdbItem = { ...row, media_type: kind }
+        return item
       }))
+      const results = found.filter((item): item is TmdbItem => item !== null)
       return {
         page,
-        results: found.filter((x): x is TmdbItem => Boolean(x)),
-        total_pages: Math.ceil(ids.length / size),
+        results,
+        total_pages: Math.max(1, Math.ceil(ids.length / size)),
         total_results: ids.length,
       }
     } catch {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { loadAccount, saveAccount, subscribeAccount } from '../lib/auth'
+import { loadAccount, signOutAccount, subscribeAccount } from '../lib/auth'
 
 export function AccountMenu() {
   const [open, setOpen] = useState(false)
@@ -26,8 +26,8 @@ export function AccountMenu() {
     }
   }, [open])
 
-  function signOut() {
-    saveAccount(null)
+  async function signOut() {
+    await signOutAccount()
     setOpen(false)
     navigate('/')
   }

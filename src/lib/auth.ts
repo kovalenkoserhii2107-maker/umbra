@@ -158,5 +158,5 @@ export function safeReturnPath(value: string | null) {
     !value.includes("\\") &&
     !value.startsWith("/login")
     ? value
-    : "/cabinet";
+    : "/";
 }

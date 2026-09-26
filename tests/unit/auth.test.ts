@@ -59,5 +59,5 @@ it("only accepts local return paths", async () => {
     "/login",
     "/\\evil.example",
   ])
-    expect(safeReturnPath(value)).toBe("/cabinet");
+    expect(safeReturnPath(value)).toBe("/");
 });

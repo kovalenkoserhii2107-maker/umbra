@@ -115,9 +115,18 @@ export function hasApiKey() {
   return Boolean(keyFromStore());
 }
 
+// TMDB currently labels this Bulgarian Digger teaser as Russian.
+// Match the image itself so existing saved cards receive the correction too.
+export function correctPosterUrl(url: string) {
+  return url.replace(
+    /^(https:\/\/image\.tmdb\.org\/t\/p\/(?:w\d+|original)\/)dnM8OyhnLc1YdRyUtps6d4rAUgM\.jpg$/,
+    "$1biovC0fjDUUSGJiR4joGaGERUS3.jpg",
+  );
+}
+
 export function posterUrl(path?: string | null, size = "w342") {
   if (!path) return "";
-  return `${IMG}/${size}${path}`;
+  return correctPosterUrl(`${IMG}/${size}${path}`);
 }
 
 export function backdropUrl(path?: string | null, size = "w1280") {

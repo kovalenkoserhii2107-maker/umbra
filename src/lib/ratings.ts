@@ -49,15 +49,31 @@ function formatScore(value: number | string) {
 
 export async function fetchImdbRating(imdbId?: string | null): Promise<string | null> {
   if (!imdbId) return null
-  try {
-    const res = await fetch(`https://api.agregarr.org/api/ratings?id=${encodeURIComponent(imdbId)}`)
-    if (!res.ok) return null
-    const data = await res.json()
-    const row = Array.isArray(data) ? data[0] : data
-    return formatScore(row?.rating)
-  } catch {
-    return null
+  const map = await fetchImdbRatings([imdbId])
+  return map[imdbId] || null
+}
+
+export async function fetchImdbRatings(ids: string[]): Promise<Record<string, string>> {
+  const unique = [...new Set(ids.filter(Boolean))]
+  if (!unique.length) return {}
+  const out: Record<string, string> = {}
+  for (let i = 0; i < unique.length; i += 80) {
+    const chunk = unique.slice(i, i + 80)
+    const qs = chunk.map((id) => `id=${encodeURIComponent(id)}`).join('&')
+    try {
+      const res = await fetch(`https://api.agregarr.org/api/ratings?${qs}`)
+      if (!res.ok) continue
+      const data = await res.json() as Array<{ imdbId?: string; rating?: number | null }>
+      const rows = Array.isArray(data) ? data : [data]
+      rows.forEach((row) => {
+        const score = formatScore(row?.rating ?? '')
+        if (row?.imdbId && score) out[row.imdbId] = score
+      })
+    } catch {
+      /* ignore chunk */
+    }
   }
+  return out
 }
 
 export async function ensureImdbRating(type: MediaType, id: number): Promise<string | null> {

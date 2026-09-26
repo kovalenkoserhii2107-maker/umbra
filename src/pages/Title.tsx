@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ErrorBox, PlatformChip, PosterCard, RatingBadge, useAsync } from '../components'
+import { Seasons } from '../components/Seasons'
 import { backdropUrl, kindOf, posterUrl, titleOf, tmdb, type MediaType, type PersonRef } from '../lib/tmdb'
 import { fetchImdbRating, rememberRating } from '../lib/ratings'
 import { dateLabel, runtimeLabel, yearOf } from '../lib/format'
 import { PLATFORMS } from '../lib/providers'
 import { useAppState, type Status } from '../state'
+import type { EpisodeRef, SeasonInfo } from '../lib/tv'
 
 const STATUSES: Array<{ id: Status; label: string }> = [
   { id: 'watchlist', label: 'Хочу' },
@@ -66,7 +68,6 @@ export function TitlePage() {
   useEffect(() => {
     const item = query.data
     if (!item) return
-    if (item.vote_average) rememberRating(media, item.id, { tmdb: item.vote_average })
     const imdbId = item.external_ids?.imdb_id
     if (!imdbId) return
     fetchImdbRating(imdbId).then((value) => {
@@ -79,7 +80,11 @@ export function TitlePage() {
   if (query.error) return <ErrorBox code={query.error} />
   if (query.loading || !query.data) return <p className="text-sm text-mute">Собираю карточку…</p>
 
-  const item = query.data
+  const item = query.data as typeof query.data & {
+    seasons?: SeasonInfo[]
+    next_episode_to_air?: EpisodeRef | null
+    last_episode_to_air?: EpisodeRef | null
+  }
   const title = titleOf(item)
   const released = item.release_date || item.first_air_date
   const year = yearOf(released)
@@ -98,7 +103,7 @@ export function TitlePage() {
   const region = item['watch/providers']?.results[settings.region] || item['watch/providers']?.results.US
   const flatrate = region?.flatrate ?? []
   const knownIds = new Set(PLATFORMS.map((p) => p.id))
-  const score = imdb || (item.vote_average ? item.vote_average.toFixed(1) : '')
+  const score = imdb || ''
 
   function setStatus(status: Status) {
     upsert({
@@ -128,7 +133,7 @@ export function TitlePage() {
           {item.poster_path ? (
             <div className="relative hidden w-24 overflow-hidden rounded-xl border border-hairline sm:block">
               <img src={posterUrl(item.poster_path, 'w185')} alt="" className="w-full" />
-              <RatingBadge type={media} id={item.id} tmdbScore={item.vote_average} />
+              <RatingBadge type={media} id={item.id} />
             </div>
           ) : null}
           <div>
@@ -142,6 +147,7 @@ export function TitlePage() {
               {score ? <span className="font-mono text-base font-bold text-[#f5c518]">{score}</span> : null}
               {runtime ? <span>{runtimeLabel(runtime)}</span> : null}
               {item.number_of_seasons ? <span>{item.number_of_seasons} сез.</span> : null}
+              {item.number_of_episodes ? <span>{item.number_of_episodes} эп.</span> : null}
               {item.genres?.slice(0, 3).map((g) => (
                 <span key={g.id} className="rounded-full border border-hairline px-2 py-0.5 text-xs">{g.name}</span>
               ))}
@@ -151,6 +157,15 @@ export function TitlePage() {
       </div>
 
       {item.overview ? <p className="max-w-3xl text-[15px] leading-7 text-ink/90">{item.overview}</p> : null}
+
+      {media === 'tv' ? (
+        <Seasons
+          tvId={item.id}
+          seasons={item.seasons}
+          nextEpisode={item.next_episode_to_air}
+          lastEpisode={item.last_episode_to_air}
+        />
+      ) : null}
 
       <section className="mt-8 rounded-2xl border border-hairline bg-card p-4">
         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-dim">на полке</p>

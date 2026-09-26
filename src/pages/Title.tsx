@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { ErrorBox, PlatformChip, PosterCard, RatingBadge, useAsync } from '../components'
 import { backdropUrl, kindOf, posterUrl, titleOf, tmdb, type MediaType, type PersonRef } from '../lib/tmdb'
 import { fetchImdbRating, rememberRating } from '../lib/ratings'
-import { runtimeLabel, yearOf } from '../lib/format'
+import { dateLabel, runtimeLabel, yearOf } from '../lib/format'
 import { PLATFORMS } from '../lib/providers'
 import { useAppState, type Status } from '../state'
 
@@ -81,7 +81,9 @@ export function TitlePage() {
 
   const item = query.data
   const title = titleOf(item)
-  const year = yearOf(item.release_date || item.first_air_date)
+  const released = item.release_date || item.first_air_date
+  const year = yearOf(released)
+  const releasedOn = dateLabel(released)
   const runtime = item.runtime || item.episode_run_time?.[0]
   const trailer =
     item.videos?.results.find((v) => v.site === 'YouTube' && v.type === 'Trailer') ||
@@ -131,7 +133,8 @@ export function TitlePage() {
           ) : null}
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-accent">
-              {media === 'tv' ? 'сериал' : 'фильм'} {year ? `· ${year}` : ''}
+              {media === 'tv' ? 'сериал' : 'фильм'}
+              {releasedOn ? ` · ${media === 'tv' ? 'премьера' : 'выход'} ${releasedOn}` : ''}
             </p>
             <h1 className="mt-1 text-3xl tracking-tight sm:text-4xl">{title}</h1>
             {item.tagline ? <p className="mt-1 text-sm text-mute">{item.tagline}</p> : null}

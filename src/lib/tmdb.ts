@@ -145,6 +145,12 @@ export function kindOf(item: TmdbItem): MediaType {
   return "movie";
 }
 
+export function mediaOf(item: TmdbItem, fallback?: MediaType): MediaType {
+  if (item.media_type === "movie" || item.media_type === "tv")
+    return item.media_type;
+  return fallback || kindOf(item);
+}
+
 async function request<T>(
   path: string,
   params: Record<string, string | number | undefined> = {},

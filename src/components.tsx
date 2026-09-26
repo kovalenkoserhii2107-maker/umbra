@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import {
-  kindOf,
+  mediaOf,
   posterUrl,
   titleOf,
   type MediaType,
@@ -126,15 +126,7 @@ function Header() {
   );
 }
 
-export function RatingBadge({
-  type,
-  id,
-  tmdbScore,
-}: {
-  type: MediaType;
-  id: number;
-  tmdbScore?: number;
-}) {
+export function RatingBadge({ type, id }: { type: MediaType; id: number }) {
   const [, setTick] = useState(0);
   useEffect(() => subscribeRatings(() => setTick((n) => n + 1)), []);
   const root = useRef<HTMLDivElement>(null);
@@ -151,14 +143,17 @@ export function RatingBadge({
     if (root.current) observer.observe(root.current);
     return () => observer.disconnect();
   }, [type, id]);
-  const cached = cachedRating(type, id);
-  const label = cached.imdb || (tmdbScore ? tmdbScore.toFixed(1) : "");
+  const score = cachedRating(type, id).imdb;
+  if (!score) return <div ref={root} className="absolute bottom-1.5 right-1.5" />;
   return (
     <div
       ref={root}
       className="absolute bottom-1.5 right-1.5 rounded-md bg-black/75 px-1.5 py-0.5 leading-none backdrop-blur-sm"
     >
-      <p className="font-mono text-sm font-bold text-[#f5c518]">{label}</p>
+      <p className="font-mono text-[8px] uppercase tracking-[0.14em] text-[#f5c518]/80">
+        IMDb
+      </p>
+      <p className="font-mono text-sm font-bold text-[#f5c518]">{score}</p>
     </div>
   );
 }
@@ -191,7 +186,7 @@ export function PosterCard({
   type?: MediaType;
   layout?: "row" | "grid";
 }) {
-  const media = type ?? kindOf(item);
+  const media = mediaOf(item, type);
   const poster = posterUrl(item.poster_path);
   const year = yearOf(item.release_date || item.first_air_date);
   return (
@@ -212,7 +207,7 @@ export function PosterCard({
             {titleOf(item)}
           </div>
         )}
-        <RatingBadge type={media} id={item.id} tmdbScore={item.vote_average} />
+        <RatingBadge type={media} id={item.id} />
       </div>
       <div className="mt-2 space-y-0.5">
         <p className="line-clamp-2 text-sm leading-snug">{titleOf(item)}</p>
@@ -255,9 +250,9 @@ export function Row({
           .filter((i) => i.media_type !== "person")
           .map((item) => (
             <PosterCard
-              key={`${kindOf(item)}-${item.id}`}
+              key={`${mediaOf(item, type)}-${item.id}`}
               item={item}
-              type={type ?? kindOf(item)}
+              type={type}
             />
           ))}
         {to ? (
@@ -283,9 +278,9 @@ export function Grid({ items, type }: { items: TmdbItem[]; type?: MediaType }) {
         .filter((i) => i.media_type !== "person")
         .map((item) => (
           <PosterCard
-            key={`${kindOf(item)}-${item.id}`}
+            key={`${mediaOf(item, type)}-${item.id}`}
             item={item}
-            type={type ?? kindOf(item)}
+            type={type}
             layout="grid"
           />
         ))}

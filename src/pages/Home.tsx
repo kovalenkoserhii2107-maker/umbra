@@ -4,7 +4,7 @@ import { loadFeedPage, FEEDS } from "../lib/feeds";
 import { useAppState } from "../state";
 import {
   backdropUrl,
-  kindOf,
+  mediaOf,
   titleOf,
   type MediaType,
   type TmdbItem,
@@ -16,7 +16,7 @@ function posterPathFromStored(url: string) {
 }
 
 function Featured({ item }: { item: TmdbItem }) {
-  const media = kindOf(item);
+  const media = mediaOf(item);
   const bg =
     backdropUrl(item.backdrop_path) || backdropUrl(item.poster_path, "w780");
   return (
@@ -42,7 +42,7 @@ function Featured({ item }: { item: TmdbItem }) {
           {titleOf(item)}
         </p>
       </div>
-      <RatingBadge type={media} id={item.id} tmdbScore={item.vote_average} />
+      <RatingBadge type={media} id={item.id} />
     </Link>
   );
 }

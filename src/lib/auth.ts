@@ -1,106 +1,162 @@
+import { useSyncExternalStore } from "react";
 import {
   createUserWithEmailAndPassword,
   getRedirectResult,
   onAuthStateChanged,
+  sendPasswordResetEmail,
+  sendEmailVerification,
   signInWithEmailAndPassword,
   signInWithPopup,
-  signInWithRedirect,
-  signOut as firebaseSignOut,
+  signOut,
   updateProfile,
   type User,
-} from 'firebase/auth'
-import { firebaseAuth, googleProvider } from './firebase'
+} from "firebase/auth";
+import { firebaseAuth, googleProvider } from "./firebase";
+import { writeStorage } from "./storage";
 
 export type Account = {
-  sub: string
-  email: string
-  name: string
-  picture: string
+  sub: string;
+  email: string;
+  name: string;
+  picture: string;
+  verified: boolean;
+};
+export type AuthState = {
+  status: "initializing" | "authenticated" | "anonymous" | "error";
+  account: Account | null;
+  error: string | null;
+};
+let snapshot: AuthState = {
+  status: "initializing",
+  account: null,
+  error: null,
+};
+const listeners = new Set<() => void>();
+let stop: (() => void) | undefined;
+function publish(next: AuthState) {
+  snapshot = next;
+  listeners.forEach((fn) => fn());
 }
-
-const ACCOUNT_KEY = 'umbra.account'
-const listeners = new Set<() => void>()
-
-function accountFromUser(user: User): Account {
+export function accountFromUser(user: User): Account {
   return {
     sub: user.uid,
-    email: user.email || '',
-    name: user.displayName || user.email || 'Аккаунт',
-    picture: user.photoURL || '',
-  }
+    email: user.email || "",
+    name: user.displayName || user.email || "Аккаунт",
+    picture: user.photoURL || "",
+    verified: user.emailVerified,
+  };
 }
-
-export function loadAccount(): Account | null {
-  try {
-    const raw = localStorage.getItem(ACCOUNT_KEY)
-    return raw ? JSON.parse(raw) as Account : null
-  } catch {
-    return null
-  }
+export function authError(error: unknown): string {
+  const code = (error as { code?: string })?.code || "";
+  const messages: Record<string, string> = {
+    "auth/invalid-credential": "Неверная почта или пароль.",
+    "auth/wrong-password": "Неверная почта или пароль.",
+    "auth/user-not-found": "Неверная почта или пароль.",
+    "auth/invalid-email": "Проверь адрес электронной почты.",
+    "auth/email-already-in-use":
+      "Эта почта уже зарегистрирована. Войди или восстанови пароль.",
+    "auth/weak-password": "Используй пароль не короче 8 символов.",
+    "auth/too-many-requests": "Слишком много попыток. Попробуй позже.",
+    "auth/network-request-failed":
+      "Нет связи. Проверь интернет и повтори попытку.",
+    "auth/popup-closed-by-user": "Вход отменён. Можно попробовать снова.",
+    "auth/cancelled-popup-request": "Окно входа уже открыто.",
+    "auth/popup-blocked":
+      "Разреши всплывающее окно для входа Google или войди по почте.",
+    "auth/unauthorized-domain":
+      "Вход с этого адреса пока не настроен. Попробуй другой способ входа.",
+    "auth/account-exists-with-different-credential":
+      "Войди способом, которым зарегистрировал эту почту.",
+    "auth/user-disabled": "Этот аккаунт отключён.",
+    "auth/operation-not-allowed": "Этот способ входа пока недоступен.",
+  };
+  return messages[code] || "Не удалось выполнить действие. Повтори попытку.";
 }
-
-export function saveAccount(account: Account | null) {
-  if (account) localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account))
-  else localStorage.removeItem(ACCOUNT_KEY)
-  emit()
-}
-
-export function subscribeAccount(fn: () => void) {
-  listeners.add(fn)
-  return () => {
-    listeners.delete(fn)
-  }
-}
-
-function emit() {
-  listeners.forEach((fn) => fn())
-}
-
-export function cloudUid() {
-  return firebaseAuth.currentUser?.uid || null
-}
-
-function isiOS() {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-}
-
 export function listenAuth() {
-  getRedirectResult(firebaseAuth)
-    .then((result) => {
-      if (result?.user) saveAccount(accountFromUser(result.user))
-    })
-    .catch(() => undefined)
-  return onAuthStateChanged(firebaseAuth, (user) => {
-    if (user) saveAccount(accountFromUser(user))
-    emit()
-  })
+  if (stop) return stop;
+  // The old profile was only a UI cache, never proof of a Firebase session.
+  writeStorage("umbra.account", null);
+  stop = onAuthStateChanged(
+    firebaseAuth,
+    (user) => {
+      publish({
+        status: user ? "authenticated" : "anonymous",
+        account: user ? accountFromUser(user) : null,
+        error: null,
+      });
+    },
+    (error) =>
+      publish({ status: "error", account: null, error: authError(error) }),
+  );
+  // Complete redirects initiated by older releases; new Google sign-ins use popup.
+  getRedirectResult(firebaseAuth).catch((error) =>
+    publish({ ...snapshot, error: authError(error) }),
+  );
+  return stop;
 }
-
+export function subscribeAccount(fn: () => void) {
+  listeners.add(fn);
+  return () => {
+    listeners.delete(fn);
+  };
+}
+export function loadAccount() {
+  return snapshot.account;
+}
+export function useAuth() {
+  return useSyncExternalStore(subscribeAccount, () => snapshot);
+}
+export function cloudUid() {
+  return firebaseAuth.currentUser?.uid || null;
+}
 export async function signInWithGoogle() {
-  if (isiOS()) {
-    await signInWithRedirect(firebaseAuth, googleProvider)
-    return
-  }
-  const result = await signInWithPopup(firebaseAuth, googleProvider)
-  saveAccount(accountFromUser(result.user))
+  await signInWithPopup(firebaseAuth, googleProvider);
 }
-
 export async function signInWithEmail(email: string, password: string) {
-  const result = await signInWithEmailAndPassword(firebaseAuth, email.trim(), password)
-  saveAccount(accountFromUser(result.user))
+  await signInWithEmailAndPassword(firebaseAuth, email.trim(), password);
 }
-
-export async function registerWithEmail(email: string, password: string, name: string) {
-  const result = await createUserWithEmailAndPassword(firebaseAuth, email.trim(), password)
-  const label = name.trim() || email.trim()
-  await updateProfile(result.user, { displayName: label }).catch(() => undefined)
-  saveAccount({
-    ...accountFromUser(result.user),
-    name: label,
-  })
+export async function registerWithEmail(
+  email: string,
+  password: string,
+  name: string,
+) {
+  const { user } = await createUserWithEmailAndPassword(
+    firebaseAuth,
+    email.trim(),
+    password,
+  );
+  try {
+    await updateProfile(user, {
+      displayName: name.trim().slice(0, 100) || email.trim(),
+    });
+    if (firebaseAuth.currentUser?.uid === user.uid)
+      publish({
+        status: "authenticated",
+        account: accountFromUser(user),
+        error: null,
+      });
+  } catch {
+    publish({
+      ...snapshot,
+      error: "Аккаунт создан. Имя не сохранилось; вход доступен.",
+    });
+  }
 }
-
+export async function resetPassword(email: string) {
+  await sendPasswordResetEmail(firebaseAuth, email.trim());
+}
+export async function verifyEmail() {
+  if (firebaseAuth.currentUser)
+    await sendEmailVerification(firebaseAuth.currentUser);
+}
 export async function signOutAccount() {
-  await firebaseSignOut(firebaseAuth).catch(() => undefined)
-  saveAccount(null)
+  await signOut(firebaseAuth);
+}
+export function safeReturnPath(value: string | null) {
+  return value &&
+    /^\/(?!\/)/.test(value) &&
+    !value.includes("\\") &&
+    !value.startsWith("/login")
+    ? value
+    : "/cabinet";
 }

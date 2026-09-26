@@ -15,7 +15,9 @@
   --color-ok: #9ece6a;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   min-height: 100%;
   min-height: 100dvh;
   background: var(--color-canvas);
@@ -37,18 +39,44 @@ body {
 }
 
 @keyframes rise {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.row-scroll { scrollbar-width: none; }
-.row-scroll::-webkit-scrollbar { display: none; }
+.row-scroll {
+  scrollbar-width: none;
+}
+.row-scroll::-webkit-scrollbar {
+  display: none;
+}
 
 .poster-hover {
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.25s ease, box-shadow 0.35s ease;
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.25s ease,
+    box-shadow 0.35s ease;
 }
 .poster-hover:hover {
   transform: translateY(-4px) scale(1.03);
-  border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-hairline));
-  box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+  border-color: color-mix(
+    in srgb,
+    var(--color-accent) 55%,
+    var(--color-hairline)
+  );
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    animation: none;
+  }
+  .poster-hover {
+    transition: none;
+  }
 }

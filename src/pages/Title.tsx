@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ErrorBox, PlatformChip, PosterCard, RatingBadge, useAsync } from '../components'
+import { ErrorBox, PlatformChip, PosterCard, useAsync } from '../components'
 import { Seasons } from '../components/Seasons'
 import { backdropUrl, kindOf, posterUrl, titleOf, tmdb, type MediaType, type PersonRef } from '../lib/tmdb'
 import { fetchImdbRating, rememberRating } from '../lib/ratings'
@@ -128,30 +128,26 @@ export function TitlePage() {
         ) : (
           <div className="h-28 bg-canvas sm:h-40" />
         )}
-        <div className="flex items-start gap-4 p-4 sm:p-5">
-          {item.poster_path ? (
-            <div className="relative w-20 shrink-0 overflow-hidden rounded-xl border border-hairline sm:w-24">
-              <img src={posterUrl(item.poster_path, 'w185')} alt="" className="w-full" />
-              <RatingBadge type={media} id={item.id} />
-            </div>
-          ) : null}
-          <div className="min-w-0">
-            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-accent">
-              {media === 'tv' ? 'сериал' : 'фильм'}
-              {releasedOn ? ` · ${media === 'tv' ? 'премьера' : 'выход'} ${releasedOn}` : ''}
-            </p>
-            <h1 className="mt-1 text-2xl tracking-tight sm:text-4xl">{title}</h1>
-            {item.tagline ? <p className="mt-1 text-sm text-mute">{item.tagline}</p> : null}
-            <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-mute">
-              {score ? <span className="font-mono text-base font-bold text-[#f5c518]">{score}</span> : null}
-              {runtime ? <span>{runtimeLabel(runtime)}</span> : null}
-              {item.number_of_seasons ? <span>{item.number_of_seasons} сез.</span> : null}
-              {item.number_of_episodes ? <span>{item.number_of_episodes} эп.</span> : null}
-              {item.genres?.slice(0, 3).map((g) => (
-                <span key={g.id} className="rounded-full border border-hairline px-2 py-0.5 text-xs">{g.name}</span>
+        <div className="p-4 sm:p-5">
+          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-accent">
+            {media === 'tv' ? 'сериал' : 'фильм'}
+            {releasedOn ? ` · ${media === 'tv' ? 'премьера' : 'выход'} ${releasedOn}` : ''}
+          </p>
+          <h1 className="mt-1 text-2xl tracking-tight sm:text-4xl">{title}</h1>
+          {item.tagline ? <p className="mt-1 text-sm text-mute">{item.tagline}</p> : null}
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-mute">
+            {score ? <span className="font-mono text-base font-bold text-[#f5c518]">{score}</span> : null}
+            {runtime ? <span>{runtimeLabel(runtime)}</span> : null}
+            {item.number_of_seasons ? <span>{item.number_of_seasons} сез.</span> : null}
+            {item.number_of_episodes ? <span>{item.number_of_episodes} эп.</span> : null}
+          </div>
+          {item.genres?.length ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {item.genres.map((g) => (
+                <span key={g.id} className="rounded-full border border-hairline px-2.5 py-1 text-xs text-mute">{g.name}</span>
               ))}
             </div>
-          </div>
+          ) : null}
         </div>
       </div>
 

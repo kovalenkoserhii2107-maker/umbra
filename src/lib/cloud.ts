@@ -1,9 +1,23 @@
 import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore'
 import { firebaseDb } from './firebase'
 import type { Account } from './auth'
-import type { LibraryItem } from '../state'
+import type { MediaType } from './tmdb'
 
-function itemId(item: Pick<LibraryItem, 'type' | 'id'>) {
+export type CloudItem = {
+  id: number
+  type: MediaType
+  title: string
+  poster: string
+  year: string
+  status: string
+  rating: number | null
+  note: string
+  season?: number
+  episode?: number
+  updatedAt: number
+}
+
+function itemId(item: Pick<CloudItem, 'type' | 'id'>) {
   return `${item.type}-${item.id}`
 }
 
@@ -16,25 +30,26 @@ export async function saveProfile(account: Account) {
   }, { merge: true })
 }
 
-export async function pullLibrary(uid: string): Promise<LibraryItem[]> {
+export async function pullLibrary(uid: string): Promise<CloudItem[]> {
   const snap = await getDocs(collection(firebaseDb, 'users', uid, 'library'))
-  return snap.docs.map((row) => row.data() as LibraryItem)
+  return snap.docs.map((row) => row.data() as CloudItem)
 }
 
-export async function pushItem(uid: string, item: LibraryItem) {
+export async function pushItem(uid: string, item: CloudItem) {
   await setDoc(doc(firebaseDb, 'users', uid, 'library', itemId(item)), item, { merge: true })
 }
 
-export async function dropItem(uid: string, type: LibraryItem['type'], id: number) {
+export async function dropItem(uid: string, type: MediaType, id: number) {
   await deleteDoc(doc(firebaseDb, 'users', uid, 'library', `${type}-${id}`))
 }
 
-export function mergeLibraries(local: LibraryItem[], remote: LibraryItem[]) {
-  const map = new Map<string, LibraryItem>()
-  ;[...local, ...remote].forEach((item) => {
+export function mergeLibraries<T extends CloudItem>(local: T[], remote: CloudItem[]) {
+  const map = new Map<string, T>()
+  local.forEach((item) => map.set(itemId(item), item))
+  remote.forEach((item) => {
     const key = itemId(item)
     const prev = map.get(key)
-    if (!prev || (item.updatedAt || 0) >= (prev.updatedAt || 0)) map.set(key, item)
+    if (!prev || (item.updatedAt || 0) >= (prev.updatedAt || 0)) map.set(key, item as T)
   })
   return [...map.values()].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
 }

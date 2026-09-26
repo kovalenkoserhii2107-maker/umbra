@@ -34,17 +34,12 @@ export function Seasons({ tvId, seasons, nextEpisode, lastEpisode }: {
   lastEpisode?: EpisodeRef | null
 }) {
   const regular = (seasons || []).filter((s) => s.season_number > 0)
-  const first = regular[0]?.season_number || 1
-  const [current, setCurrent] = useState(first)
+  const [current, setCurrent] = useState(1)
   const [episodes, setEpisodes] = useState<EpisodeInfo[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (regular[0] && current !== first && episodes.length === 0) setCurrent(first)
-  }, [first])
-
-  useEffect(() => {
-    if (!tvId || !current) return
+    if (!tvId) return
     let alive = true
     setLoading(true)
     setEpisodes([])
@@ -122,7 +117,7 @@ export function Seasons({ tvId, seasons, nextEpisode, lastEpisode }: {
         ))}
       </div>
 
-      {loading ? <p className="mt-4 text-sm text-mute">Загружаю первый сезон…</p> : null}
+      {loading ? <p className="mt-4 text-sm text-mute">Загружаю сезон {current}…</p> : null}
 
       {episodes.length ? (
         <>

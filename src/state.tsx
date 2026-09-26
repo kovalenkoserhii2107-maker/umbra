@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { DEFAULT_TMDB_KEY, type MediaType } from './lib/tmdb'
-import { loadAccount, subscribeAccount, type Account } from './lib/auth'
+import { cloudUid, loadAccount, subscribeAccount, type Account } from './lib/auth'
 import { dropItem, mergeLibraries, pullLibrary, pushItem, saveProfile } from './lib/cloud'
 
 export type Status = 'watchlist' | 'watching' | 'watched' | 'dropped'
@@ -76,7 +76,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [settings, setSettingsState] = useState<Settings>(() => loadSettings())
   const [items, setItems] = useState<LibraryItem[]>(() => loadLibrary())
   const [account, setAccount] = useState<Account | null>(() => loadAccount())
-  const ready = useRef(false)
 
   useEffect(() => subscribeAccount(() => setAccount(loadAccount())), [])
 
@@ -91,21 +90,20 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, [items])
 
   useEffect(() => {
-    if (!account) {
-      ready.current = true
-      return
-    }
+    const uid = cloudUid()
+    if (!account || !uid) return
     let alive = true
     saveProfile(account).catch(() => undefined)
-    pullLibrary(account.sub)
+    pullLibrary(uid)
       .then((remote) => {
         if (!alive) return
-        setItems((local) => mergeLibraries(local, remote))
-        ready.current = true
+        setItems((local) => {
+          const merged = mergeLibraries(local, remote)
+          merged.forEach((item) => pushItem(uid, item).catch(() => undefined))
+          return merged
+        })
       })
-      .catch(() => {
-        ready.current = true
-      })
+      .catch(() => undefined)
     return () => { alive = false }
   }, [account?.sub])
 
@@ -122,11 +120,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         copy[idx] = { ...copy[idx], ...next }
         return copy
       })
-      if (account) pushItem(account.sub, next).catch(() => undefined)
+      const uid = cloudUid()
+      if (uid) pushItem(uid, next).catch(() => undefined)
     },
     remove: (type, id) => {
       setItems((list) => list.filter((x) => !(x.id === id && x.type === type)))
-      if (account) dropItem(account.sub, type, id).catch(() => undefined)
+      const uid = cloudUid()
+      if (uid) dropItem(uid, type, id).catch(() => undefined)
     },
     get: (type, id) => items.find((x) => x.id === id && x.type === type),
     exportJson: () => JSON.stringify({ settings: { region: settings.region, subscribed: settings.subscribed }, items }, null, 2),

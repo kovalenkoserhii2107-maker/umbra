@@ -1,5 +1,5 @@
-import { GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signInWithCredential, signOut as firebaseSignOut, type User } from 'firebase/auth'
-import { firebaseAuth } from './firebase'
+import { GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signInWithCredential, signInWithPopup, signOut as firebaseSignOut, type User } from 'firebase/auth'
+import { firebaseAuth, googleProvider } from './firebase'
 
 export type Account = {
   sub: string
@@ -85,22 +85,29 @@ export function parseCredential(credential: string): Account {
   }
 }
 
+export function cloudUid() {
+  return firebaseAuth.currentUser?.uid || null
+}
+
 export function listenAuth() {
   getRedirectResult(firebaseAuth).catch(() => undefined)
   return onAuthStateChanged(firebaseAuth, (user) => {
     if (user) saveAccount(accountFromUser(user))
+    emit()
   })
 }
 
 export async function signInWithGoogleToken(idToken: string) {
   const local = parseCredential(idToken)
   saveAccount(local)
-  try {
-    const result = await signInWithCredential(firebaseAuth, GoogleAuthProvider.credential(idToken))
-    saveAccount(accountFromUser(result.user))
-  } catch {
-    /* local session still works; cloud sync waits for Firebase */
-  }
+  const result = await signInWithCredential(firebaseAuth, GoogleAuthProvider.credential(idToken))
+  saveAccount(accountFromUser(result.user))
+}
+
+export async function connectFirebase() {
+  const result = await signInWithPopup(firebaseAuth, googleProvider)
+  saveAccount(accountFromUser(result.user))
+  return result.user.uid
 }
 
 export async function signOutAccount() {

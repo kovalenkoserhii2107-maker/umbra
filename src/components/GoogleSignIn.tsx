@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { FirebaseError } from 'firebase/app'
 import { GOOGLE_CLIENT_ID, signInWithGoogleToken } from '../lib/auth'
 
 declare global {
@@ -58,7 +59,12 @@ export function GoogleSignIn({ next = '/cabinet' }: { next?: string }) {
           callback: async (res) => {
             try {
               if (!res.credential) throw new Error('NO_CRED')
-              await signInWithGoogleToken(res.credential)
+              try {
+                await signInWithGoogleToken(res.credential)
+              } catch (err) {
+                const code = err instanceof FirebaseError ? err.code : ''
+                setStatus(code ? `Профиль открыт, облако: ${code}` : 'Профиль открыт, облако пока без Firebase')
+              }
               navigate(next, { replace: true })
             } catch {
               setStatus('Не удалось прочитать ответ Google')

@@ -122,26 +122,25 @@ export function TitlePage() {
 
   return (
     <article className="rise pb-8">
-      <div className="relative mb-6 overflow-hidden rounded-3xl border border-hairline">
+      <div className="mb-6 overflow-hidden rounded-3xl border border-hairline bg-card">
         {item.backdrop_path ? (
-          <img src={backdropUrl(item.backdrop_path)} alt="" className="h-56 w-full object-cover sm:h-80" />
+          <img src={backdropUrl(item.backdrop_path)} alt="" className="h-44 w-full object-cover sm:h-64" />
         ) : (
-          <div className="h-40 bg-card sm:h-56" />
+          <div className="h-28 bg-canvas sm:h-40" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-canvas via-canvas/40 to-transparent" />
-        <div className="absolute bottom-0 flex items-end gap-4 p-4 sm:p-6">
+        <div className="flex items-start gap-4 p-4 sm:p-5">
           {item.poster_path ? (
-            <div className="relative hidden w-24 overflow-hidden rounded-xl border border-hairline sm:block">
+            <div className="relative w-20 shrink-0 overflow-hidden rounded-xl border border-hairline sm:w-24">
               <img src={posterUrl(item.poster_path, 'w185')} alt="" className="w-full" />
               <RatingBadge type={media} id={item.id} />
             </div>
           ) : null}
-          <div>
+          <div className="min-w-0">
             <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-accent">
               {media === 'tv' ? 'сериал' : 'фильм'}
               {releasedOn ? ` · ${media === 'tv' ? 'премьера' : 'выход'} ${releasedOn}` : ''}
             </p>
-            <h1 className="mt-1 text-3xl tracking-tight sm:text-4xl">{title}</h1>
+            <h1 className="mt-1 text-2xl tracking-tight sm:text-4xl">{title}</h1>
             {item.tagline ? <p className="mt-1 text-sm text-mute">{item.tagline}</p> : null}
             <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-mute">
               {score ? <span className="font-mono text-base font-bold text-[#f5c518]">{score}</span> : null}

@@ -1,5 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { DEFAULT_TMDB_KEY, type MediaType } from './lib/tmdb'
+import { loadAccount, subscribeAccount, type Account } from './lib/auth'
+import { dropItem, mergeLibraries, pullLibrary, pushItem, saveProfile } from './lib/cloud'
 
 export type Status = 'watchlist' | 'watching' | 'watched' | 'dropped'
 
@@ -73,6 +75,10 @@ const AppState = createContext<Ctx | null>(null)
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const [settings, setSettingsState] = useState<Settings>(() => loadSettings())
   const [items, setItems] = useState<LibraryItem[]>(() => loadLibrary())
+  const [account, setAccount] = useState<Account | null>(() => loadAccount())
+  const ready = useRef(false)
+
+  useEffect(() => subscribeAccount(() => setAccount(loadAccount())), [])
 
   useEffect(() => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
@@ -84,28 +90,51 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(LIBRARY_KEY, JSON.stringify(items))
   }, [items])
 
+  useEffect(() => {
+    if (!account) {
+      ready.current = true
+      return
+    }
+    let alive = true
+    saveProfile(account).catch(() => undefined)
+    pullLibrary(account.sub)
+      .then((remote) => {
+        if (!alive) return
+        setItems((local) => mergeLibraries(local, remote))
+        ready.current = true
+      })
+      .catch(() => {
+        ready.current = true
+      })
+    return () => { alive = false }
+  }, [account?.sub])
+
   const value = useMemo<Ctx>(() => ({
     settings,
     setSettings: (patch) => setSettingsState((s) => ({ ...s, ...patch })),
     items,
     upsert: (item) => {
+      const next: LibraryItem = { ...item, updatedAt: Date.now() }
       setItems((list) => {
-        const next: LibraryItem = { ...item, updatedAt: Date.now() }
         const idx = list.findIndex((x) => x.id === next.id && x.type === next.type)
         if (idx === -1) return [next, ...list]
         const copy = list.slice()
         copy[idx] = { ...copy[idx], ...next }
         return copy
       })
+      if (account) pushItem(account.sub, next).catch(() => undefined)
     },
-    remove: (type, id) => setItems((list) => list.filter((x) => !(x.id === id && x.type === type))),
+    remove: (type, id) => {
+      setItems((list) => list.filter((x) => !(x.id === id && x.type === type)))
+      if (account) dropItem(account.sub, type, id).catch(() => undefined)
+    },
     get: (type, id) => items.find((x) => x.id === id && x.type === type),
     exportJson: () => JSON.stringify({ settings: { region: settings.region, subscribed: settings.subscribed }, items }, null, 2),
     importJson: (raw) => {
       const data = JSON.parse(raw) as { items?: LibraryItem[] }
       if (Array.isArray(data.items)) setItems(data.items)
     },
-  }), [settings, items])
+  }), [settings, items, account])
 
   return <AppState.Provider value={value}>{children}</AppState.Provider>
 }

@@ -47,7 +47,7 @@ function emit() {
 }
 
 export function cloudUid() {
-  return firebaseAuth.currentUser?.uid || loadAccount()?.sub || null
+  return firebaseAuth.currentUser?.uid || null
 }
 
 function isiOS() {

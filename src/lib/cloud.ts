@@ -1,55 +1,97 @@
-import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore'
-import { firebaseDb } from './firebase'
-import type { Account } from './auth'
-import type { MediaType } from './tmdb'
-
-export type CloudItem = {
-  id: number
-  type: MediaType
-  title: string
-  poster: string
-  year: string
-  status: string
-  rating: number | null
-  note: string
-  season?: number
-  episode?: number
-  updatedAt: number
+import {
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  writeBatch,
+} from "firebase/firestore";
+import { firebaseDb, firebaseAuth } from "./firebase";
+import {
+  itemKey,
+  parseItem,
+  type LibraryItem,
+  type LibraryPatch,
+} from "./library";
+function owned(uid: string) {
+  if (!uid || firebaseAuth.currentUser?.uid !== uid)
+    throw new Error("Сессия изменилась. Войди снова.");
 }
-
-function itemId(item: Pick<CloudItem, 'type' | 'id'>) {
-  return `${item.type}-${item.id}`
+export function watchLibrary(
+  uid: string,
+  receive: (items: LibraryItem[], pending: boolean, cached: boolean) => void,
+  failed: (error: Error) => void,
+) {
+  owned(uid);
+  return onSnapshot(
+    collection(firebaseDb, "users", uid, "library"),
+    { includeMetadataChanges: true },
+    (snap) => {
+      try {
+        const items = snap.docs
+          .map((row) => {
+            const data = row.data({ serverTimestamps: "estimate" });
+            const updatedAt =
+              typeof data.updatedAt === "number"
+                ? data.updatedAt
+                : data.updatedAt?.toMillis?.() || 0;
+            return parseItem({ ...data, updatedAt });
+          })
+          .sort((a, b) => b.updatedAt - a.updatedAt);
+        receive(items, snap.metadata.hasPendingWrites, snap.metadata.fromCache);
+      } catch {
+        failed(
+          new Error(
+            "В облаке есть некорректная запись. Экспортируй полку перед восстановлением.",
+          ),
+        );
+      }
+    },
+    failed,
+  );
 }
-
-export async function saveProfile(account: Account) {
-  await setDoc(doc(firebaseDb, 'users', account.sub), {
-    email: account.email,
-    name: account.name,
-    picture: account.picture,
-    updatedAt: Date.now(),
-  }, { merge: true })
+export async function pushItem(uid: string, value: LibraryItem) {
+  owned(uid);
+  const item = parseItem(value);
+  await setDoc(doc(firebaseDb, "users", uid, "library", itemKey(item)), {
+    ...item,
+    updatedAt: serverTimestamp(),
+  });
 }
-
-export async function pullLibrary(uid: string): Promise<CloudItem[]> {
-  const snap = await getDocs(collection(firebaseDb, 'users', uid, 'library'))
-  return snap.docs.map((row) => row.data() as CloudItem)
+export async function patchItem(
+  uid: string,
+  type: LibraryItem["type"],
+  id: number,
+  patch: LibraryPatch,
+) {
+  owned(uid);
+  // updateDoc cannot recreate a title deleted on another device.
+  await updateDoc(doc(firebaseDb, "users", uid, "library", `${type}-${id}`), {
+    ...patch,
+    updatedAt: serverTimestamp(),
+  });
 }
-
-export async function pushItem(uid: string, item: CloudItem) {
-  await setDoc(doc(firebaseDb, 'users', uid, 'library', itemId(item)), item, { merge: true })
+export async function dropItem(
+  uid: string,
+  type: LibraryItem["type"],
+  id: number,
+) {
+  owned(uid);
+  await deleteDoc(doc(firebaseDb, "users", uid, "library", `${type}-${id}`));
 }
-
-export async function dropItem(uid: string, type: MediaType, id: number) {
-  await deleteDoc(doc(firebaseDb, 'users', uid, 'library', `${type}-${id}`))
-}
-
-export function mergeLibraries<T extends CloudItem>(local: T[], remote: CloudItem[]) {
-  const map = new Map<string, T>()
-  local.forEach((item) => map.set(itemId(item), item))
-  remote.forEach((item) => {
-    const key = itemId(item)
-    const prev = map.get(key)
-    if (!prev || (item.updatedAt || 0) >= (prev.updatedAt || 0)) map.set(key, item as T)
-  })
-  return [...map.values()].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+export async function importItems(uid: string, items: LibraryItem[]) {
+  owned(uid);
+  // Small atomic chunks keep imports below Firestore request limits.
+  for (let start = 0; start < items.length; start += 100) {
+    owned(uid);
+    const batch = writeBatch(firebaseDb);
+    for (const item of items.slice(start, start + 100))
+      batch.set(doc(firebaseDb, "users", uid, "library", itemKey(item)), {
+        ...parseItem(item),
+        updatedAt: serverTimestamp(),
+      });
+    await batch.commit();
+  }
 }

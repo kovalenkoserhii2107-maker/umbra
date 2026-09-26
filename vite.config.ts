@@ -1,50 +1,78 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import { VitePWA } from 'vite-plugin-pwa'
-
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import { VitePWA } from "vite-plugin-pwa";
+import { execSync } from "node:child_process";
+function revision() {
+  try {
+    return execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim();
+  } catch {
+    return "local";
+  }
+}
 export default defineConfig({
-  base: '/umbra/',
-  build: {
-    rollupOptions: {
-      output: {
-        entryFileNames: 'assets/index.js',
-        chunkFileNames: 'assets/[name].js',
-        assetFileNames: 'assets/[name][extname]',
-      },
-    },
+  base: "/umbra/",
+  define: {
+    __APP_VERSION__: JSON.stringify(
+      process.env.GITHUB_SHA?.slice(0, 7) || revision(),
+    ),
   },
   plugins: [
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: "prompt",
       injectRegister: false,
-      includeAssets: ['favicon.svg', 'icon.svg', 'icon-maskable.svg'],
+      includeAssets: [
+        "favicon.svg",
+        "icon.svg",
+        "icon-maskable.svg",
+        "apple-touch-icon.png",
+      ],
       manifest: {
-        name: 'Umbra',
-        short_name: 'Umbra',
-        description: 'Персональный каталог фильмов и сериалов',
-        theme_color: '#0a0a0a',
-        background_color: '#0a0a0a',
-        display: 'standalone',
-        orientation: 'any',
-        start_url: '/umbra/',
-        scope: '/umbra/',
-        lang: 'ru',
+        name: "Umbra",
+        short_name: "Umbra",
+        description: "Личная картотека фильмов и сериалов",
+        theme_color: "#0a0a0a",
+        background_color: "#0a0a0a",
+        display: "standalone",
+        start_url: "/umbra/",
+        scope: "/umbra/",
+        lang: "ru",
         icons: [
-          { src: 'icon.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any' },
-          { src: 'icon-maskable.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'maskable' },
-          { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+          {
+            src: "icon.svg",
+            sizes: "512x512",
+            type: "image/svg+xml",
+            purpose: "any",
+          },
+          {
+            src: "icon-maskable.svg",
+            sizes: "512x512",
+            type: "image/svg+xml",
+            purpose: "maskable",
+          },
         ],
       },
       workbox: {
-        cacheId: 'umbra-0.5.1',
-        skipWaiting: true,
-        clientsClaim: true,
+        cacheId: "umbra",
         cleanupOutdatedCaches: true,
-        globPatterns: ['**/*.{js,css,svg,woff2,ico,html}'],
+        clientsClaim: true,
+        navigateFallback: "index.html",
+        navigateFallbackAllowlist: [/^\/umbra(?:\/|$)/],
+        globPatterns: ["**/*.{js,css,svg,png,woff2,ico,html}"],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/image\.tmdb\.org\//,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "umbra-posters",
+              expiration: { maxEntries: 200, maxAgeSeconds: 7 * 86400 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
     }),
   ],
-})
+});

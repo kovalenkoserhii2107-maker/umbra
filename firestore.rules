@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owns(uid) { return request.auth != null && request.auth.uid == uid; }
+    function validItem(d, key) {
+      return d.keys().hasAll(['id', 'type', 'title', 'poster', 'year', 'status', 'rating', 'note', 'updatedAt'])
+        && d.keys().hasOnly(['id', 'type', 'title', 'poster', 'year', 'status', 'rating', 'note', 'updatedAt', 'season', 'episode'])
+        && d.id is int && d.id > 0 && d.id <= 9007199254740991
+        && d.type in ['movie', 'tv'] && key == d.type + '-' + string(d.id)
+        && d.title is string && d.title.size() <= 500
+        && d.poster is string && d.poster.size() <= 2048
+        && (d.poster == '' || d.poster.matches('https://image[.]tmdb[.]org/.*'))
+        && d.year is string && d.year.size() <= 10
+        && d.status in ['watchlist', 'watching', 'watched', 'dropped']
+        && (d.rating == null || (d.rating is number && d.rating >= 1 && d.rating <= 10))
+        && d.note is string && d.note.size() <= 5000
+        // Numeric timestamps remain compatible with the previous deployed client.
+        && (d.updatedAt is timestamp || d.updatedAt is number)
+        && (!('season' in d) || (d.season is int && d.season >= 0))
+        && (!('episode' in d) || (d.episode is int && d.episode >= 0));
+    }
+    match /users/{uid} {
+      allow read: if owns(uid);
+      allow create, update: if owns(uid)
+        && request.resource.data.keys().hasOnly(['email', 'name', 'picture', 'updatedAt'])
+        && request.resource.data.email is string && request.resource.data.email.size() <= 254
+        && request.resource.data.name is string && request.resource.data.name.size() <= 500
+        && request.resource.data.picture is string && request.resource.data.picture.size() <= 2048
+        && (request.resource.data.updatedAt is timestamp || request.resource.data.updatedAt is number);
+      allow delete: if owns(uid);
+      match /library/{key} {
+        allow read, delete: if owns(uid);
+        allow create, update: if owns(uid) && validItem(request.resource.data, key);
+      }
+    }
+  }
+}

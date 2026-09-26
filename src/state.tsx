@@ -1,146 +1,234 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { DEFAULT_TMDB_KEY, type MediaType } from './lib/tmdb'
-import { cloudUid, loadAccount, subscribeAccount, type Account } from './lib/auth'
-import { dropItem, mergeLibraries, pullLibrary, pushItem, saveProfile } from './lib/cloud'
-
-export type Status = 'watchlist' | 'watching' | 'watched' | 'dropped'
-
-export type LibraryItem = {
-  id: number
-  type: MediaType
-  title: string
-  poster: string
-  year: string
-  status: Status
-  rating: number | null
-  note: string
-  season?: number
-  episode?: number
-  updatedAt: number
-}
-
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { DEFAULT_TMDB_KEY, type MediaType } from "./lib/tmdb";
+import { useAuth, cloudUid } from "./lib/auth";
+import {
+  dropItem,
+  watchLibrary,
+  pushItem,
+  patchItem,
+  importItems,
+} from "./lib/cloud";
+import {
+  parseImport,
+  parseItem,
+  type LibraryItem,
+  type LibraryPatch,
+} from "./lib/library";
+import { readStorage, writeStorage } from "./lib/storage";
+export type { LibraryItem, Status } from "./lib/library";
 export type Settings = {
-  tmdbKey: string
-  region: string
-  subscribed: number[]
-}
-
-const SETTINGS_KEY = 'umbra.settings'
-const LIBRARY_KEY = 'umbra.library'
-const LEGACY_KEY = 'umbra.tmdbKey'
-
-const defaultSettings: Settings = {
-  tmdbKey: localStorage.getItem(LEGACY_KEY) || DEFAULT_TMDB_KEY,
-  region: 'UA',
+  tmdbKey: string;
+  region: string;
+  subscribed: number[];
+};
+export type SyncState =
+  "signed-out" | "connecting" | "synced" | "pending" | "offline" | "error";
+const defaults: Settings = {
+  tmdbKey: DEFAULT_TMDB_KEY,
+  region: "UA",
   subscribed: [8, 337, 9, 1899, 350, 192],
-}
-
+};
 function loadSettings(): Settings {
   try {
-    const raw = localStorage.getItem(SETTINGS_KEY)
-    if (!raw) return { ...defaultSettings }
-    const parsed = JSON.parse(raw) as Settings
+    const v = JSON.parse(readStorage("umbra.settings") || "{}");
     return {
-      ...defaultSettings,
-      ...parsed,
-      tmdbKey: parsed.tmdbKey || DEFAULT_TMDB_KEY,
-    }
+      tmdbKey:
+        typeof v.tmdbKey === "string" && v.tmdbKey
+          ? v.tmdbKey
+          : DEFAULT_TMDB_KEY,
+      region: ["UA", "US", "GB", "DE", "PL"].includes(v.region)
+        ? v.region
+        : "UA",
+      subscribed: Array.isArray(v.subscribed)
+        ? v.subscribed.filter((id: unknown) => Number.isSafeInteger(id))
+        : defaults.subscribed,
+    };
   } catch {
-    return { ...defaultSettings }
+    return defaults;
   }
 }
-
-function loadLibrary(): LibraryItem[] {
-  try {
-    const raw = localStorage.getItem(LIBRARY_KEY)
-    return raw ? (JSON.parse(raw) as LibraryItem[]) : []
-  } catch {
-    return []
-  }
-}
-
 type Ctx = {
-  settings: Settings
-  setSettings: (patch: Partial<Settings>) => void
-  items: LibraryItem[]
-  upsert: (item: Omit<LibraryItem, 'updatedAt'> & { updatedAt?: number }) => void
-  remove: (type: MediaType, id: number) => void
-  get: (type: MediaType, id: number) => LibraryItem | undefined
-  exportJson: () => string
-  importJson: (raw: string) => void
-}
-
-const AppState = createContext<Ctx | null>(null)
-
+  settings: Settings;
+  setSettings: (patch: Partial<Settings>) => void;
+  items: LibraryItem[];
+  sync: SyncState;
+  syncError: string | null;
+  retrySync: () => void;
+  upsert: (
+    item: Omit<LibraryItem, "updatedAt"> & { updatedAt?: number },
+  ) => void;
+  update: (type: MediaType, id: number, patch: LibraryPatch) => void;
+  remove: (type: MediaType, id: number) => void;
+  get: (type: MediaType, id: number) => LibraryItem | undefined;
+  exportJson: () => string;
+  importJson: (raw: string) => Promise<void>;
+};
+const AppState = createContext<Ctx | null>(null);
 export function AppStateProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettingsState] = useState<Settings>(() => loadSettings())
-  const [items, setItems] = useState<LibraryItem[]>(() => loadLibrary())
-  const [account, setAccount] = useState<Account | null>(() => loadAccount())
-
-  useEffect(() => subscribeAccount(() => setAccount(loadAccount())), [])
-
-  useEffect(() => {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
-    if (settings.tmdbKey) localStorage.setItem(LEGACY_KEY, settings.tmdbKey)
-    else localStorage.removeItem(LEGACY_KEY)
-  }, [settings])
-
-  useEffect(() => {
-    localStorage.setItem(LIBRARY_KEY, JSON.stringify(items))
-  }, [items])
-
-  useEffect(() => {
-    const uid = cloudUid()
-    if (!account || !uid) return
-    let alive = true
-    saveProfile(account).catch(() => undefined)
-    pullLibrary(uid)
-      .then((remote) => {
-        if (!alive) return
-        setItems((local) => {
-          const merged = mergeLibraries(local, remote)
-          merged.forEach((item) => pushItem(uid, item).catch(() => undefined))
-          return merged
-        })
-      })
-      .catch(() => undefined)
-    return () => { alive = false }
-  }, [account?.sub])
-
-  const value = useMemo<Ctx>(() => ({
-    settings,
-    setSettings: (patch) => setSettingsState((s) => ({ ...s, ...patch })),
-    items,
-    upsert: (item) => {
-      const next: LibraryItem = { ...item, updatedAt: Date.now() }
-      setItems((list) => {
-        const idx = list.findIndex((x) => x.id === next.id && x.type === next.type)
-        if (idx === -1) return [next, ...list]
-        const copy = list.slice()
-        copy[idx] = { ...copy[idx], ...next }
-        return copy
-      })
-      const uid = cloudUid()
-      if (uid) pushItem(uid, next).catch(() => undefined)
-    },
-    remove: (type, id) => {
-      setItems((list) => list.filter((x) => !(x.id === id && x.type === type)))
-      const uid = cloudUid()
-      if (uid) dropItem(uid, type, id).catch(() => undefined)
-    },
-    get: (type, id) => items.find((x) => x.id === id && x.type === type),
-    exportJson: () => JSON.stringify({ settings: { region: settings.region, subscribed: settings.subscribed }, items }, null, 2),
-    importJson: (raw) => {
-      const data = JSON.parse(raw) as { items?: LibraryItem[] }
-      if (Array.isArray(data.items)) setItems(data.items)
-    },
-  }), [settings, items, account])
-
-  return <AppState.Provider value={value}>{children}</AppState.Provider>
+  const auth = useAuth();
+  // Keyed lifetime prevents even a single render of A's data in B's session.
+  return (
+    <SessionState
+      key={auth.account?.sub || auth.status}
+      uid={auth.account?.sub || null}
+    >
+      {children}
+    </SessionState>
+  );
 }
-
+function SessionState({
+  uid,
+  children,
+}: {
+  uid: string | null;
+  children: ReactNode;
+}) {
+  const [settings, setSettings] = useState(loadSettings);
+  const [items, setItems] = useState<LibraryItem[]>([]);
+  const [sync, setSync] = useState<SyncState>(
+    uid ? "connecting" : "signed-out",
+  );
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [attempt, retry] = useState(0);
+  const active = useRef(true);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
+  useEffect(() => {
+    if (!writeStorage("umbra.settings", JSON.stringify(settings)))
+      setSyncError("Настройки не сохраняются на этом устройстве.");
+    writeStorage("umbra.tmdbKey", settings.tmdbKey);
+  }, [settings]);
+  useEffect(() => {
+    if (!uid) return;
+    let alive = true;
+    let pending = false;
+    let cached = true;
+    let failed = false;
+    const status = () => {
+      if (!alive || failed) return;
+      setSync(
+        !navigator.onLine
+          ? "offline"
+          : pending
+            ? "pending"
+            : cached
+              ? "connecting"
+              : "synced",
+      );
+    };
+    setSync("connecting");
+    setSyncError(null);
+    const stop = watchLibrary(
+      uid,
+      (next, hasPending, fromCache) => {
+        if (!alive) return;
+        setItems(next);
+        pending = hasPending;
+        cached = fromCache;
+        status();
+      },
+      (error) => {
+        if (!alive) return;
+        failed = true;
+        setSync("error");
+        setSyncError(
+          error.message.includes("permission")
+            ? "Облако отклонило доступ. Войди снова или обратись к владельцу приложения."
+            : "Не удалось прочитать полку. Проверь сеть и повтори попытку.",
+        );
+      },
+    );
+    window.addEventListener("online", status);
+    window.addEventListener("offline", status);
+    return () => {
+      alive = false;
+      stop();
+      window.removeEventListener("online", status);
+      window.removeEventListener("offline", status);
+    };
+  }, [uid, attempt]);
+  function owner() {
+    if (!uid || cloudUid() !== uid)
+      throw new Error("Войди в аккаунт, чтобы сохранить фильм.");
+    return uid;
+  }
+  function mutation(action: () => Promise<void>) {
+    setSyncError(null);
+    setSync(navigator.onLine ? "pending" : "offline");
+    try {
+      void action().catch((error) => {
+        if (!active.current) return;
+        setSync("error");
+        setSyncError(
+          (error as { code?: string }).code === "not-found"
+            ? "Этот фильм уже удалён на другом устройстве. Добавь его снова, если нужно."
+            : "Изменение не сохранилось в облаке. Повтори действие; при необходимости экспортируй полку.",
+        );
+      });
+    } catch (error) {
+      setSync("error");
+      setSyncError((error as Error).message);
+    }
+  }
+  const value: Ctx = {
+    settings,
+    setSettings: (patch) => setSettings((s) => ({ ...s, ...patch })),
+    items,
+    sync,
+    syncError,
+    retrySync: () => retry((n) => n + 1),
+    upsert: (item) =>
+      mutation(() =>
+        pushItem(owner(), parseItem({ ...item, updatedAt: Date.now() })),
+      ),
+    update: (type, id, patch) =>
+      mutation(() => {
+        const previous = items.find(
+          (item) => item.id === id && item.type === type,
+        );
+        if (!previous) throw new Error("Фильм отсутствует на полке.");
+        parseItem({ ...previous, ...patch });
+        return patchItem(owner(), type, id, patch);
+      }),
+    remove: (type, id) => mutation(() => dropItem(owner(), type, id)),
+    get: (type, id) =>
+      items.find((item) => item.type === type && item.id === id),
+    exportJson: () => JSON.stringify({ version: 1, items }, null, 2),
+    importJson: async (raw) => {
+      const parsed = parseImport(raw);
+      const id = owner();
+      setSyncError(null);
+      setSync("pending");
+      try {
+        await importItems(id, parsed);
+      } catch {
+        if (active.current) {
+          setSync("error");
+          setSyncError(
+            "Импорт завершился не полностью. Уже сохранённые записи остаются; файл можно импортировать повторно.",
+          );
+        }
+        throw new Error(
+          "Не удалось завершить импорт. Проверь соединение и повтори попытку.",
+        );
+      }
+    },
+  };
+  return <AppState.Provider value={value}>{children}</AppState.Provider>;
+}
 export function useAppState() {
-  const ctx = useContext(AppState)
-  if (!ctx) throw new Error('AppState missing')
-  return ctx
+  const ctx = useContext(AppState);
+  if (!ctx) throw new Error("AppState missing");
+  return ctx;
 }

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Empty } from "../components";
+import { correctPosterUrl } from "../lib/tmdb";
 import { plural } from "../lib/format";
 import { useAppState, type Status } from "../state";
 
@@ -59,7 +60,7 @@ export function LibraryPage() {
             >
               {item.poster ? (
                 <img
-                  src={item.poster}
+                  src={correctPosterUrl(item.poster)}
                   alt=""
                   className="h-20 w-14 rounded-lg object-cover"
                 />

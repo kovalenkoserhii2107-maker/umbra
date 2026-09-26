@@ -1,45 +1,90 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FirebaseError } from 'firebase/app'
-import { signInWithGoogle } from '../lib/auth'
+import { GOOGLE_CLIENT_ID, signInWithGoogleToken } from '../lib/auth'
 
-function explain(err: unknown) {
-  const code = err instanceof FirebaseError ? err.code : ''
-  if (code.includes('unauthorized-domain')) return 'Добавь домен kovalenkoserhii2107-maker.github.io в Authentication → Settings → Authorized domains'
-  if (code.includes('operation-not-allowed')) return 'В Firebase не включён вход через Google'
-  if (code.includes('popup-blocked') || code.includes('popup-closed')) return 'Окно Google закрылось. Нажми ещё раз'
-  if (code.includes('network-request-failed')) return 'Нет сети до Firebase'
-  return code ? `Ошибка входа: ${code}` : 'Не удалось войти через Google'
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (cfg: {
+            client_id: string
+            callback: (res: { credential?: string }) => void
+            ux_mode?: string
+          }) => void
+          renderButton: (el: HTMLElement, cfg: Record<string, string | number>) => void
+        }
+      }
+    }
+  }
+}
+
+function loadGsi() {
+  return new Promise<void>((resolve, reject) => {
+    if (window.google?.accounts?.id) {
+      resolve()
+      return
+    }
+    const existing = document.querySelector<HTMLScriptElement>('script[data-umbra-gsi]')
+    if (existing) {
+      existing.addEventListener('load', () => resolve())
+      existing.addEventListener('error', () => reject(new Error('GSI')))
+      return
+    }
+    const script = document.createElement('script')
+    script.src = 'https://accounts.google.com/gsi/client'
+    script.async = true
+    script.defer = true
+    script.dataset.umbraGsi = '1'
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error('GSI'))
+    document.head.appendChild(script)
+  })
 }
 
 export function GoogleSignIn({ next = '/cabinet' }: { next?: string }) {
+  const buttonRef = useRef<HTMLDivElement>(null)
   const [status, setStatus] = useState('')
-  const [busy, setBusy] = useState(false)
   const navigate = useNavigate()
 
-  async function enter() {
-    setBusy(true)
-    setStatus('')
-    try {
-      await signInWithGoogle()
-      navigate(next, { replace: true })
-    } catch (err) {
-      setStatus(explain(err))
-    } finally {
-      setBusy(false)
+  useEffect(() => {
+    let gone = false
+    loadGsi()
+      .then(() => {
+        if (gone || !buttonRef.current || !window.google) return
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          ux_mode: 'popup',
+          callback: async (res) => {
+            try {
+              if (!res.credential) throw new Error('NO_CRED')
+              await signInWithGoogleToken(res.credential)
+              navigate(next, { replace: true })
+            } catch {
+              setStatus('Не удалось прочитать ответ Google')
+            }
+          },
+        })
+        buttonRef.current.innerHTML = ''
+        window.google.accounts.id.renderButton(buttonRef.current, {
+          type: 'standard',
+          theme: 'filled_black',
+          size: 'large',
+          text: 'signin_with',
+          shape: 'pill',
+          width: 280,
+          locale: 'ru',
+        })
+      })
+      .catch(() => setStatus('Не удалось подключить Google'))
+    return () => {
+      gone = true
     }
-  }
+  }, [navigate, next])
 
   return (
     <div className="space-y-3">
-      <button
-        type="button"
-        onClick={enter}
-        disabled={busy}
-        className="w-full rounded-full border border-hairline bg-ink px-4 py-3 text-sm text-canvas disabled:opacity-60"
-      >
-        {busy ? 'Открываю Google…' : 'Войти через Google'}
-      </button>
+      <div ref={buttonRef} className="flex min-h-10 justify-center" />
       {status ? <p className="text-center text-sm text-accent">{status}</p> : null}
     </div>
   )

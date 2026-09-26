@@ -1,37 +1,19 @@
 import { Navigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { FirebaseError } from 'firebase/app'
-import { cloudUid, connectFirebase, loadAccount, signOutAccount, subscribeAccount } from '../lib/auth'
+import { cloudUid, loadAccount, signOutAccount, subscribeAccount } from '../lib/auth'
 import { useAppState } from '../state'
 
 export function CabinetPage() {
   const [account, setAccount] = useState(() => loadAccount())
-  const [cloud, setCloud] = useState(() => cloudUid())
-  const [note, setNote] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [cloud, setCloud] = useState(() => Boolean(cloudUid()))
   const { items } = useAppState()
 
   useEffect(() => subscribeAccount(() => {
     setAccount(loadAccount())
-    setCloud(cloudUid())
+    setCloud(Boolean(cloudUid()))
   }), [])
 
   if (!account) return <Navigate to="/login" replace />
-
-  async function linkCloud() {
-    setBusy(true)
-    setNote('')
-    try {
-      const uid = await connectFirebase()
-      setCloud(uid)
-      setNote('Облако подключено')
-    } catch (err) {
-      const code = err instanceof FirebaseError ? err.code : ''
-      setNote(code || 'Не удалось открыть окно Google')
-    } finally {
-      setBusy(false)
-    }
-  }
 
   return (
     <div className="rise max-w-2xl space-y-8">
@@ -61,18 +43,8 @@ export function CabinetPage() {
         <p className="mt-2 text-sm text-mute">
           {cloud
             ? `Полка синхронизируется · ${items.length} титлов`
-            : 'Сейчас полка только на этом телефоне. Подключи Firebase, чтобы она появилась в базе.'}
+            : 'Войди через Google ещё раз, если полка не уходит в облако. Отдельная кнопка не нужна.'}
         </p>
-        {!cloud ? (
-          <button
-            onClick={linkCloud}
-            disabled={busy}
-            className="mt-4 rounded-full border border-hairline px-4 py-2 text-sm disabled:opacity-60"
-          >
-            {busy ? 'Открываю Google…' : 'Подключить облако'}
-          </button>
-        ) : null}
-        {note ? <p className="mt-3 text-sm text-accent">{note}</p> : null}
       </section>
     </div>
   )

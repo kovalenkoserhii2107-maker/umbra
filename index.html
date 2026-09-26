@@ -16,18 +16,34 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <title>UMBRA</title>
-    <link rel="stylesheet" href="/umbra/assets/index.css?v=0.4.9" />
+    <link rel="stylesheet" href="/umbra/assets/index-0.5.0.css" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      if (location.hostname.indexOf('github.io') !== -1) {
-        var s = document.createElement('script')
-        s.type = 'module'
-        s.src = '/umbra/assets/index.js?v=0.4.9'
-        document.body.appendChild(s)
-      }
+      (function () {
+        function boot() {
+          if (location.hostname.indexOf('github.io') === -1) return
+          var s = document.createElement('script')
+          s.type = 'module'
+          s.src = '/umbra/assets/index-0.5.0.js'
+          document.body.appendChild(s)
+        }
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations()
+            .then(function (regs) { return Promise.all(regs.map(function (reg) { return reg.unregister() })) })
+            .then(function () {
+              if (!window.caches) return
+              return caches.keys().then(function (keys) {
+                return Promise.all(keys.map(function (key) { return caches.delete(key) }))
+              })
+            })
+            .finally(boot)
+        } else {
+          boot()
+        }
+      })()
     </script>
   </body>
 </html>

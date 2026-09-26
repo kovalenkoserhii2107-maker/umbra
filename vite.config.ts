@@ -8,9 +8,9 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        entryFileNames: 'assets/index.js',
-        chunkFileNames: 'assets/[name].js',
-        assetFileNames: 'assets/[name][extname]',
+        entryFileNames: 'assets/index-0.5.0.js',
+        chunkFileNames: 'assets/[name]-0.5.0.js',
+        assetFileNames: 'assets/[name]-0.5.0[extname]',
       },
     },
   },
@@ -19,6 +19,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: false,
       includeAssets: ['favicon.svg', 'icon.svg', 'icon-maskable.svg'],
       manifest: {
         name: 'Umbra',
@@ -38,29 +39,11 @@ export default defineConfig({
         ],
       },
       workbox: {
-        cacheId: 'umbra-0.4.8',
+        cacheId: 'umbra-0.5.0',
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,svg,woff2,ico,html}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/image\.tmdb\.org\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'tmdb-images',
-              expiration: { maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 14 },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/api\.themoviedb\.org\/.*/i,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'tmdb-api',
-              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 6 },
-            },
-          },
-        ],
       },
     }),
   ],

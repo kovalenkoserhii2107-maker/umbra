@@ -1,4 +1,14 @@
-import { getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut as firebaseSignOut, type User } from 'firebase/auth'
+import {
+  createUserWithEmailAndPassword,
+  getRedirectResult,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signInWithRedirect,
+  signOut as firebaseSignOut,
+  updateProfile,
+  type User,
+} from 'firebase/auth'
 import { firebaseAuth, googleProvider } from './firebase'
 
 export type Account = {
@@ -73,6 +83,21 @@ export async function signInWithGoogle() {
   }
   const result = await signInWithPopup(firebaseAuth, googleProvider)
   saveAccount(accountFromUser(result.user))
+}
+
+export async function signInWithEmail(email: string, password: string) {
+  const result = await signInWithEmailAndPassword(firebaseAuth, email.trim(), password)
+  saveAccount(accountFromUser(result.user))
+}
+
+export async function registerWithEmail(email: string, password: string, name: string) {
+  const result = await createUserWithEmailAndPassword(firebaseAuth, email.trim(), password)
+  const label = name.trim() || email.trim()
+  await updateProfile(result.user, { displayName: label }).catch(() => undefined)
+  saveAccount({
+    ...accountFromUser(result.user),
+    name: label,
+  })
 }
 
 export async function signOutAccount() {

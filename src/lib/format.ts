@@ -1,6 +1,22 @@
+const MONTHS = [
+  'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+  'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
+]
+
 export function yearOf(date?: string | null) {
   if (!date) return ''
   return date.slice(0, 4)
+}
+
+export function dateLabel(date?: string | null) {
+  if (!date) return ''
+  const match = date.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!match) return yearOf(date)
+  const year = match[1]
+  const month = Number(match[2])
+  const day = Number(match[3])
+  if (!month || !day) return year
+  return `${day} ${MONTHS[month - 1]} ${year}`
 }
 
 export function runtimeLabel(minutes?: number | null) {

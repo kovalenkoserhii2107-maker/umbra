@@ -8,7 +8,7 @@ export type Account = {
   picture: string
 }
 
-export const GOOGLE_CLIENT_ID = '930734450482-332dtsopro9cql4c7m3l3jdbcpjd274.apps.googleusercontent.com'
+export const GOOGLE_CLIENT_ID = '199998842717-pfe821bnk7cjp3rnhfaj1r7k67eo55l8.apps.googleusercontent.com'
 
 const ACCOUNT_KEY = 'umbra.account'
 const listeners = new Set<() => void>()
@@ -100,8 +100,12 @@ export function listenAuth() {
 export async function signInWithGoogleToken(idToken: string) {
   const local = parseCredential(idToken)
   saveAccount(local)
-  const result = await signInWithCredential(firebaseAuth, GoogleAuthProvider.credential(idToken))
-  saveAccount(accountFromUser(result.user))
+  try {
+    const result = await signInWithCredential(firebaseAuth, GoogleAuthProvider.credential(idToken))
+    saveAccount(accountFromUser(result.user))
+  } catch {
+    /* local profile still works */
+  }
 }
 
 export async function connectFirebase() {

@@ -14,8 +14,17 @@ function tone(score?: string | null) {
 
 function barHeight(score?: string | null) {
   const n = Number(score)
-  if (!n) return 8
-  return Math.max(8, Math.round((n / 10) * 56))
+  if (!n) return 10
+  return Math.max(10, Math.round((n / 10) * 72))
+}
+
+function barFill(score?: string | null) {
+  const n = Number(score)
+  if (!n) return 'linear-gradient(180deg, #3a3a3a, #1a1a1a)'
+  if (n >= 8.5) return 'linear-gradient(180deg, #d4f0a8, #9ece6a 45%, #6a9a3a)'
+  if (n >= 7.5) return 'linear-gradient(180deg, #ffe58a, #f5c518 50%, #ff9e64)'
+  if (n >= 6.5) return 'linear-gradient(180deg, #ffc9a0, #ff9e64 55%, #d9783a)'
+  return 'linear-gradient(180deg, #c9c9c9, #7a7a7a 60%, #4a4a4a)'
 }
 
 export function Seasons({ tvId, seasons, nextEpisode, lastEpisode }: {
@@ -25,34 +34,47 @@ export function Seasons({ tvId, seasons, nextEpisode, lastEpisode }: {
   lastEpisode?: EpisodeRef | null
 }) {
   const regular = (seasons || []).filter((s) => s.season_number > 0)
-  const [current, setCurrent] = useState(regular.at(-1)?.season_number || regular[0]?.season_number || 1)
+  const first = regular[0]?.season_number || 1
+  const [current, setCurrent] = useState(first)
   const [episodes, setEpisodes] = useState<EpisodeInfo[]>([])
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (regular[0] && current !== first && episodes.length === 0) setCurrent(first)
+  }, [first])
 
   useEffect(() => {
     if (!tvId || !current) return
     let alive = true
     setLoading(true)
+    setEpisodes([])
     tvApi.season(tvId, current)
       .then(async (pack) => {
         const list = pack.episodes || []
+        if (!alive) return
+        setEpisodes(list)
+        setLoading(false)
         const ids = await Promise.all(list.map(async (ep) => {
           try {
             const ext = await tvApi.episodeImdb(tvId, current, ep.episode_number)
-            return { ...ep, imdbId: ext.imdb_id }
+            return { key: ep.id, imdbId: ext.imdb_id }
           } catch {
-            return ep
+            return { key: ep.id, imdbId: undefined as string | undefined }
           }
         }))
-        const scores = await fetchImdbRatings(ids.map((ep) => ep.imdbId || '').filter(Boolean))
+        const scores = await fetchImdbRatings(ids.map((row) => row.imdbId || '').filter(Boolean))
         if (!alive) return
-        setEpisodes(ids.map((ep) => ({ ...ep, imdb: ep.imdbId ? scores[ep.imdbId] || null : null })))
+        const byId = new Map(ids.map((row) => [row.key, row.imdbId]))
+        setEpisodes((prev) => prev.map((ep) => {
+          const imdbId = byId.get(ep.id)
+          return { ...ep, imdbId, imdb: imdbId ? scores[imdbId] || null : null }
+        }))
       })
       .catch(() => {
-        if (alive) setEpisodes([])
-      })
-      .finally(() => {
-        if (alive) setLoading(false)
+        if (alive) {
+          setEpisodes([])
+          setLoading(false)
+        }
       })
     return () => { alive = false }
   }, [tvId, current])
@@ -100,16 +122,19 @@ export function Seasons({ tvId, seasons, nextEpisode, lastEpisode }: {
         ))}
       </div>
 
-      {loading ? <p className="mt-4 text-sm text-mute">Собираю серии и рейтинги IMDb…</p> : null}
+      {loading ? <p className="mt-4 text-sm text-mute">Загружаю первый сезон…</p> : null}
 
       {episodes.length ? (
         <>
-          <div className="mt-5 flex items-end gap-1 overflow-x-auto rounded-2xl border border-hairline bg-card px-3 pb-2 pt-4">
+          <div className="mt-5 flex items-end gap-1.5 overflow-x-auto rounded-2xl border border-hairline bg-card px-3 pb-2 pt-4">
             {episodes.map((ep) => (
-              <div key={ep.id} className="flex w-7 shrink-0 flex-col items-center gap-1" title={`${ep.episode_number}. ${ep.name} ${ep.imdb || ''}`}>
+              <div key={ep.id} className="flex w-8 shrink-0 flex-col items-center gap-1" title={`${ep.episode_number}. ${ep.name} ${ep.imdb || ''}`}>
                 <span className="font-mono text-[9px] text-[#f5c518]">{ep.imdb || '—'}</span>
-                <div className="flex h-14 w-full items-end justify-center">
-                  <div className={`w-3 rounded-sm ${ep.imdb ? 'bg-[#f5c518]' : 'bg-hairline'}`} style={{ height: barHeight(ep.imdb) }} />
+                <div className="flex h-[72px] w-full items-end justify-center">
+                  <div
+                    className="w-3.5 rounded-t-md"
+                    style={{ height: barHeight(ep.imdb), background: barFill(ep.imdb) }}
+                  />
                 </div>
                 <span className="font-mono text-[9px] text-dim">{ep.episode_number}</span>
               </div>

@@ -1,4 +1,4 @@
-import { onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut as firebaseSignOut, type User } from 'firebase/auth'
+import { getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut as firebaseSignOut, type User } from 'firebase/auth'
 import { firebaseAuth, googleProvider } from './firebase'
 
 export type Account = {
@@ -46,19 +46,23 @@ function emit() {
   listeners.forEach((fn) => fn())
 }
 
+function isiOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+}
+
 export function listenAuth() {
+  getRedirectResult(firebaseAuth)
+    .then((result) => {
+      if (result?.user) saveAccount(accountFromUser(result.user))
+    })
+    .catch(() => undefined)
   return onAuthStateChanged(firebaseAuth, (user) => {
     if (user) saveAccount(accountFromUser(user))
-    else saveAccount(null)
   })
 }
 
-function standalone() {
-  return window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true
-}
-
 export async function signInWithGoogle() {
-  if (standalone()) {
+  if (isiOS()) {
     await signInWithRedirect(firebaseAuth, googleProvider)
     return
   }

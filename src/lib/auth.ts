@@ -8,7 +8,7 @@ export type Account = {
   picture: string
 }
 
-export const GOOGLE_CLIENT_ID = '199998842717-pfe821bnk7cjp3rnhfaj1r7k67eo55l8.apps.googleusercontent.com'
+export const GOOGLE_CLIENT_ID = '930734450482-332dtsopro9cql4c7m3l3jdbcpjd274.apps.googleusercontent.com'
 
 const ACCOUNT_KEY = 'umbra.account'
 const listeners = new Set<() => void>()

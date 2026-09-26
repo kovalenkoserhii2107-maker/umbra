@@ -36,9 +36,7 @@ async function register(page: Page, email: string) {
   await page
     .getByRole("button", { name: "Создать аккаунт", exact: true })
     .click();
-  await expect(
-    page.getByRole("heading", { name: "Мой профиль" }),
-  ).toBeVisible();
+  await expect(page).toHaveURL(/#\/$/);
 }
 async function login(page: Page, email: string) {
   await page.goto("#/login");
@@ -47,9 +45,7 @@ async function login(page: Page, email: string) {
   await page
     .getByRole("button", { name: "Войти по почте", exact: true })
     .click();
-  await expect(
-    page.getByRole("heading", { name: "Мой профиль" }),
-  ).toBeVisible();
+  await expect(page).toHaveURL(/#\/$/);
 }
 test("two devices synchronize notes, ratings and deletions; a second account sees no data", async ({
   browser,

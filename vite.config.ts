@@ -8,9 +8,9 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        entryFileNames: 'assets/index-0.5.0.js',
-        chunkFileNames: 'assets/[name]-0.5.0.js',
-        assetFileNames: 'assets/[name]-0.5.0[extname]',
+        entryFileNames: 'assets/index.js',
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: 'assets/[name][extname]',
       },
     },
   },
@@ -39,7 +39,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        cacheId: 'umbra-0.5.0',
+        cacheId: 'umbra-0.5.1',
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,

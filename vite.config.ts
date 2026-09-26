@@ -38,6 +38,7 @@ export default defineConfig({
         ],
       },
       workbox: {
+        cacheId: 'umbra-0.4.8',
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,

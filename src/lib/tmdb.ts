@@ -1,5 +1,6 @@
 import { readStorage, writeStorage } from "./storage";
 import { requestJson } from "./http";
+import { byCatalogRank } from "./rank";
 const BASE = "https://api.themoviedb.org/3";
 const IMG = "https://image.tmdb.org/t/p";
 
@@ -23,6 +24,7 @@ export type TmdbItem = {
   media_type?: MediaType | "person";
   genre_ids?: number[];
   popularity?: number;
+  original_language?: string;
 };
 
 export type TmdbPage<T> = {
@@ -210,27 +212,130 @@ function dateOf(item: TmdbItem) {
   return item.release_date || item.first_air_date || "";
 }
 
+function asPage(page: TmdbPage<TmdbItem>, type?: MediaType): TmdbPage<TmdbItem> {
+  return {
+    ...page,
+    results: byCatalogRank(
+      page.results.map((item) =>
+        type ? { ...item, media_type: type } : item,
+      ),
+    ),
+  };
+}
+
+function dayOffset(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 export const tmdb = {
   trending: (window: "day" | "week" = "week", page = 1) =>
-    request<TmdbPage<TmdbItem>>(`/trending/all/${window}`, { page }),
-  nowPlaying: (page = 1) =>
-    request<TmdbPage<TmdbItem>>("/movie/now_playing", { page }),
+    request<TmdbPage<TmdbItem>>(`/trending/all/${window}`, { page }).then(
+      (data) => asPage(data),
+    ),
+  nowPlaying: (page = 1, region = "UA") =>
+    request<TmdbPage<TmdbItem>>("/movie/now_playing", { page, region }).then(
+      (data) => asPage(data, "movie"),
+    ),
+  fresh: async (page = 1): Promise<TmdbPage<TmdbItem>> => {
+    const from = dayOffset(-75);
+    const to = dayOffset(0);
+    const [movies, shows] = await Promise.all([
+      request<TmdbPage<TmdbItem>>("/discover/movie", {
+        page,
+        sort_by: "popularity.desc",
+        "vote_count.gte": 80,
+        "primary_release_date.gte": from,
+        "primary_release_date.lte": to,
+      }),
+      request<TmdbPage<TmdbItem>>("/discover/tv", {
+        page,
+        sort_by: "popularity.desc",
+        "vote_count.gte": 80,
+        "first_air_date.gte": from,
+        "first_air_date.lte": to,
+      }),
+    ]);
+    const results = byCatalogRank([
+      ...movies.results.map((item) => ({
+        ...item,
+        media_type: "movie" as const,
+      })),
+      ...shows.results.map((item) => ({ ...item, media_type: "tv" as const })),
+    ]).slice(0, 20);
+    return {
+      page,
+      results,
+      total_pages: Math.max(movies.total_pages, shows.total_pages),
+      total_results: movies.total_results + shows.total_results,
+    };
+  },
+  onAir: async (page = 1): Promise<TmdbPage<TmdbItem>> => {
+    const base = {
+      page,
+      sort_by: "popularity.desc",
+      "air_date.gte": dayOffset(-7),
+      "air_date.lte": dayOffset(0),
+      "vote_count.gte": 40,
+    };
+    const [broad, english, russian, ukrainian] = await Promise.all([
+      request<TmdbPage<TmdbItem>>("/discover/tv", base),
+      request<TmdbPage<TmdbItem>>("/discover/tv", {
+        ...base,
+        with_original_language: "en",
+      }),
+      request<TmdbPage<TmdbItem>>("/discover/tv", {
+        ...base,
+        with_original_language: "ru",
+      }),
+      request<TmdbPage<TmdbItem>>("/discover/tv", {
+        ...base,
+        with_original_language: "uk",
+      }),
+    ]);
+    const seen = new Set<number>();
+    const merged: TmdbItem[] = [];
+    for (const item of [
+      ...english.results,
+      ...russian.results,
+      ...ukrainian.results,
+      ...broad.results,
+    ]) {
+      if (seen.has(item.id)) continue;
+      seen.add(item.id);
+      merged.push({ ...item, media_type: "tv" });
+    }
+    return {
+      page,
+      results: byCatalogRank(merged).slice(0, 20),
+      total_pages: broad.total_pages,
+      total_results: broad.total_results,
+    };
+  },
   upcoming: (page = 1) =>
-    request<TmdbPage<TmdbItem>>("/movie/upcoming", { page }),
+    request<TmdbPage<TmdbItem>>("/movie/upcoming", { page }).then((data) =>
+      asPage(data, "movie"),
+    ),
   upcomingWindow: (page: number, from: string, to: string) =>
     request<TmdbPage<TmdbItem>>("/discover/movie", {
       page,
       sort_by: "popularity.desc",
+      "vote_count.gte": 40,
       "primary_release_date.gte": from,
       "primary_release_date.lte": to,
-    }),
+    }).then((data) => asPage(data, "movie")),
   airingToday: (page = 1) =>
     request<TmdbPage<TmdbItem>>("/tv/airing_today", { page }),
   popularTv: (page = 1) => request<TmdbPage<TmdbItem>>("/tv/popular", { page }),
   topRated: (type: MediaType, page = 1) =>
-    request<TmdbPage<TmdbItem>>(`/${type}/top_rated`, { page }),
+    request<TmdbPage<TmdbItem>>(`/${type}/top_rated`, { page }).then((data) =>
+      asPage(data, type),
+    ),
   recommendations: (type: MediaType, id: number, page = 1) =>
-    request<TmdbPage<TmdbItem>>(`/${type}/${id}/recommendations`, { page }),
+    request<TmdbPage<TmdbItem>>(`/${type}/${id}/recommendations`, {
+      page,
+    }).then((data) => asPage(data, type)),
   search: (query: string, page = 1) =>
     request<TmdbPage<TmdbItem>>("/search/multi", { query, page }),
   searchCatalog: async (
@@ -285,8 +390,9 @@ export const tmdb = {
       watch_region: region,
       with_watch_monetization_types: "flatrate|free|ads",
       sort_by: "popularity.desc",
+      "vote_count.gte": 40,
       page,
-    }),
+    }).then((data) => asPage(data, type)),
   discoverNewest: (
     type: MediaType,
     providerId: number,
@@ -359,7 +465,7 @@ export const tmdb = {
       extras.push(item);
     });
     extras.sort((a, b) => dateOf(b).localeCompare(dateOf(a)));
-    return [...merged, ...extras].slice(0, 20);
+    return byCatalogRank([...merged, ...extras]).slice(0, 20);
   },
   imdbChart: async (kind: MediaType, page = 1): Promise<TmdbPage<TmdbItem>> => {
     try {

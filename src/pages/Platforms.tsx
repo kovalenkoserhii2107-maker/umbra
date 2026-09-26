@@ -3,6 +3,7 @@ import { ErrorBox, Grid, Row, useAsync } from "../components";
 import { PLATFORMS, platformBySlug } from "../lib/providers";
 import { tmdb } from "../lib/tmdb";
 import { useAppState } from "../state";
+import { byCatalogRank } from "../lib/rank";
 
 export function PlatformsPage() {
   const { settings } = useAppState();
@@ -97,7 +98,7 @@ export function PlatformPage() {
         {platform.short}
       </p>
       <h1 className="mt-1 mb-8 text-3xl tracking-tight">{platform.name}</h1>
-      <Row title="Новое от сервиса" items={newest.data ?? []} />
+      <Row title="Новое от сервиса" items={byCatalogRank(newest.data ?? [])} />
       <section className="mb-10">
         <h2 className="mb-3 text-lg font-medium tracking-tight">
           Фильмы в каталоге
@@ -105,7 +106,10 @@ export function PlatformPage() {
         {movies.loading ? (
           <p className="text-sm text-mute">Загрузка…</p>
         ) : (
-          <Grid items={movies.data?.results ?? []} type="movie" />
+          <Grid
+            items={byCatalogRank(movies.data?.results ?? [])}
+            type="movie"
+          />
         )}
       </section>
       <section className="mb-10">
@@ -115,7 +119,7 @@ export function PlatformPage() {
         {shows.loading ? (
           <p className="text-sm text-mute">Загрузка…</p>
         ) : (
-          <Grid items={shows.data?.results ?? []} type="tv" />
+          <Grid items={byCatalogRank(shows.data?.results ?? [])} type="tv" />
         )}
       </section>
     </div>

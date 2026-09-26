@@ -60,39 +60,35 @@ test("two devices synchronize notes, ratings and deletions; a second account see
   await register(a, email);
   await login(b, email);
   await a.goto("#/title/movie/101");
-  await a.getByRole("button", { name: "Хочу", exact: true }).click();
+  await a.getByRole("button", { name: "Хочу посмотреть", exact: true }).click();
   await expect(
     a.getByText("Все изменения сохранены", { exact: true }),
   ).toBeVisible();
   await b.goto("#/library");
   await expect(
-    b.getByRole("heading", { name: "Личная медиатека" }),
+    b.getByRole("heading", { name: "Фильмография" }),
   ).toBeVisible();
   await expect(b.getByText("Test Film", { exact: true })).toBeVisible();
-  await a.getByRole("spinbutton").fill("8");
-  await a
-    .getByRole("textbox", { name: "Заметка", exact: true })
-    .fill("My private note");
-  await a.getByRole("textbox", { name: "Заметка", exact: true }).blur();
+  await a.getByRole("button", { name: "В просмотренные", exact: true }).click();
+  await a.getByRole("radio", { name: "8 из 10" }).click();
+  await a.getByLabel("Комментарий", { exact: true }).fill("My private note");
+  await a.getByRole("button", { name: "Подтвердить", exact: true }).click();
   await expect(b.getByText("My private note", { exact: true })).toBeVisible();
-  await expect(b.getByText(/твоя 8\/10/)).toBeVisible();
+  await expect(b.getByText(/8\/10/)).toBeVisible();
   await device1.setOffline(true);
-  await a
-    .getByRole("textbox", { name: "Заметка", exact: true })
-    .fill("Offline note");
-  await a.getByRole("textbox", { name: "Заметка", exact: true }).blur();
+  await a.getByRole("button", { name: "Изменить оценку", exact: true }).click();
+  await a.getByLabel("Комментарий", { exact: true }).fill("Offline note");
+  await a.getByRole("button", { name: "Подтвердить", exact: true }).click();
   await expect(a.getByText(/Нет сети · изменения/)).toBeVisible();
   await device1.setOffline(false);
   await expect(b.getByText("Offline note", { exact: true })).toBeVisible();
   await a.reload();
-  await expect(
-    a.getByRole("textbox", { name: "Заметка", exact: true }),
-  ).toHaveValue("Offline note");
-  await a.getByRole("button", { name: "убрать", exact: true }).click();
-  await expect(b.getByText("Полка пуста.", { exact: false })).toBeVisible();
+  await expect(a.getByText("Offline note", { exact: true })).toBeVisible();
+  await a.getByRole("button", { name: "Убрать из коллекции", exact: true }).click();
+  await expect(b.getByText("Пока пусто.", { exact: false })).toBeVisible();
   await b.reload();
   await expect(b.getByText("Test Film", { exact: true })).toHaveCount(0);
-  await a.getByRole("button", { name: "Хочу", exact: true }).click();
+  await a.getByRole("button", { name: "Хочу посмотреть", exact: true }).click();
   await expect(
     a.getByText("Все изменения сохранены", { exact: true }),
   ).toBeVisible();
@@ -104,7 +100,7 @@ test("two devices synchronize notes, ratings and deletions; a second account see
   await register(a, `b-${Date.now()}@example.com`);
   await a.goto("#/library");
   await expect(
-    a.getByRole("heading", { name: "Личная медиатека" }),
+    a.getByRole("heading", { name: "Фильмография" }),
   ).toBeVisible();
   await expect(a.getByText("Test Film", { exact: true })).toHaveCount(0);
   await a.goto("#/cabinet");
@@ -115,7 +111,7 @@ test("two devices synchronize notes, ratings and deletions; a second account see
   await login(a, email);
   await a.goto("#/library");
   await expect(
-    a.getByRole("heading", { name: "Личная медиатека" }),
+    a.getByRole("heading", { name: "Фильмография" }),
   ).toBeVisible();
   await expect(a.getByText("Test Film", { exact: true })).toBeVisible();
   await device1.close();

@@ -45,7 +45,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <Tab to="/" label="Лента" />
           <Tab to="/search" label="Поиск" />
           <Tab to="/platforms" label="Платформы" />
-          <Tab to="/library" label="Полка" />
+          <Tab to="/library" label="Коллекция" />
         </div>
       </nav>
     </div>
@@ -108,7 +108,7 @@ function Header() {
               isActive ? "text-ink" : "hover:text-ink"
             }
           >
-            Полка
+            Коллекция
           </NavLink>
           <NavLink
             to="/guide"

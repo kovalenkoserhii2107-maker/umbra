@@ -7,6 +7,7 @@ import {
   type TmdbPage,
 } from "./tmdb";
 import type { SearchFilters } from "./search";
+import { byCatalogRank } from "./rank";
 
 const BASE = "https://api.themoviedb.org/3";
 const IMG = "https://image.tmdb.org/t/p";
@@ -74,9 +75,14 @@ export const catalog = {
     request<TmdbPage<TmdbItem>>(`/discover/${type}`, {
       page,
       sort_by: "popularity.desc",
-      "vote_count.gte": 40,
+      "vote_count.gte": 80,
       ...extra,
-    }),
+    }).then((data) => ({
+      ...data,
+      results: byCatalogRank(
+        data.results.map((item) => ({ ...item, media_type: type })),
+      ),
+    })),
   browseFiltered: async (
     filters: SearchFilters,
     page = 1,
@@ -98,9 +104,13 @@ export const catalog = {
         results.push({ ...item, media_type: type }),
       );
     });
+    const ranked =
+      filters.sort === "rating" || filters.sort === "year"
+        ? results
+        : byCatalogRank(results);
     return {
       page,
-      results,
+      results: ranked,
       total_pages: Math.max(...pages.map((p) => p.total_pages), 1),
       total_results: pages.reduce((sum, p) => sum + p.total_results, 0),
     };

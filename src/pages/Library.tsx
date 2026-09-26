@@ -2,36 +2,43 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Empty } from "../components";
 import { correctPosterUrl } from "../lib/tmdb";
-import { plural } from "../lib/format";
 import { useAppState, type Status } from "../state";
 
-const FILTERS: Array<{ id: Status | "all"; label: string }> = [
+type Filter = "all" | "watched" | "watchlist";
+
+const FILTERS: Array<{ id: Filter; label: string }> = [
   { id: "all", label: "Все" },
-  { id: "watchlist", label: "Хочу" },
-  { id: "watching", label: "Смотрю" },
-  { id: "watched", label: "Видел" },
-  { id: "dropped", label: "Бросил" },
+  { id: "watched", label: "Просмотренные" },
+  { id: "watchlist", label: "Хочу посмотреть" },
 ];
+
+function matches(status: Status, filter: Filter) {
+  if (filter === "all") return true;
+  if (filter === "watchlist") return status === "watchlist";
+  return status !== "watchlist";
+}
 
 export function LibraryPage() {
   const { items } = useAppState();
-  const [filter, setFilter] = useState<Status | "all">("all");
+  const [filter, setFilter] = useState<Filter>("all");
 
   const list = useMemo(() => {
-    const filtered =
-      filter === "all" ? items : items.filter((i) => i.status === filter);
-    return filtered.slice().sort((a, b) => b.updatedAt - a.updatedAt);
+    return items
+      .filter((item) => matches(item.status, filter))
+      .slice()
+      .sort((a, b) => b.updatedAt - a.updatedAt);
   }, [items, filter]);
+
+  const watched = items.filter((item) => item.status !== "watchlist").length;
 
   return (
     <div className="rise">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
-        полка
+        коллекция
       </p>
-      <h1 className="mt-1 text-3xl tracking-tight">Личная медиатека</h1>
+      <h1 className="mt-1 text-3xl tracking-tight">Фильмография</h1>
       <p className="mt-2 text-sm text-mute">
-        {items.length} {plural(items.length, "тайтл", "тайтла", "тайтлов")} ·
-        личная полка твоего аккаунта
+        {watched} в фильмографии · {items.length - watched} в «Хочу посмотреть»
       </p>
       <div className="mt-6 mb-6 flex flex-wrap gap-2">
         {FILTERS.map((f) => (
@@ -49,7 +56,7 @@ export function LibraryPage() {
         ))}
       </div>
       {list.length === 0 ? (
-        <Empty text="Полка пуста. Добавляй тайтлы со страницы фильма или сериала." />
+        <Empty text="Пока пусто. Открой фильм и добавь его в просмотренные или в «Хочу посмотреть»." />
       ) : (
         <div className="space-y-2">
           {list.map((item) => (
@@ -72,9 +79,13 @@ export function LibraryPage() {
                 <p className="font-mono text-[11px] uppercase tracking-wider text-dim">
                   {item.type === "tv" ? "сериал" : "фильм"}
                   {item.year ? ` · ${item.year}` : ""}
-                  {item.rating ? ` · твоя ${item.rating}/10` : ""}
+                  {item.status === "watchlist"
+                    ? " · хочу посмотреть"
+                    : item.rating
+                      ? ` · ${item.rating}/10`
+                      : " · просмотрено"}
                 </p>
-                {item.note ? (
+                {item.note && item.status !== "watchlist" ? (
                   <p className="mt-1 line-clamp-1 text-sm text-mute">
                     {item.note}
                   </p>

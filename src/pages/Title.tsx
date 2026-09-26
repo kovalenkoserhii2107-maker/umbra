@@ -1,8 +1,7 @@
-import { useAuth } from "../lib/auth";
-import { NoteEditor } from "../components/NoteEditor";
 import { useEffect, useState } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { ErrorBox, PlatformChip, PosterCard, useAsync } from "../components";
+import { CollectionMark } from "../components/CollectionMark";
 import { Seasons } from "../components/Seasons";
 import {
   backdropUrl,
@@ -16,15 +15,9 @@ import {
 import { fetchImdbRating, rememberRating } from "../lib/ratings";
 import { dateLabel, runtimeLabel, yearOf } from "../lib/format";
 import { PLATFORMS } from "../lib/providers";
-import { useAppState, type Status } from "../state";
+import { byCatalogRank } from "../lib/rank";
+import { useAppState } from "../state";
 import type { EpisodeRef, SeasonInfo } from "../lib/tv";
-
-const STATUSES: Array<{ id: Status; label: string }> = [
-  { id: "watchlist", label: "Хочу" },
-  { id: "watching", label: "Смотрю" },
-  { id: "watched", label: "Видел" },
-  { id: "dropped", label: "Бросил" },
-];
 
 const PRODUCER_JOBS = new Set(["Producer", "Executive Producer"]);
 const WRITER_JOBS = new Set([
@@ -92,12 +85,8 @@ function CrewColumn({
 export function TitlePage() {
   const { type = "movie", id = "" } = useParams();
   const media = (type === "tv" ? "tv" : "movie") as MediaType;
-  const { settings, get, upsert, update, remove, sync, syncError } =
-    useAppState();
-  const { account, status: authStatus } = useAuth();
-  const navigate = useNavigate();
+  const { settings } = useAppState();
   const query = useAsync(() => tmdb.details(media, Number(id)), [media, id]);
-  const mine = get(media, Number(id));
   const [imdb, setImdb] = useState<string | null>(null);
 
   useEffect(() => {
@@ -152,27 +141,6 @@ export function TitlePage() {
   const flatrate = region?.flatrate ?? [];
   const knownIds = new Set(PLATFORMS.map((p) => p.id));
   const score = imdb || "";
-
-  function setStatus(status: Status) {
-    if (!account) {
-      navigate(`/login?next=${encodeURIComponent(`/title/${media}/${id}`)}`);
-      return;
-    }
-    if (mine) {
-      update(media, Number(id), { status });
-      return;
-    }
-    upsert({
-      id: Number(id),
-      type: media,
-      title,
-      poster: posterUrl(item.poster_path, "w185"),
-      year,
-      status,
-      rating: null,
-      note: "",
-    });
-  }
 
   return (
     <article className="rise pb-8">
@@ -241,61 +209,13 @@ export function TitlePage() {
         />
       ) : null}
 
-      <section className="mt-8 rounded-2xl border border-hairline bg-card p-4">
-        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-dim">
-          на полке
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {STATUSES.map((s) => (
-            <button
-              key={s.id}
-              disabled={authStatus === "initializing"}
-              onClick={() => setStatus(s.id)}
-              className={`rounded-full border px-3 py-1.5 text-sm ${mine?.status === s.id ? "border-ink bg-ink text-canvas" : "border-hairline text-mute"}`}
-            >
-              {s.label}
-            </button>
-          ))}
-          {mine ? (
-            <button
-              onClick={() => remove(media, Number(id))}
-              className="rounded-full px-3 py-1.5 text-sm text-dim"
-            >
-              убрать
-            </button>
-          ) : null}
-        </div>
-        {mine ? (
-          <div className="mt-4 grid gap-3 sm:grid-cols-[160px_1fr]">
-            <label className="text-sm text-mute">
-              Оценка
-              <input
-                type="number"
-                min={1}
-                max={10}
-                value={mine.rating ?? ""}
-                onChange={(e) => {
-                  if (e.target.validity.valid)
-                    update(media, Number(id), {
-                      rating: e.target.value ? Number(e.target.value) : null,
-                    });
-                }}
-                className="mt-1 w-full rounded-xl border border-hairline bg-canvas px-3 py-2 text-ink outline-none"
-              />
-            </label>
-            <label className="text-sm text-mute">
-              Заметка
-              <NoteEditor
-                key={`${media}-${id}`}
-                storageKey={`umbra.draft.${account?.sub}.${media}.${id}`}
-                confirmed={sync === "synced" && !syncError}
-                value={mine.note}
-                save={(note) => update(media, Number(id), { note })}
-              />
-            </label>
-          </div>
-        ) : null}
-      </section>
+      <CollectionMark
+        media={media}
+        id={Number(id)}
+        title={title}
+        poster={posterUrl(item.poster_path, "w185")}
+        year={year}
+      />
 
       <section className="mt-8">
         <h2 className="text-lg tracking-tight">
@@ -361,7 +281,9 @@ export function TitlePage() {
         <section className="mt-8">
           <h2 className="mb-3 text-lg tracking-tight">Похожее</h2>
           <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
-            {item.similar.results.slice(0, 12).map((s) => (
+            {byCatalogRank(item.similar.results)
+              .slice(0, 12)
+              .map((s) => (
               <PosterCard
                 key={s.id}
                 item={s}

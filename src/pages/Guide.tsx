@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { Empty, ErrorBox, Grid, useAsync } from "../components";
 import { SEARCH_GENRES } from "../lib/search";
 import { catalog } from "../lib/catalog";
+import { byCatalogRank } from "../lib/rank";
 import type { MediaType } from "../lib/tmdb";
 
 const DECADES = [2020, 2010, 2000, 1990, 1980, 1970];
@@ -97,12 +98,13 @@ export function GuideListPage() {
     ...item,
     media_type: "tv" as const,
   }));
-  const items =
+  const items = byCatalogRank(
     kind === "movie"
       ? movieItems
       : kind === "tv"
         ? showItems
-        : [...movieItems, ...showItems];
+        : [...movieItems, ...showItems],
+  );
 
   return (
     <div className="rise">

@@ -1,4 +1,5 @@
 import { kindOf, titleOf, type MediaType, type TmdbItem } from "./tmdb";
+import { byCatalogRank, catalogBand } from "./rank";
 
 export const SEARCH_GENRES = [
   { id: 28, label: "Боевик" },
@@ -62,6 +63,9 @@ export function relevanceScore(item: TmdbItem, query: string) {
   if (item.poster_path) score += 4;
   const year = yearOfItem(item);
   if (year >= new Date().getFullYear() - 2) score += 3;
+  const band = catalogBand(item);
+  if (band === 3) score -= 24;
+  else if (band === 2) score -= 10;
 
   if (q) {
     if (title === q || original === q) score += 120;
@@ -97,6 +101,8 @@ export function applySearch(
   });
 
   const copy = filtered.slice();
+  if (!query && filters.sort !== "rating" && filters.sort !== "year")
+    return byCatalogRank(copy);
   if (filters.sort === "popular")
     copy.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
   else if (filters.sort === "rating")

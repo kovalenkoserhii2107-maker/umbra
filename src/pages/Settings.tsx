@@ -32,7 +32,7 @@ export function SettingsPage() {
     try {
       await importJson(await file.text());
       setMessage(
-        "Полка импортирована. Существующие записи с тем же ID обновлены.",
+        "Коллекция импортирована. Совпадающие записи обновлены, остальные остались.",
       );
     } catch (error) {
       setMessage((error as Error).message);
@@ -105,7 +105,7 @@ export function SettingsPage() {
       <section className="rounded-2xl border border-hairline bg-card p-5">
         <h2 className="text-lg">Обновление</h2>
         <p className="mt-2 text-sm text-mute">
-          Новые версии загружаются автоматически. Полка сохраняется в аккаунте.
+          Новые версии загружаются автоматически. Коллекция сохраняется в аккаунте.
         </p>
         <button
           onClick={checkUpdate}
@@ -183,11 +183,11 @@ export function SettingsPage() {
         </p>
       ) : null}
       <section className="rounded-2xl border border-hairline bg-card p-5">
-        <h2 className="text-lg">Полка</h2>
+        <h2 className="text-lg">Коллекция</h2>
         <p className="mt-2 text-sm text-mute">
           {account
             ? `${items.length} записей в твоём аккаунте. Импорт добавляет записи и обновляет совпадающие; остальные остаются.`
-            : "Войди, чтобы экспортировать или импортировать личную полку."}
+            : "Войди, чтобы экспортировать или импортировать коллекцию."}
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <button

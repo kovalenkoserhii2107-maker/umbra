@@ -11,12 +11,14 @@ export type Game = {
   publisher: string;
   developer: string;
   release_date: string;
+  metacritic?: number | null;
+  steam?: number | null;
+  description?: string;
+  screenshots?: { id: number; image: string }[];
 };
 
 export type GameDetails = Game & {
-  description?: string;
   status?: string;
-  screenshots?: { id: number; image: string }[];
 };
 
 const BASE = "https://www.freetogame.com/api";

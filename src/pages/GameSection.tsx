@@ -6,18 +6,23 @@ import { useGameLibrary } from "../lib/gameLibrary";
 import {
   GAME_PLATFORMS,
   gamePlatform,
-  gamesList,
   matchGames,
   platformGiveaways,
 } from "../lib/games";
+import { catalogGames, loadSteamCatalog } from "../lib/steamCatalog";
 
 export function GameSearchPage() {
   const [query, setQuery] = useState("");
-  const games = useAsync(() => gamesList(), []);
-  const shown = useMemo(
-    () => matchGames(games.data ?? [], query).slice(0, 40),
-    [games.data, query],
+  const catalog = useAsync(() => loadSteamCatalog(), []);
+  const pool = useMemo(
+    () => Object.values(catalog.data?.games ?? {}),
+    [catalog.data],
   );
+  const shown = useMemo(() => {
+    if (!catalog.data) return [];
+    if (!query.trim()) return catalogGames(catalog.data, catalog.data.popular);
+    return matchGames(pool, query).slice(0, 40);
+  }, [catalog.data, pool, query]);
 
   return (
     <div className="rise">
@@ -31,12 +36,12 @@ export function GameSearchPage() {
         placeholder="Название, жанр, студия"
         className="mt-6 w-full rounded-full border border-hairline bg-card px-4 py-2 text-sm outline-none placeholder:text-dim focus:border-accent/60"
       />
-      {games.error && !games.data ? (
+      {catalog.error && !catalog.data ? (
         <div className="mt-6">
-          <ErrorBox code={games.error} />
+          <ErrorBox code={catalog.error} />
         </div>
       ) : null}
-      {query.trim() && !shown.length && games.data ? (
+      {query.trim() && !shown.length && catalog.data ? (
         <Empty text="Ничего не нашлось." />
       ) : (
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -83,20 +88,7 @@ export function GamePlatformsPage() {
 export function GamePlatformPage() {
   const { id = "" } = useParams();
   const platform = gamePlatform(id);
-  const popular = useAsync(
-    () =>
-      id === "pc"
-        ? gamesList({ platform: "pc", "sort-by": "popularity" })
-        : Promise.resolve([]),
-    [id],
-  );
-  const fresh = useAsync(
-    () =>
-      id === "pc"
-        ? gamesList({ platform: "pc", "sort-by": "release-date" })
-        : Promise.resolve([]),
-    [id],
-  );
+  const catalog = useAsync(() => (id === "pc" ? loadSteamCatalog() : Promise.resolve(null)), [id]);
   const drops = useAsync(
     () =>
       platform
@@ -120,10 +112,17 @@ export function GamePlatformPage() {
         {platform.short}
       </p>
       <h1 className="mt-1 mb-8 text-3xl tracking-tight">{platform.name}</h1>
-      {id === "pc" ? (
+      {id === "pc" && catalog.data ? (
         <>
-          <GameRow title="Популярное на PC" items={(popular.data ?? []).slice(0, 16)} />
-          <GameRow title="Новое на PC" items={(fresh.data ?? []).slice(0, 16)} />
+          <GameRow
+            title="Самое популярное"
+            items={catalogGames(catalog.data, catalog.data.popular)}
+          />
+          <GameRow
+            title="Скоро выходит"
+            items={catalogGames(catalog.data, catalog.data.upcoming)}
+          />
+          <GameRow title="Топ 100" items={catalogGames(catalog.data, catalog.data.top)} />
         </>
       ) : null}
       <section className="mb-10">

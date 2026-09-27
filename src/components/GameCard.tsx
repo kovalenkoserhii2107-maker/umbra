@@ -21,7 +21,11 @@ export function GameCard({
           className="aspect-video w-full object-cover"
           loading="lazy"
         />
-        <GameScores id={game.id} />
+        <GameScores
+          id={game.id}
+          metacritic={game.metacritic}
+          steam={game.steam}
+        />
       </div>
       <p className="mt-2 line-clamp-2 text-sm leading-snug">{game.title}</p>
       <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">

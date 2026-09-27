@@ -3,29 +3,19 @@ import { ErrorBox, useAsync } from "../components";
 import { GameRow } from "../components/GameCard";
 import { GameMark } from "../components/GameMark";
 import { GameScoreLine, GameScores } from "../components/GameScores";
-import { gameDetails, gameYear, gamesList } from "../lib/games";
+import { gameDetails, gameYear } from "../lib/games";
+import { catalogGames, loadSteamCatalog } from "../lib/steamCatalog";
 
 export function GamesPage() {
-  const popular = useAsync(() => gamesList({ "sort-by": "popularity" }), []);
-  const fresh = useAsync(() => gamesList({ "sort-by": "release-date" }), []);
-  const shooters = useAsync(
-    () => gamesList({ category: "shooter", "sort-by": "popularity" }),
-    [],
-  );
-  const roles = useAsync(
-    () => gamesList({ category: "mmorpg", "sort-by": "popularity" }),
-    [],
-  );
-  const strategy = useAsync(
-    () => gamesList({ category: "strategy", "sort-by": "popularity" }),
-    [],
-  );
+  const catalog = useAsync(() => loadSteamCatalog(), []);
+  if (catalog.error && !catalog.data) return <ErrorBox code={catalog.error} />;
+  if (!catalog.data) return <p className="text-sm text-mute">Загрузка…</p>;
 
-  const err = popular.error || fresh.error;
-  if (err && !popular.data) return <ErrorBox code={err} />;
-
-  const lead = popular.data?.[0];
-  const rest = (popular.data ?? []).slice(1, 16);
+  const popular = catalogGames(catalog.data, catalog.data.popular);
+  const playing = catalogGames(catalog.data, catalog.data.playing);
+  const upcoming = catalogGames(catalog.data, catalog.data.upcoming);
+  const top = catalogGames(catalog.data, catalog.data.top);
+  const lead = popular[0] || playing[0];
 
   return (
     <div className="rise">
@@ -46,20 +36,23 @@ export function GamesPage() {
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6">
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
-              {lead.genre}
+              самое популярное
             </p>
             <p className="mt-1 max-w-[70%] text-2xl tracking-tight text-white sm:text-3xl">
               {lead.title}
             </p>
           </div>
-          <GameScores id={lead.id} />
+          <GameScores
+            id={lead.id}
+            metacritic={lead.metacritic}
+            steam={lead.steam}
+          />
         </Link>
       ) : null}
-      <GameRow title="Популярные" items={rest} />
-      <GameRow title="Новые" items={(fresh.data ?? []).slice(0, 16)} />
-      <GameRow title="Шутеры" items={(shooters.data ?? []).slice(0, 16)} />
-      <GameRow title="Ролевые" items={(roles.data ?? []).slice(0, 16)} />
-      <GameRow title="Стратегии" items={(strategy.data ?? []).slice(0, 16)} />
+      <GameRow title="Самое популярное" items={popular} />
+      <GameRow title="Сейчас играют" items={playing.slice(0, 20)} />
+      <GameRow title="Скоро выходит" items={upcoming} />
+      <GameRow title="Топ 100" items={top} />
     </div>
   );
 }
@@ -67,15 +60,19 @@ export function GamesPage() {
 export function GamePage() {
   const { id = "" } = useParams();
   const gameId = Number(id);
-  const game = useAsync(
-    () => (Number.isFinite(gameId) ? gameDetails(gameId) : Promise.reject(new Error("HTTP_404"))),
+  const catalog = useAsync(() => loadSteamCatalog(), []);
+  const remote = useAsync(
+    () =>
+      Number.isFinite(gameId)
+        ? gameDetails(gameId).catch(() => null)
+        : Promise.resolve(null),
     [gameId],
   );
+  const item = catalog.data?.games[String(gameId)] || remote.data;
 
-  if (game.error && !game.data) return <ErrorBox code={game.error} />;
-  if (!game.data) return <p className="text-sm text-mute">Загрузка…</p>;
-
-  const item = game.data;
+  if (!item && (catalog.loading || remote.loading))
+    return <p className="text-sm text-mute">Загрузка…</p>;
+  if (!item) return <ErrorBox code={remote.error || "HTTP_404"} />;
   return (
     <div className="rise">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
@@ -87,16 +84,20 @@ export function GamePage() {
         {gameYear(item) ? ` · ${gameYear(item)}` : ""}
         {item.developer ? ` · ${item.developer}` : ""}
       </p>
-      <GameScoreLine id={item.id} />
+      <GameScoreLine
+        id={item.id}
+        metacritic={item.metacritic}
+        steam={item.steam}
+      />
       <img
         src={item.thumbnail}
         alt=""
         className="mt-6 aspect-video w-full rounded-2xl border border-hairline object-cover"
       />
       <GameMark game={item} />
-      {item.description ? (
+      {item.description || item.short_description ? (
         <p className="mt-6 max-w-2xl whitespace-pre-line text-sm leading-relaxed text-mute">
-          {item.description}
+          {item.description || item.short_description}
         </p>
       ) : null}
       {item.screenshots?.length ? (

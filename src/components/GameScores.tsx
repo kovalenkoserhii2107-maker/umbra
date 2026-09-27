@@ -10,6 +10,7 @@ function metacriticColor(score: number) {
 export function useSteamScore(id: number) {
   const [score, setScore] = useState<SteamScore | null>(null);
   useEffect(() => {
+    if (!id) return;
     let alive = true;
     loadSteamScores().then((all) => {
       if (alive) setScore(all[String(id)] ?? null);
@@ -21,9 +22,30 @@ export function useSteamScore(id: number) {
   return score;
 }
 
-export function GameScores({ id }: { id: number }) {
-  const score = useSteamScore(id);
-  if (!score || (score.metacritic == null && score.steam == null)) return null;
+function shownScores(
+  id: number,
+  metacritic: number | null | undefined,
+  steam: number | null | undefined,
+) {
+  const embedded = metacritic !== undefined || steam !== undefined;
+  const looked = useSteamScore(embedded ? 0 : id);
+  return {
+    metacritic: embedded ? metacritic : looked?.metacritic,
+    steam: embedded ? steam : looked?.steam,
+  };
+}
+
+export function GameScores({
+  id,
+  metacritic,
+  steam,
+}: {
+  id: number;
+  metacritic?: number | null;
+  steam?: number | null;
+}) {
+  const score = shownScores(id, metacritic, steam);
+  if (score.metacritic == null && score.steam == null) return null;
   return (
     <div className="absolute bottom-1.5 right-1.5 flex flex-col items-end gap-1">
       {score.metacritic != null ? (
@@ -42,9 +64,17 @@ export function GameScores({ id }: { id: number }) {
   );
 }
 
-export function GameScoreLine({ id }: { id: number }) {
-  const score = useSteamScore(id);
-  if (!score || (score.metacritic == null && score.steam == null)) return null;
+export function GameScoreLine({
+  id,
+  metacritic,
+  steam,
+}: {
+  id: number;
+  metacritic?: number | null;
+  steam?: number | null;
+}) {
+  const score = shownScores(id, metacritic, steam);
+  if (score.metacritic == null && score.steam == null) return null;
   return (
     <p className="mt-3 flex flex-wrap gap-2">
       {score.metacritic != null ? (

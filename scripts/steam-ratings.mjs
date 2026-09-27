@@ -29,6 +29,16 @@ async function getJson(url) {
   return null;
 }
 
+function readDetails(details, appid) {
+  if (!details || typeof details !== "object") return null;
+  const nodes = Object.values(details);
+  const node =
+    nodes.find((item) => item?.data?.steam_appid === appid) || nodes[0];
+  const data = node?.data;
+  if (!data || data.steam_appid !== appid) return null;
+  return data;
+}
+
 async function lookup(title) {
   const search = await getJson(
     `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(title)}&l=english&cc=US`,
@@ -46,7 +56,7 @@ async function lookup(title) {
       `https://store.steampowered.com/appreviews/${hit.id}?json=1&language=all&purchase_type=all&num_per_page=0`,
     ),
   ]);
-  const data = details?.[hit.id]?.data || details?.[String(hit.id)]?.data;
+  const data = readDetails(details, hit.id);
   const metacritic = data?.metacritic?.score;
   const summary = reviews?.query_summary;
   const total = summary?.total_reviews || 0;

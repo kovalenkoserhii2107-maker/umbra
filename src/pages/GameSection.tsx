@@ -44,7 +44,7 @@ export function GameSearchPage() {
       {query.trim() && !shown.length && catalog.data ? (
         <Empty text="Ничего не нашлось." />
       ) : (
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {shown.map((game) => (
             <GameCard key={game.id} game={game} layout="grid" />
           ))}
@@ -201,7 +201,7 @@ export function StudioPage() {
           <h2 className="mb-3 font-mono text-[11px] uppercase tracking-[0.16em] text-dim">
             {group.year}
           </h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {group.items.map((game) => (
               <GameCard key={game.id} game={game} layout="grid" />
             ))}

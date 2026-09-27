@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import { ErrorBox, useAsync } from "../components";
 import { GameRow } from "../components/GameCard";
+import { GamePoster } from "../components/GamePoster";
 import { GameMark } from "../components/GameMark";
 import { GameScoreLine, GameScores } from "../components/GameScores";
 import { gameDetails, gameYear } from "../lib/games";
@@ -28,10 +29,11 @@ export function GamesPage() {
           to={`/games/${lead.id}`}
           className="relative mb-10 block overflow-hidden rounded-2xl border border-hairline bg-card"
         >
-          <img
-            src={lead.thumbnail}
-            alt=""
-            className="aspect-[16/9] w-full object-cover sm:aspect-[21/9]"
+          <GamePoster
+            id={lead.id}
+            fallback={lead.thumbnail}
+            hero
+            className="aspect-[2/1] w-full object-cover sm:aspect-[21/9]"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6">
@@ -96,10 +98,10 @@ export function GamePage() {
         metacritic={item.metacritic}
         steam={item.steam}
       />
-      <img
-        src={item.thumbnail}
-        alt=""
-        className="mt-6 aspect-video w-full rounded-2xl border border-hairline object-cover"
+      <GamePoster
+        id={item.id}
+        fallback={item.thumbnail}
+        className="mt-6 aspect-[2/3] w-44 rounded-2xl border border-hairline object-cover sm:w-52"
       />
       <GameMark game={item} />
       {item.description || item.short_description ? (

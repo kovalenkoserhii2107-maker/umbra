@@ -10,6 +10,7 @@ import {
   platformGiveaways,
 } from "../lib/games";
 import { catalogGames, loadSteamCatalog } from "../lib/steamCatalog";
+import { consoleGames, loadConsoleCatalog } from "../lib/consoleCatalog";
 import { studioInfo, type StudioInfo } from "../lib/studioInfo";
 
 export function GameSearchPage() {
@@ -89,7 +90,17 @@ export function GamePlatformsPage() {
 export function GamePlatformPage() {
   const { id = "" } = useParams();
   const platform = gamePlatform(id);
-  const catalog = useAsync(() => (id === "pc" ? loadSteamCatalog() : Promise.resolve(null)), [id]);
+  const catalog = useAsync(
+    () => (id === "pc" ? loadSteamCatalog() : Promise.resolve(null)),
+    [id],
+  );
+  const consoles = useAsync(
+    () =>
+      id === "playstation" || id === "xbox"
+        ? loadConsoleCatalog()
+        : Promise.resolve(null),
+    [id],
+  );
   const drops = useAsync(
     () =>
       platform
@@ -124,6 +135,22 @@ export function GamePlatformPage() {
             items={catalogGames(catalog.data, catalog.data.upcoming)}
           />
           <GameRow title="Топ 100" items={catalogGames(catalog.data, catalog.data.top)} />
+        </>
+      ) : null}
+      {consoles.data && (id === "playstation" || id === "xbox") ? (
+        <>
+          <GameRow
+            title="Самое популярное"
+            items={consoleGames(consoles.data, consoles.data[id].popular)}
+          />
+          <GameRow
+            title="Скоро выходит"
+            items={consoleGames(consoles.data, consoles.data[id].upcoming)}
+          />
+          <GameRow
+            title="Топ 100"
+            items={consoleGames(consoles.data, consoles.data[id].top)}
+          />
         </>
       ) : null}
       <section className="mb-10">

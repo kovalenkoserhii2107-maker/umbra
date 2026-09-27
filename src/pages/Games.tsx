@@ -6,6 +6,7 @@ import { GameMark } from "../components/GameMark";
 import { GameScoreLine, GameScores } from "../components/GameScores";
 import { gameDetails, gameYear } from "../lib/games";
 import { catalogGames, loadSteamCatalog } from "../lib/steamCatalog";
+import { loadConsoleCatalog } from "../lib/consoleCatalog";
 
 export function GamesPage() {
   const catalog = useAsync(() => loadSteamCatalog(), []);
@@ -64,6 +65,7 @@ export function GamePage() {
   const { id = "" } = useParams();
   const gameId = Number(id);
   const catalog = useAsync(() => loadSteamCatalog(), []);
+  const consoles = useAsync(() => loadConsoleCatalog(), []);
   const remote = useAsync(
     () =>
       Number.isFinite(gameId)
@@ -71,9 +73,12 @@ export function GamePage() {
         : Promise.resolve(null),
     [gameId],
   );
-  const item = catalog.data?.games[String(gameId)] || remote.data;
+  const item =
+    catalog.data?.games[String(gameId)] ||
+    consoles.data?.games[String(gameId)] ||
+    remote.data;
 
-  if (!item && (catalog.loading || remote.loading))
+  if (!item && (catalog.loading || consoles.loading || remote.loading))
     return <p className="text-sm text-mute">Загрузка…</p>;
   if (!item) return <ErrorBox code={remote.error || "HTTP_404"} />;
   return (

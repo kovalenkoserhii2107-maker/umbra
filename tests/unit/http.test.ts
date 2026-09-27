@@ -46,3 +46,28 @@ it("does not retry authorization failures or cache their result", async () => {
   );
   expect(fetcher).toHaveBeenCalledTimes(2);
 });
+it("local game details do not wait behind slow external catalog requests", async () => {
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (url.startsWith("https://")) await gate;
+      return new Response("{}");
+    }),
+  );
+  const { requestJson } = await import("../../src/lib/http");
+  const slow = Array.from({ length: 6 }, (_, n) =>
+    requestJson(`https://slow.test/${n}`),
+  );
+  try {
+    await expect(
+      requestJson("/umbra/catalog/details/620.json"),
+    ).resolves.toEqual({});
+  } finally {
+    release();
+    await Promise.all(slow);
+  }
+});

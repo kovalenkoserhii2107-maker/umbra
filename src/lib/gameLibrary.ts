@@ -23,11 +23,15 @@ function parseItem(value: unknown): GameShelfItem | null {
   const v = value as Record<string, unknown>;
   if (!Number.isSafeInteger(v.id) || Number(v.id) <= 0) return null;
   if (v.status !== "played" && v.status !== "want") return null;
-  if (typeof v.title !== "string" || typeof v.thumbnail !== "string") return null;
+  if (typeof v.title !== "string" || typeof v.thumbnail !== "string")
+    return null;
   const rating = v.rating;
   if (
     rating !== null &&
-    (typeof rating !== "number" || rating < 1 || rating > 10)
+    (typeof rating !== "number" ||
+      !Number.isFinite(rating) ||
+      rating < 1 ||
+      rating > 10)
   )
     return null;
   return {
@@ -58,12 +62,16 @@ function readAll(): GameShelfItem[] {
 let snapshot = readAll();
 
 function publish(next: GameShelfItem[]) {
+  if (!writeStorage(KEY, JSON.stringify(next)))
+    throw new Error(
+      "Не удалось сохранить игру. Проверь свободное место и доступ к хранилищу браузера.",
+    );
   snapshot = next;
-  writeStorage(KEY, JSON.stringify(next));
   listeners.forEach((listener) => listener());
 }
 
 export function saveGame(item: GameShelfItem) {
+  if (!parseItem(item)) throw new Error("Проверь данные игры и оценку.");
   publish([item, ...readAll().filter((row) => row.id !== item.id)]);
 }
 
@@ -77,5 +85,17 @@ function subscribe(listener: () => void) {
 }
 
 export function useGameLibrary() {
-  return useSyncExternalStore(subscribe, () => snapshot, () => snapshot);
+  return useSyncExternalStore(
+    subscribe,
+    () => snapshot,
+    () => snapshot,
+  );
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (event) => {
+    if (event.key !== KEY && event.key !== null) return;
+    snapshot = readAll();
+    listeners.forEach((listener) => listener());
+  });
 }

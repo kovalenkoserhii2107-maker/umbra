@@ -4,9 +4,9 @@ import { GameRow } from "../components/GameCard";
 import { GamePoster } from "../components/GamePoster";
 import { GameMark } from "../components/GameMark";
 import { GameScoreLine, GameScores } from "../components/GameScores";
+import { GameFacts, GameOffers } from "../components/GameDetails";
 import { gameDetails, gameYear } from "../lib/games";
 import { catalogGames, loadSteamCatalog } from "../lib/steamCatalog";
-import { loadConsoleCatalog } from "../lib/consoleCatalog";
 
 export function GamesPage() {
   const catalog = useAsync(() => loadSteamCatalog(), []);
@@ -60,23 +60,29 @@ export function GamesPage() {
 export function GamePage() {
   const { id = "" } = useParams();
   const gameId = Number(id);
-  const catalog = useAsync(() => loadSteamCatalog(), []);
-  const consoles = useAsync(() => loadConsoleCatalog(), []);
-  const remote = useAsync(
-    () =>
-      Number.isFinite(gameId)
-        ? gameDetails(gameId).catch(() => null)
-        : Promise.resolve(null),
-    [gameId],
-  );
-  const item =
-    catalog.data?.games[String(gameId)] ||
-    consoles.data?.games[String(gameId)] ||
-    remote.data;
-
-  if (!item && (catalog.loading || consoles.loading || remote.loading))
-    return <p className="text-sm text-mute">Загрузка…</p>;
-  if (!item) return <ErrorBox code={remote.error || "HTTP_404"} />;
+  const remote = useAsync(() => gameDetails(gameId), [gameId]);
+  const item = remote.data?.id === gameId ? remote.data : null;
+  if (!item && remote.loading)
+    return (
+      <p role="status" className="text-sm text-mute">
+        Загружаю игру…
+      </p>
+    );
+  if (!item)
+    return (
+      <div className="space-y-4">
+        <ErrorBox code={remote.error || "HTTP_404"} />
+        <button
+          className="rounded-full border border-hairline px-4 py-2"
+          onClick={() => window.location.reload()}
+        >
+          Повторить загрузку
+        </button>
+        <Link className="block text-accent" to="/games/search">
+          К поиску игр
+        </Link>
+      </div>
+    );
   return (
     <div className="rise">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
@@ -101,29 +107,58 @@ export function GamePage() {
         steam={item.steam}
       />
       <GamePoster
+        hero
         id={item.id}
         fallback={item.thumbnail}
         poster={item.poster}
         className="mt-6 aspect-video w-full rounded-2xl border border-hairline object-cover"
       />
-      <GameMark game={item} />
-      {item.description || item.short_description ? (
-        <p className="mt-6 max-w-2xl whitespace-pre-line text-sm leading-relaxed text-mute">
-          {item.description || item.short_description}
+      <GameMark key={item.id} game={item} />
+      <GameFacts game={item} />
+      <section className="mt-8">
+        <h2 className="text-xl">Об игре</h2>
+        <p className="mt-3 max-w-3xl whitespace-pre-line text-sm leading-relaxed text-mute">
+          {item.description ||
+            item.short_description ||
+            "Описание пока недоступно."}
         </p>
-      ) : null}
-      {item.screenshots?.length ? (
-        <div className="row-scroll mt-6 flex gap-3 overflow-x-auto pb-2">
-          {item.screenshots.map((shot) => (
-            <img
-              key={shot.id}
-              src={shot.image}
-              alt=""
-              className="h-36 w-auto rounded-xl border border-hairline object-cover"
-              loading="lazy"
-            />
-          ))}
-        </div>
+      </section>
+      <section className="mt-8">
+        <h2 className="text-xl">Скриншоты</h2>
+        {item.screenshots?.length ? (
+          <div className="row-scroll mt-3 flex gap-3 overflow-x-auto pb-2">
+            {item.screenshots.map((shot, index) => (
+              <a
+                key={shot.id}
+                href={shot.full || shot.image}
+                target="_blank"
+                rel="noreferrer"
+                className="shrink-0"
+              >
+                <img
+                  src={shot.image}
+                  alt={`${item.title} — скриншот ${index + 1}`}
+                  className="aspect-video w-72 rounded-xl border border-hairline object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </a>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-mute">Скриншоты пока недоступны.</p>
+        )}
+      </section>
+      <GameOffers game={item} />
+      {item.requirements ? (
+        <details className="mt-8 rounded-xl border border-hairline p-4">
+          <summary className="cursor-pointer">
+            Минимальные требования для PC
+          </summary>
+          <p className="mt-3 whitespace-pre-line text-sm text-mute">
+            {item.requirements}
+          </p>
+        </details>
       ) : null}
       <a
         href={item.game_url}
@@ -131,7 +166,9 @@ export function GamePage() {
         rel="noreferrer"
         className="mt-6 inline-flex h-10 items-center rounded-full bg-accent px-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[#1a1008]"
       >
-        Открыть игру
+        {item.game_url.includes("store.steampowered.com/")
+          ? "Открыть Steam"
+          : "Страница в источнике"}
       </a>
     </div>
   );

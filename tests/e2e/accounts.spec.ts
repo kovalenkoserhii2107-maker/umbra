@@ -65,9 +65,7 @@ test("two devices synchronize notes, ratings and deletions; a second account see
     a.getByText("Все изменения сохранены", { exact: true }),
   ).toBeVisible();
   await b.goto("#/library");
-  await expect(
-    b.getByRole("heading", { name: "Фильмография" }),
-  ).toBeVisible();
+  await expect(b.getByRole("heading", { name: "Фильмография" })).toBeVisible();
   await expect(b.getByText("Test Film", { exact: true })).toBeVisible();
   await a.getByRole("button", { name: "В просмотренные", exact: true }).click();
   await a.getByRole("radio", { name: "8 из 10" }).click();
@@ -84,7 +82,9 @@ test("two devices synchronize notes, ratings and deletions; a second account see
   await expect(b.getByText("Offline note", { exact: true })).toBeVisible();
   await a.reload();
   await expect(a.getByText("Offline note", { exact: true })).toBeVisible();
-  await a.getByRole("button", { name: "Убрать из коллекции", exact: true }).click();
+  await a
+    .getByRole("button", { name: "Убрать из коллекции", exact: true })
+    .click();
   await expect(b.getByText("Пока пусто.", { exact: false })).toBeVisible();
   await b.reload();
   await expect(b.getByText("Test Film", { exact: true })).toHaveCount(0);
@@ -99,9 +99,7 @@ test("two devices synchronize notes, ratings and deletions; a second account see
   await expect(a.getByRole("heading", { name: "Вход в Umbra" })).toBeVisible();
   await register(a, `b-${Date.now()}@example.com`);
   await a.goto("#/library");
-  await expect(
-    a.getByRole("heading", { name: "Фильмография" }),
-  ).toBeVisible();
+  await expect(a.getByRole("heading", { name: "Фильмография" })).toBeVisible();
   await expect(a.getByText("Test Film", { exact: true })).toHaveCount(0);
   await a.goto("#/cabinet");
   await a
@@ -110,9 +108,7 @@ test("two devices synchronize notes, ratings and deletions; a second account see
   await expect(a.getByRole("heading", { name: "Вход в Umbra" })).toBeVisible();
   await login(a, email);
   await a.goto("#/library");
-  await expect(
-    a.getByRole("heading", { name: "Фильмография" }),
-  ).toBeVisible();
+  await expect(a.getByRole("heading", { name: "Фильмография" })).toBeVisible();
   await expect(a.getByText("Test Film", { exact: true })).toBeVisible();
   await device1.close();
   await device2.close();
@@ -148,7 +144,7 @@ test("production has one hashed entry and supports offline shell without clearin
   const page = await context.newPage();
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("http://127.0.0.1:4173/umbra/#/login");
+  await page.goto("http://127.0.0.1:4187/umbra/#/login");
   await page.evaluate(async () => {
     await caches.open("unrelated-app-test");
     await navigator.serviceWorker.ready;
@@ -165,6 +161,18 @@ test("production has one hashed entry and supports offline shell without clearin
   expect(await page.evaluate(() => caches.has("unrelated-app-test"))).toBe(
     true,
   );
+  const cachedUrls = await page.evaluate(async () => {
+    const names = await caches.keys();
+    const requests = await Promise.all(
+      names.map(async (name) => (await caches.open(name)).keys()),
+    );
+    return requests.flat().map((request) => request.url);
+  });
+  expect(
+    cachedUrls.filter((url) =>
+      /catalog\/|steam-catalog|console-catalog/.test(url),
+    ),
+  ).toEqual([]);
   await context.setOffline(true);
   await page.reload();
   await expect(
@@ -183,7 +191,7 @@ test("an installed PWA detects the next worker and activates it on demand", asyn
   await catalog(context);
   const page = await context.newPage();
   try {
-    await page.goto("http://127.0.0.1:4173/umbra/#/login");
+    await page.goto("http://127.0.0.1:4187/umbra/#/login");
     await page.evaluate(() =>
       navigator.serviceWorker.ready.then(() => undefined),
     );

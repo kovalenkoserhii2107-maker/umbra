@@ -1,16 +1,5 @@
 import { useState } from "react";
 
-function sources(id: number, fallback: string, poster?: string, hero?: boolean) {
-  const base = `https://cdn.cloudflare.steamstatic.com/steam/apps/${id}`;
-  return [
-    poster,
-    hero ? `${base}/library_hero.jpg` : undefined,
-    `${base}/capsule_616x353.jpg`,
-    `${base}/header.jpg`,
-    fallback,
-  ].filter((item): item is string => Boolean(item));
-}
-
 export function GamePoster({
   id,
   fallback,
@@ -24,17 +13,54 @@ export function GamePoster({
   hero?: boolean;
   className?: string;
 }) {
-  const list = sources(id, fallback, poster, hero);
+  // Use verified catalog images. Console IDs are not Steam AppIDs.
+  const list = [
+    ...new Set([poster, fallback].filter((s): s is string => Boolean(s))),
+  ];
+  const sized = list.map((src) => {
+    try {
+      const url = new URL(src);
+      if (url.hostname === "www.metacritic.com" && !hero) {
+        url.searchParams.set("width", "640");
+        url.searchParams.set("height", "360");
+      }
+      return url.toString();
+    } catch {
+      return src;
+    }
+  });
+  return (
+    <PosterImage
+      key={`${id}:${list.join("|")}`}
+      list={sized}
+      hero={hero}
+      className={className}
+    />
+  );
+}
+function PosterImage({
+  list,
+  hero,
+  className,
+}: {
+  list: string[];
+  hero: boolean;
+  className: string;
+}) {
   const [index, setIndex] = useState(0);
+  if (index >= list.length)
+    return (
+      <div aria-label="Постер недоступен" className={`bg-card ${className}`} />
+    );
   return (
     <img
-      src={list[Math.min(index, list.length - 1)]}
+      src={list[index]}
       alt=""
       className={className}
-      loading="lazy"
-      onError={() =>
-        setIndex((current) => (current < list.length - 1 ? current + 1 : current))
-      }
+      loading={hero ? "eager" : "lazy"}
+      fetchPriority={hero ? "high" : "auto"}
+      decoding="async"
+      onError={() => setIndex((i) => i + 1)}
     />
   );
 }

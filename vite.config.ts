@@ -33,7 +33,7 @@ export default defineConfig({
       manifest: {
         name: "Umbra",
         short_name: "Umbra",
-        description: "Личная картотека фильмов и сериалов",
+        description: "Личная коллекция фильмов, сериалов и игр",
         theme_color: "#000000",
         background_color: "#000000",
         display: "standalone",
@@ -68,7 +68,44 @@ export default defineConfig({
         navigateFallback: "index.html",
         navigateFallbackAllowlist: [/^\/umbra(?:\/|$)/],
         globPatterns: ["**/*.{js,css,svg,png,jpg,woff2,ico,html,json}"],
+        globIgnores: [
+          "**/catalog/**",
+          "**/steam-catalog.json",
+          "**/console-catalog.json",
+          "**/steam-ratings.json",
+        ],
         runtimeCaching: [
+          {
+            urlPattern: ({ url, sameOrigin }) =>
+              sameOrigin &&
+              /^\/umbra\/catalog\/(steam|consoles)\.json$/.test(url.pathname),
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "umbra-game-catalogs",
+              expiration: { maxEntries: 2, maxAgeSeconds: 86400 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+          {
+            urlPattern:
+              /^https:\/\/(?:shared\.fastly\.steamstatic\.com|cdn\.cloudflare\.steamstatic\.com|www\.metacritic\.com\/a\/img)\//,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "umbra-game-images",
+              expiration: { maxEntries: 100, maxAgeSeconds: 7 * 86400 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: ({ url, sameOrigin }) =>
+              sameOrigin && url.pathname.startsWith("/umbra/catalog/details/"),
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "umbra-game-details",
+              expiration: { maxEntries: 80, maxAgeSeconds: 86400 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
           {
             urlPattern: /^https:\/\/image\.tmdb\.org\//,
             handler: "CacheFirst",

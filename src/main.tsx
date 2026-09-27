@@ -1,6 +1,7 @@
 import { StrictMode, Component, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { HashRouter } from "react-router-dom";
+import "./fonts.css";
 import "./index.css";
 import App from "./App.tsx";
 import { AppStateProvider } from "./state.tsx";
@@ -44,9 +45,10 @@ class Boundary extends Component<
               padding: "8px 14px",
               borderRadius: 999,
             }}
-            onClick={() =>
-              window.location.assign(`${import.meta.env.BASE_URL}#/`)
-            }
+            onClick={() => {
+              this.setState({ err: null });
+              window.location.assign(`${import.meta.env.BASE_URL}#/`);
+            }}
           >
             На главную
           </button>

@@ -173,17 +173,17 @@ function canGoBack() {
 function BackButton() {
   const navigate = useNavigate();
   const location = useLocation();
-  const stuck = !canGoBack() && location.pathname === "/";
+  const home = location.pathname === "/" || location.pathname === "/games";
+  if (home) return null;
   return (
     <button
       type="button"
       aria-label="Назад"
-      disabled={stuck}
       onClick={() => {
         if (canGoBack()) navigate(-1);
         else if (location.pathname !== "/") navigate("/");
       }}
-      className={`flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-hairline bg-card px-2.5 sm:px-3 ${stuck ? "text-dim opacity-40" : "text-mute"}`}
+      className="flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-hairline bg-card px-2.5 text-mute sm:px-3"
     >
       <svg
         viewBox="0 0 24 24"

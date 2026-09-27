@@ -32,8 +32,9 @@ export function GamesPage() {
           <GamePoster
             id={lead.id}
             fallback={lead.thumbnail}
+            poster={lead.poster}
             hero
-            className="aspect-[2/1] w-full object-cover sm:aspect-[21/9]"
+            className="aspect-video w-full object-cover sm:aspect-[21/9]"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6">
@@ -101,7 +102,8 @@ export function GamePage() {
       <GamePoster
         id={item.id}
         fallback={item.thumbnail}
-        className="mt-6 aspect-[2/3] w-44 rounded-2xl border border-hairline object-cover sm:w-52"
+        poster={item.poster}
+        className="mt-6 aspect-video w-full rounded-2xl border border-hairline object-cover"
       />
       <GameMark game={item} />
       {item.description || item.short_description ? (

@@ -12,14 +12,15 @@ export function GameCard({
 }) {
   return (
     <div
-      className={`block ${layout === "grid" ? "w-full" : "w-[42vw] shrink-0 sm:w-40"}`}
+      className={`block ${layout === "grid" ? "w-full" : "w-[68vw] shrink-0 sm:w-72"}`}
     >
       <Link to={`/games/${game.id}`}>
         <div className="poster-hover relative overflow-hidden rounded-xl border border-hairline bg-card">
           <GamePoster
             id={game.id}
             fallback={game.thumbnail}
-            className="aspect-[2/3] w-full object-cover"
+            poster={game.poster}
+            className="aspect-video w-full object-cover"
           />
           <GameScores
             id={game.id}

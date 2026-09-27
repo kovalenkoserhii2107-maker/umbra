@@ -13,6 +13,7 @@ export type Game = {
   release_date: string;
   metacritic?: number | null;
   steam?: number | null;
+  poster?: string;
   description?: string;
   screenshots?: { id: number; image: string }[];
 };

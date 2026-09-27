@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Empty, ErrorBox, useAsync } from "../components";
 import { GameCard, GameRow } from "../components/GameCard";
@@ -10,6 +10,7 @@ import {
   platformGiveaways,
 } from "../lib/games";
 import { catalogGames, loadSteamCatalog } from "../lib/steamCatalog";
+import { studioInfo, type StudioInfo } from "../lib/studioInfo";
 
 export function GameSearchPage() {
   const [query, setQuery] = useState("");
@@ -173,6 +174,17 @@ export function StudioPage() {
             .map((game) => game.id),
       )
     : [];
+  const [about, setAbout] = useState<StudioInfo | null>(null);
+  useEffect(() => {
+    let alive = true;
+    setAbout(null);
+    studioInfo(studio).then((info) => {
+      if (alive) setAbout(info);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [studio]);
   const groups: { year: string; items: typeof games }[] = [];
   let seenYear = false;
   for (const game of games) {
@@ -192,6 +204,35 @@ export function StudioPage() {
       <p className="mt-2 text-sm text-mute">
         {games.length ? `${games.length} игр, от новых к ранним` : "Собираю список…"}
       </p>
+      {about ? (
+        <div className="mt-5 flex gap-4 rounded-2xl border border-hairline bg-card p-4">
+          {about.image ? (
+            <img
+              src={about.image}
+              alt=""
+              className="h-16 w-16 shrink-0 rounded-xl bg-canvas object-contain"
+            />
+          ) : null}
+          <div className="min-w-0">
+            {about.description ? (
+              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">
+                {about.description}
+              </p>
+            ) : null}
+            <p className="mt-2 text-sm leading-relaxed text-mute">{about.extract}</p>
+            {about.url ? (
+              <a
+                href={about.url}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-block font-mono text-[11px] uppercase tracking-[0.14em] text-dim"
+              >
+                Подробнее
+              </a>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
       {catalog.error && !catalog.data ? <ErrorBox code={catalog.error} /> : null}
       {!catalog.loading && !games.length ? (
         <Empty text="У этой студии пока нет игр в каталоге." />

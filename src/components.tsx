@@ -37,31 +37,100 @@ export function Layout({ children }: { children: ReactNode }) {
       </main>
       <InstallPrompt />
       <UpdatePrompt />
-      <nav
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-canvas/90 backdrop-blur-md md:hidden"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      >
-        <div className="grid grid-cols-4">
-          <Tab to="/" label="Лента" />
-          <Tab to="/search" label="Поиск" />
-          <Tab to="/platforms" label="Платформы" />
-          <Tab to="/library" label="Коллекция" />
+      <nav className="fixed inset-x-0 bottom-0 z-30 md:hidden">
+        <div className="border-t border-hairline bg-[#0c0c0c]/95 backdrop-blur-md">
+          <div className="grid h-16 grid-cols-4">
+            <Tab to="/" label="Лента" icon="feed" />
+            <Tab to="/search" label="Поиск" icon="search" />
+            <Tab to="/platforms" label="Платформы" icon="platforms" />
+            <Tab to="/library" label="Коллекция" icon="library" />
+          </div>
         </div>
+        <div
+          className="bg-[#0c0c0c]"
+          style={{ height: "env(safe-area-inset-bottom)" }}
+        />
       </nav>
     </div>
   );
 }
 
-function Tab({ to, label }: { to: string; label: string }) {
+function TabIcon({ name }: { name: "feed" | "search" | "platforms" | "library" }) {
+  const common = {
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.7,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    className: "h-[22px] w-[22px]",
+    "aria-hidden": true,
+  };
+  if (name === "feed") {
+    return (
+      <svg {...common}>
+        <rect x="3.5" y="5" width="17" height="14" rx="2" />
+        <path d="M8 5v14M16 5v14" />
+      </svg>
+    );
+  }
+  if (name === "search") {
+    return (
+      <svg {...common}>
+        <circle cx="11" cy="11" r="6" />
+        <path d="M15.5 15.5 20 20" />
+      </svg>
+    );
+  }
+  if (name === "platforms") {
+    return (
+      <svg {...common}>
+        <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
+        <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
+        <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
+        <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...common}>
+      <path d="M6 4.5h12a1 1 0 0 1 1 1V20l-7-3.5L5 20V5.5a1 1 0 0 1 1-1Z" />
+    </svg>
+  );
+}
+
+function Tab({
+  to,
+  label,
+  icon,
+}: {
+  to: string;
+  label: string;
+  icon: "feed" | "search" | "platforms" | "library";
+}) {
   return (
     <NavLink
       to={to}
       end={to === "/"}
       className={({ isActive }) =>
-        `py-3 text-center font-mono text-[11px] tracking-[0.14em] uppercase ${isActive ? "text-ink" : "text-dim"}`
+        `relative flex h-full flex-col items-center justify-center gap-1 ${isActive ? "text-ink" : "text-dim"}`
       }
     >
-      {label}
+      {({ isActive }) => (
+        <>
+          <span
+            className={`absolute top-0 h-0.5 w-7 rounded-full ${isActive ? "bg-accent" : "bg-transparent"}`}
+          />
+          <span className={isActive ? "text-accent" : "text-dim"}>
+            <TabIcon name={icon} />
+          </span>
+          <span
+            className={`max-w-full truncate px-1 font-mono text-[10px] leading-none uppercase tracking-[0.08em] ${isActive ? "text-ink" : "text-dim"}`}
+          >
+            {label}
+          </span>
+        </>
+      )}
     </NavLink>
   );
 }

@@ -31,15 +31,15 @@ export function BrandWordmark({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
 export function BrandLockup({ size = "sm" }: { size?: "sm" | "lg" }) {
   if (size === "lg") {
     return (
-      <span className="inline-flex flex-col items-center gap-4">
-        <BrandMark size={132} />
+      <span className="inline-flex items-center gap-4 whitespace-nowrap">
+        <BrandMark size={72} />
         <BrandWordmark size="lg" />
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-2.5">
-      <BrandMark size={40} />
+    <span className="inline-flex items-center gap-2 whitespace-nowrap">
+      <BrandMark size={36} />
       <BrandWordmark size="sm" />
     </span>
   );

@@ -49,6 +49,7 @@ export const GAME_PLATFORMS = [
   { id: "pc", name: "PC", short: "STEAM", tint: "#66c0f4" },
   { id: "playstation", name: "PlayStation", short: "PS", tint: "#003791" },
   { id: "xbox", name: "Xbox", short: "XBOX", tint: "#107c10" },
+  { id: "nintendo", name: "Nintendo Switch", short: "NS", tint: "#e60012" },
 ] as const;
 
 export type GamePlatformId = (typeof GAME_PLATFORMS)[number]["id"];

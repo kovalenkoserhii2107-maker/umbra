@@ -96,7 +96,7 @@ export function GamePlatformPage() {
   );
   const consoles = useAsync(
     () =>
-      id === "playstation" || id === "xbox"
+      id === "playstation" || id === "xbox" || id === "nintendo"
         ? loadConsoleCatalog()
         : Promise.resolve(null),
     [id],
@@ -109,7 +109,9 @@ export function GamePlatformPage() {
               ? ["steam", "pc"]
               : id === "playstation"
                 ? ["ps4", "ps5"]
-                : ["xbox-one", "xbox-series-xs"],
+                : id === "xbox"
+                  ? ["xbox-one", "xbox-series-xs"]
+                  : ["switch"],
           )
         : Promise.resolve([]),
     [id, platform?.id],
@@ -137,7 +139,8 @@ export function GamePlatformPage() {
           <GameRow title="Топ 100" items={catalogGames(catalog.data, catalog.data.top)} />
         </>
       ) : null}
-      {consoles.data && (id === "playstation" || id === "xbox") ? (
+      {consoles.data &&
+      (id === "playstation" || id === "xbox" || id === "nintendo") ? (
         <>
           <GameRow
             title="Самое популярное"

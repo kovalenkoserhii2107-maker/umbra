@@ -93,6 +93,38 @@ const shelves = {
       5,
     ),
   },
+  nintendo: {
+    popular: [
+      ...(await list(
+        "https://www.metacritic.com/browse/game/nintendo-switch-2/all/all-time/",
+        1,
+      )),
+      ...(await list(
+        "https://www.metacritic.com/browse/game/nintendo-switch/all/all-time/",
+        1,
+      )),
+    ],
+    upcoming: [
+      ...(await list(
+        "https://www.metacritic.com/browse/game/?releaseType=coming-soon&platform=nintendo-switch-2",
+        2,
+      )),
+      ...(await list(
+        "https://www.metacritic.com/browse/game/?releaseType=coming-soon&platform=nintendo-switch",
+        2,
+      )),
+    ],
+    top: [
+      ...(await list(
+        "https://www.metacritic.com/browse/game/nintendo-switch-2/all/all-time/",
+        4,
+      )),
+      ...(await list(
+        "https://www.metacritic.com/browse/game/nintendo-switch/all/all-time/",
+        5,
+      )),
+    ],
+  },
 };
 
 const slugs = [
@@ -141,33 +173,42 @@ async function worker() {
 
 await Promise.all([worker(), worker(), worker()]);
 
-function ids(list, platform) {
-  return list
-    .map((slug) => {
-      const id = hash(slug);
-      const game = games[String(id)];
-      if (game && !game.platform.includes(platform)) {
-        game.platform = game.platform ? `${game.platform} · ${platform}` : platform;
-      }
-      return game ? id : 0;
-    })
-    .filter(Boolean);
+function ids(list, platform, limit) {
+  const seen = new Set();
+  const out = [];
+  for (const slug of list) {
+    const id = hash(slug);
+    const game = games[String(id)];
+    if (!game || seen.has(id)) continue;
+    seen.add(id);
+    if (!game.platform.includes(platform)) {
+      game.platform = game.platform ? `${game.platform} · ${platform}` : platform;
+    }
+    out.push(id);
+    if (out.length === limit) break;
+  }
+  return out;
 }
 
 const catalog = {
   playstation: {
-    popular: ids(shelves.playstation.popular, "PlayStation 5"),
-    upcoming: ids(shelves.playstation.upcoming, "PlayStation 5"),
-    top: ids(shelves.playstation.top, "PlayStation 5"),
+    popular: ids(shelves.playstation.popular, "PlayStation 5", 24),
+    upcoming: ids(shelves.playstation.upcoming, "PlayStation 5", 48),
+    top: ids(shelves.playstation.top, "PlayStation 5", 100),
   },
   xbox: {
-    popular: ids(shelves.xbox.popular, "Xbox Series"),
-    upcoming: ids(shelves.xbox.upcoming, "Xbox Series"),
-    top: ids(shelves.xbox.top, "Xbox Series"),
+    popular: ids(shelves.xbox.popular, "Xbox Series", 24),
+    upcoming: ids(shelves.xbox.upcoming, "Xbox Series", 48),
+    top: ids(shelves.xbox.top, "Xbox Series", 100),
+  },
+  nintendo: {
+    popular: ids(shelves.nintendo.popular, "Nintendo Switch", 24),
+    upcoming: ids(shelves.nintendo.upcoming, "Nintendo Switch", 48),
+    top: ids(shelves.nintendo.top, "Nintendo Switch", 100),
   },
   games,
 };
 writeFileSync(file, JSON.stringify(catalog));
 console.log(
-  `ps ${catalog.playstation.top.length} xbox ${catalog.xbox.top.length} games ${Object.keys(games).length}`,
+  `ps ${catalog.playstation.top.length} xbox ${catalog.xbox.top.length} ns ${catalog.nintendo.top.length} games ${Object.keys(games).length}`,
 );

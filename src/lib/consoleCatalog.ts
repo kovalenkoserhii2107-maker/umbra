@@ -9,6 +9,7 @@ export type ConsoleShelf = {
 export type ConsoleCatalog = {
   playstation: ConsoleShelf;
   xbox: ConsoleShelf;
+  nintendo: ConsoleShelf;
   games: Record<string, Game>;
 };
 

@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import {
   mediaOf,
@@ -24,9 +24,14 @@ import { SearchBox } from "./components/SearchBox";
 
 export function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const scrollY = useRef(new Map<string, number>());
   useEffect(() => {
-    window.scrollTo({ top: 0 });
-  }, [location.pathname]);
+    const saved = scrollY.current.get(location.key);
+    window.scrollTo({ top: saved ?? 0, behavior: "auto" });
+    return () => {
+      scrollY.current.set(location.key, window.scrollY);
+    };
+  }, [location.key]);
 
   return (
     <div className="min-h-dvh bg-canvas text-ink">
@@ -135,6 +140,45 @@ function Tab({
   );
 }
 
+function canGoBack() {
+  const idx = (window.history.state as { idx?: number } | null)?.idx;
+  return typeof idx === "number" && idx > 0;
+}
+
+function BackButton() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const stuck = !canGoBack() && location.pathname === "/";
+  return (
+    <button
+      type="button"
+      aria-label="Назад"
+      disabled={stuck}
+      onClick={() => {
+        if (canGoBack()) navigate(-1);
+        else if (location.pathname !== "/") navigate("/");
+      }}
+      className={`flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-hairline bg-card px-2.5 sm:px-3 ${stuck ? "text-dim opacity-40" : "text-mute"}`}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        className="h-[18px] w-[18px] text-accent"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M14.5 6.5 8.5 12l6 5.5" />
+      </svg>
+      <span className="hidden font-mono text-[10px] uppercase tracking-[0.14em] sm:inline">
+        Назад
+      </span>
+    </button>
+  );
+}
+
 function Header() {
   return (
     <header
@@ -142,6 +186,7 @@ function Header() {
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
+        <BackButton />
         <Link to="/" className="shrink-0">
           <BrandLockup />
         </Link>

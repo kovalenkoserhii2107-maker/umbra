@@ -43,12 +43,7 @@ export function Layout({ children }: { children: ReactNode }) {
       <UpdatePrompt />
       <nav className="fixed inset-x-0 bottom-0 z-30 md:hidden">
         <div className="border-t border-hairline bg-[#0c0c0c]/95 backdrop-blur-md">
-          <div className="grid h-16 grid-cols-4">
-            <Tab to="/" label="Лента" icon="feed" />
-            <Tab to="/search" label="Поиск" icon="search" />
-            <Tab to="/platforms" label="Платформы" icon="platforms" />
-            <Tab to="/library" label="Коллекция" icon="library" />
-          </div>
+          <SectionTabs />
         </div>
         <div
           className="bg-[#0c0c0c]"
@@ -103,19 +98,50 @@ function TabIcon({ name }: { name: "feed" | "search" | "platforms" | "library" }
   );
 }
 
+function SectionTabs() {
+  const { pathname } = useLocation();
+  const games = pathname.startsWith("/games");
+  const tabs = games
+    ? [
+        { to: "/games", label: "Лента", icon: "feed" as const, end: true },
+        { to: "/games/search", label: "Поиск", icon: "search" as const },
+        {
+          to: "/games/platforms",
+          label: "Платформы",
+          icon: "platforms" as const,
+        },
+        { to: "/games/library", label: "Коллекция", icon: "library" as const },
+      ]
+    : [
+        { to: "/", label: "Лента", icon: "feed" as const, end: true },
+        { to: "/search", label: "Поиск", icon: "search" as const },
+        { to: "/platforms", label: "Платформы", icon: "platforms" as const },
+        { to: "/library", label: "Коллекция", icon: "library" as const },
+      ];
+  return (
+    <div className="grid h-16 grid-cols-4">
+      {tabs.map((tab) => (
+        <Tab key={tab.to} {...tab} />
+      ))}
+    </div>
+  );
+}
+
 function Tab({
   to,
   label,
   icon,
+  end,
 }: {
   to: string;
   label: string;
   icon: "feed" | "search" | "platforms" | "library";
+  end?: boolean;
 }) {
   return (
     <NavLink
       to={to}
-      end={to === "/"}
+      end={end}
       className={({ isActive }) =>
         `relative flex h-full flex-col items-center justify-center gap-1 ${isActive ? "text-ink" : "text-dim"}`
       }
@@ -196,6 +222,22 @@ function ModeSwitch() {
 }
 
 function Header() {
+  const { pathname } = useLocation();
+  const games = pathname.startsWith("/games");
+  const links = games
+    ? [
+        { to: "/games", label: "Лента", end: true },
+        { to: "/games/search", label: "Поиск" },
+        { to: "/games/platforms", label: "Платформы" },
+        { to: "/games/library", label: "Коллекция" },
+      ]
+    : [
+        { to: "/", label: "Лента", end: true },
+        { to: "/search", label: "Поиск" },
+        { to: "/platforms", label: "Платформы" },
+        { to: "/library", label: "Коллекция" },
+        { to: "/guide", label: "Справочник" },
+      ];
   return (
     <header
       className="sticky top-0 z-40 border-b border-hairline bg-canvas/85 backdrop-blur-md"
@@ -207,47 +249,18 @@ function Header() {
           <BrandLockup />
         </Link>
         <nav className="hidden items-center gap-5 text-sm text-mute md:flex">
-          <NavLink
-            to="/"
-            end
-            className={({ isActive }) =>
-              isActive ? "text-ink" : "hover:text-ink"
-            }
-          >
-            Лента
-          </NavLink>
-          <NavLink
-            to="/search"
-            className={({ isActive }) =>
-              isActive ? "text-ink" : "hover:text-ink"
-            }
-          >
-            Поиск
-          </NavLink>
-          <NavLink
-            to="/platforms"
-            className={({ isActive }) =>
-              isActive ? "text-ink" : "hover:text-ink"
-            }
-          >
-            Платформы
-          </NavLink>
-          <NavLink
-            to="/library"
-            className={({ isActive }) =>
-              isActive ? "text-ink" : "hover:text-ink"
-            }
-          >
-            Коллекция
-          </NavLink>
-          <NavLink
-            to="/guide"
-            className={({ isActive }) =>
-              isActive ? "text-ink" : "hover:text-ink"
-            }
-          >
-            Справочник
-          </NavLink>
+          {links.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              end={link.end}
+              className={({ isActive }) =>
+                isActive ? "text-ink" : "hover:text-ink"
+              }
+            >
+              {link.label}
+            </NavLink>
+          ))}
         </nav>
         <ModeSwitch />
         <AccountMenu />

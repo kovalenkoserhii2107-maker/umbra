@@ -1,40 +1,8 @@
 import { Link, useParams } from "react-router-dom";
 import { ErrorBox, useAsync } from "../components";
-import { gameDetails, gameYear, gamesList, type Game } from "../lib/games";
-
-function GameCard({ game }: { game: Game }) {
-  return (
-    <Link to={`/games/${game.id}`} className="block w-[68vw] shrink-0 sm:w-72">
-      <div className="poster-hover overflow-hidden rounded-xl border border-hairline bg-card">
-        <img
-          src={game.thumbnail}
-          alt=""
-          className="aspect-video w-full object-cover"
-          loading="lazy"
-        />
-      </div>
-      <p className="mt-2 line-clamp-2 text-sm leading-snug">{game.title}</p>
-      <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
-        {game.genre}
-        {gameYear(game) ? ` · ${gameYear(game)}` : ""}
-      </p>
-    </Link>
-  );
-}
-
-function GameRow({ title, items }: { title: string; items: Game[] }) {
-  if (!items.length) return null;
-  return (
-    <section className="rise mb-10">
-      <h2 className="mb-3 text-lg font-medium tracking-tight">{title}</h2>
-      <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
-        {items.map((game) => (
-          <GameCard key={game.id} game={game} />
-        ))}
-      </div>
-    </section>
-  );
-}
+import { GameRow } from "../components/GameCard";
+import { GameMark } from "../components/GameMark";
+import { gameDetails, gameYear, gamesList } from "../lib/games";
 
 export function GamesPage() {
   const popular = useAsync(() => gamesList({ "sort-by": "popularity" }), []);
@@ -122,6 +90,7 @@ export function GamePage() {
         alt=""
         className="mt-6 aspect-video w-full rounded-2xl border border-hairline object-cover"
       />
+      <GameMark game={item} />
       {item.description ? (
         <p className="mt-6 max-w-2xl whitespace-pre-line text-sm leading-relaxed text-mute">
           {item.description}

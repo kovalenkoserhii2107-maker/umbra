@@ -11,6 +11,18 @@ const GamesPage = lazy(() =>
 const GamePage = lazy(() =>
   import("./pages/Games").then((m) => ({ default: m.GamePage })),
 );
+const GameSearchPage = lazy(() =>
+  import("./pages/GameSection").then((m) => ({ default: m.GameSearchPage })),
+);
+const GamePlatformsPage = lazy(() =>
+  import("./pages/GameSection").then((m) => ({ default: m.GamePlatformsPage })),
+);
+const GamePlatformPage = lazy(() =>
+  import("./pages/GameSection").then((m) => ({ default: m.GamePlatformPage })),
+);
+const GameLibraryPage = lazy(() =>
+  import("./pages/GameSection").then((m) => ({ default: m.GameLibraryPage })),
+);
 const GuidePage = lazy(() =>
   import("./pages/Guide").then((m) => ({ default: m.GuidePage })),
 );
@@ -66,6 +78,10 @@ export default function App() {
             }
           />
           <Route path="/games" element={<GamesPage />} />
+          <Route path="/games/search" element={<GameSearchPage />} />
+          <Route path="/games/platforms" element={<GamePlatformsPage />} />
+          <Route path="/games/platforms/:id" element={<GamePlatformPage />} />
+          <Route path="/games/library" element={<GameLibraryPage />} />
           <Route path="/games/:id" element={<GamePage />} />
           <Route path="/guide" element={<GuidePage />} />
           <Route path="/guide/year/:year" element={<GuideListPage />} />

@@ -1,0 +1,239 @@
+import { useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { Empty, ErrorBox, useAsync } from "../components";
+import { GameCard, GameRow } from "../components/GameCard";
+import { useGameLibrary } from "../lib/gameLibrary";
+import {
+  GAME_PLATFORMS,
+  gamePlatform,
+  gamesList,
+  matchGames,
+  platformGiveaways,
+} from "../lib/games";
+
+export function GameSearchPage() {
+  const [query, setQuery] = useState("");
+  const games = useAsync(() => gamesList(), []);
+  const shown = useMemo(
+    () => matchGames(games.data ?? [], query).slice(0, 40),
+    [games.data, query],
+  );
+
+  return (
+    <div className="rise">
+      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
+        поиск
+      </p>
+      <h1 className="mt-1 text-3xl tracking-tight">Поиск игр</h1>
+      <input
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder="Название, жанр, студия"
+        className="mt-6 w-full rounded-full border border-hairline bg-card px-4 py-2 text-sm outline-none placeholder:text-dim focus:border-accent/60"
+      />
+      {games.error && !games.data ? (
+        <div className="mt-6">
+          <ErrorBox code={games.error} />
+        </div>
+      ) : null}
+      {query.trim() && !shown.length && games.data ? (
+        <Empty text="Ничего не нашлось." />
+      ) : (
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {shown.map((game) => (
+            <GameCard key={game.id} game={game} layout="grid" />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function GamePlatformsPage() {
+  return (
+    <div className="rise">
+      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
+        платформы
+      </p>
+      <h1 className="mt-1 text-3xl tracking-tight">Где играть</h1>
+      <div className="mt-8 grid gap-3 sm:grid-cols-2">
+        {GAME_PLATFORMS.map((platform) => (
+          <Link
+            key={platform.id}
+            to={`/games/platforms/${platform.id}`}
+            className="rounded-2xl border border-hairline bg-card p-5 transition hover:border-accent/40"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] tracking-[0.16em] text-dim">
+                {platform.short}
+              </span>
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ background: platform.tint }}
+              />
+            </div>
+            <h2 className="mt-6 text-2xl tracking-tight">{platform.name}</h2>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function GamePlatformPage() {
+  const { id = "" } = useParams();
+  const platform = gamePlatform(id);
+  const popular = useAsync(
+    () =>
+      id === "pc"
+        ? gamesList({ platform: "pc", "sort-by": "popularity" })
+        : Promise.resolve([]),
+    [id],
+  );
+  const fresh = useAsync(
+    () =>
+      id === "pc"
+        ? gamesList({ platform: "pc", "sort-by": "release-date" })
+        : Promise.resolve([]),
+    [id],
+  );
+  const drops = useAsync(
+    () =>
+      platform
+        ? platformGiveaways(
+            id === "pc"
+              ? ["steam", "pc"]
+              : id === "playstation"
+                ? ["ps4", "ps5"]
+                : ["xbox-one", "xbox-series-xs"],
+          )
+        : Promise.resolve([]),
+    [id, platform?.id],
+  );
+
+  if (!platform)
+    return <p className="text-sm text-mute">Платформа не найдена.</p>;
+
+  return (
+    <div className="rise">
+      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
+        {platform.short}
+      </p>
+      <h1 className="mt-1 mb-8 text-3xl tracking-tight">{platform.name}</h1>
+      {id === "pc" ? (
+        <>
+          <GameRow title="Популярное на PC" items={(popular.data ?? []).slice(0, 16)} />
+          <GameRow title="Новое на PC" items={(fresh.data ?? []).slice(0, 16)} />
+        </>
+      ) : null}
+      <section className="mb-10">
+        <h2 className="mb-3 text-lg font-medium tracking-tight">Сейчас раздают</h2>
+        {drops.data?.length ? (
+          <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
+            {drops.data.map((item) => (
+              <a
+                key={item.id}
+                href={item.open_giveaway_url}
+                target="_blank"
+                rel="noreferrer"
+                className="block w-[68vw] shrink-0 sm:w-72"
+              >
+                <div className="overflow-hidden rounded-xl border border-hairline bg-card">
+                  <img
+                    src={item.thumbnail || item.image}
+                    alt=""
+                    className="aspect-video w-full object-cover"
+                  />
+                </div>
+                <p className="mt-2 line-clamp-2 text-sm">{item.title}</p>
+                <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
+                  раздача
+                </p>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-mute">Сейчас раздач нет.</p>
+        )}
+      </section>
+    </div>
+  );
+}
+
+export function GameLibraryPage() {
+  const items = useGameLibrary();
+  const [filter, setFilter] = useState<"all" | "played" | "want">("all");
+  const list = items.filter((item) =>
+    filter === "all" ? true : item.status === filter,
+  );
+  const played = items.filter((item) => item.status === "played").length;
+
+  return (
+    <div className="rise">
+      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
+        коллекция
+      </p>
+      <h1 className="mt-1 text-3xl tracking-tight">Игры</h1>
+      <p className="mt-2 text-sm text-mute">
+        {played} пройдено · {items.length - played} в «Хочу поиграть»
+      </p>
+      <div className="mt-6 mb-6 flex flex-wrap gap-2">
+        {(
+          [
+            ["all", "Все"],
+            ["played", "Пройденные"],
+            ["want", "Хочу поиграть"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setFilter(id)}
+            className={`rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.12em] ${
+              filter === id
+                ? "border-ink bg-ink text-canvas"
+                : "border-hairline text-mute"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {list.length === 0 ? (
+        <Empty text="Пока пусто. Открой игру и добавь её в пройденные или в «Хочу поиграть»." />
+      ) : (
+        <div className="space-y-2">
+          {list.map((item) => (
+            <Link
+              key={item.id}
+              to={`/games/${item.id}`}
+              className="flex gap-3 rounded-xl border border-hairline bg-card p-2 hover:border-accent/40"
+            >
+              {item.thumbnail ? (
+                <img
+                  src={item.thumbnail}
+                  alt=""
+                  className="h-16 w-28 rounded-lg object-cover"
+                />
+              ) : (
+                <div className="h-16 w-28 rounded-lg bg-canvas-soft" />
+              )}
+              <div className="min-w-0 py-1">
+                <p className="truncate">{item.title}</p>
+                <p className="font-mono text-[11px] uppercase tracking-wider text-dim">
+                  {item.genre}
+                  {item.year ? ` · ${item.year}` : ""}
+                  {item.status === "want"
+                    ? " · хочу поиграть"
+                    : item.rating
+                      ? ` · ${item.rating}/10`
+                      : " · пройдено"}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -5,6 +5,12 @@ import { Layout } from "./components";
 const FeedPage = lazy(() =>
   import("./pages/Feed").then((m) => ({ default: m.FeedPage })),
 );
+const GamesPage = lazy(() =>
+  import("./pages/Games").then((m) => ({ default: m.GamesPage })),
+);
+const GamePage = lazy(() =>
+  import("./pages/Games").then((m) => ({ default: m.GamePage })),
+);
 const GuidePage = lazy(() =>
   import("./pages/Guide").then((m) => ({ default: m.GuidePage })),
 );
@@ -59,6 +65,8 @@ export default function App() {
               </RequireAccount>
             }
           />
+          <Route path="/games" element={<GamesPage />} />
+          <Route path="/games/:id" element={<GamePage />} />
           <Route path="/guide" element={<GuidePage />} />
           <Route path="/guide/year/:year" element={<GuideListPage />} />
           <Route path="/guide/:genreId" element={<GuideListPage />} />

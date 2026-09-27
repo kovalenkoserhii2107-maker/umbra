@@ -20,7 +20,6 @@ import { UpdatePrompt } from "./components/UpdatePrompt";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { BrandLockup } from "./components/Brand";
 import { AccountMenu } from "./components/AccountMenu";
-import { SearchBox } from "./components/SearchBox";
 
 export function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
@@ -179,13 +178,30 @@ function BackButton() {
   );
 }
 
+function ModeSwitch() {
+  const { pathname } = useLocation();
+  const games = pathname.startsWith("/games");
+  const item = (active: boolean) =>
+    `flex h-8 items-center rounded-full px-3 font-mono text-[10px] uppercase tracking-[0.12em] ${active ? "bg-ink text-canvas" : "text-mute"}`;
+  return (
+    <div className="ml-auto flex h-10 shrink-0 items-center rounded-full border border-hairline bg-card p-1">
+      <Link to="/" className={item(!games)}>
+        Фильмы
+      </Link>
+      <Link to="/games" className={item(games)}>
+        Игры
+      </Link>
+    </div>
+  );
+}
+
 function Header() {
   return (
     <header
       className="sticky top-0 z-40 border-b border-hairline bg-canvas/85 backdrop-blur-md"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
-      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
+      <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6">
         <BackButton />
         <Link to="/" className="shrink-0">
           <BrandLockup />
@@ -233,7 +249,7 @@ function Header() {
             Справочник
           </NavLink>
         </nav>
-        <SearchBox />
+        <ModeSwitch />
         <AccountMenu />
       </div>
     </header>

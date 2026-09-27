@@ -6,25 +6,55 @@ import { useGameLibrary } from "../lib/gameLibrary";
 import {
   GAME_PLATFORMS,
   gamePlatform,
-  matchGames,
   platformGiveaways,
 } from "../lib/games";
 import { catalogGames, loadSteamCatalog } from "../lib/steamCatalog";
 import { consoleGames, loadConsoleCatalog } from "../lib/consoleCatalog";
+import {
+  GAME_GENRES,
+  defaultGameFilters,
+  filterGames,
+  gamePool,
+  popularityRank,
+  type GameFilters,
+  type GamePlatformFilter,
+  type GameSort,
+} from "../lib/gameSearch";
 import { studioInfo, type StudioInfo } from "../lib/studioInfo";
+
+const GAME_YEARS = Array.from({ length: 36 }, (_, i) =>
+  String(new Date().getFullYear() - i),
+);
+const GAME_SCORES = [0, 5, 6, 7, 8, 9];
 
 export function GameSearchPage() {
   const [query, setQuery] = useState("");
-  const catalog = useAsync(() => loadSteamCatalog(), []);
+  const [filters, setFilters] = useState<GameFilters>(defaultGameFilters);
+  const [limit, setLimit] = useState(40);
+  const steam = useAsync(() => loadSteamCatalog(), []);
+  const consoles = useAsync(() => loadConsoleCatalog(), []);
   const pool = useMemo(
-    () => Object.values(catalog.data?.games ?? {}),
-    [catalog.data],
+    () => gamePool(steam.data, consoles.data),
+    [steam.data, consoles.data],
   );
-  const shown = useMemo(() => {
-    if (!catalog.data) return [];
-    if (!query.trim()) return catalogGames(catalog.data, catalog.data.popular);
-    return matchGames(pool, query).slice(0, 40);
-  }, [catalog.data, pool, query]);
+  const rank = useMemo(
+    () => popularityRank(steam.data, consoles.data),
+    [steam.data, consoles.data],
+  );
+  const shown = useMemo(
+    () => filterGames(pool, query, filters, rank),
+    [pool, query, filters, rank],
+  );
+
+  useEffect(() => {
+    setLimit(40);
+  }, [query, filters]);
+
+  function chip(active: boolean) {
+    return active
+      ? "shrink-0 rounded-full border border-ink bg-ink px-3 py-1 text-xs text-canvas"
+      : "shrink-0 rounded-full border border-hairline px-3 py-1 text-xs text-mute";
+  }
 
   return (
     <div className="rise">
@@ -36,22 +66,127 @@ export function GameSearchPage() {
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder="Название, жанр, студия"
-        className="mt-6 w-full rounded-full border border-hairline bg-card px-4 py-2 text-sm outline-none placeholder:text-dim focus:border-accent/60"
+        className="mt-6 w-full rounded-full border border-hairline bg-card px-4 py-3 text-sm outline-none placeholder:text-dim focus:border-accent/60"
       />
-      {catalog.error && !catalog.data ? (
-        <div className="mt-6">
-          <ErrorBox code={catalog.error} />
-        </div>
-      ) : null}
-      {query.trim() && !shown.length && catalog.data ? (
-        <Empty text="Ничего не нашлось." />
-      ) : (
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {shown.map((game) => (
-            <GameCard key={game.id} game={game} layout="grid" />
+      <div className="mt-5 space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["all", "Всё"],
+              ["pc", "PC"],
+              ["playstation", "PlayStation"],
+              ["xbox", "Xbox"],
+              ["nintendo", "Switch"],
+            ] as Array<[GamePlatformFilter, string]>
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              className={chip(filters.platform === id)}
+              onClick={() => setFilters((current) => ({ ...current, platform: id }))}
+            >
+              {label}
+            </button>
           ))}
         </div>
-      )}
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["relevance", "По смыслу"],
+              ["popular", "Популярные"],
+              ["rating", "Рейтинг"],
+              ["year", "Новизна"],
+            ] as Array<[GameSort, string]>
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              className={chip(filters.sort === id)}
+              onClick={() => setFilters((current) => ({ ...current, sort: id }))}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {GAME_SCORES.map((score) => (
+            <button
+              key={score}
+              className={chip(filters.minScore === score)}
+              onClick={() =>
+                setFilters((current) => ({ ...current, minScore: score }))
+              }
+            >
+              {score === 0 ? "Любой рейтинг" : `${score}+`}
+            </button>
+          ))}
+        </div>
+        <div className="row-scroll flex gap-2 overflow-x-auto pb-1">
+          <button
+            className={chip(!filters.year)}
+            onClick={() => setFilters((current) => ({ ...current, year: "" }))}
+          >
+            Любой год
+          </button>
+          {GAME_YEARS.map((year) => (
+            <button
+              key={year}
+              className={chip(filters.year === year)}
+              onClick={() => setFilters((current) => ({ ...current, year }))}
+            >
+              {year}
+            </button>
+          ))}
+        </div>
+        <div className="row-scroll flex gap-2 overflow-x-auto pb-1">
+          <button
+            className={chip(!filters.genre)}
+            onClick={() => setFilters((current) => ({ ...current, genre: null }))}
+          >
+            Все жанры
+          </button>
+          {GAME_GENRES.map((genre) => (
+            <button
+              key={genre.id}
+              className={chip(filters.genre === genre.id)}
+              onClick={() =>
+                setFilters((current) => ({ ...current, genre: genre.id }))
+              }
+            >
+              {genre.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {steam.error && !steam.data ? (
+        <div className="mt-6">
+          <ErrorBox code={steam.error} />
+        </div>
+      ) : null}
+      {!steam.data && !steam.error ? (
+        <p className="mt-6 text-sm text-mute">Ищу…</p>
+      ) : shown.length ? (
+        <div className="mt-6">
+          <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.16em] text-dim">
+            {shown.length} игр
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {shown.slice(0, limit).map((game) => (
+              <GameCard key={game.id} game={game} layout="grid" />
+            ))}
+          </div>
+          {limit < shown.length ? (
+            <div className="mt-8 flex justify-center">
+              <button
+                onClick={() => setLimit((value) => value + 40)}
+                className="rounded-full border border-hairline px-4 py-2 text-sm"
+              >
+                Ещё результаты
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : steam.data ? (
+        <Empty text="Ничего не подошло. Сбрось фильтры или измени запрос." />
+      ) : null}
     </div>
   );
 }

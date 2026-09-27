@@ -61,6 +61,9 @@ async function details(slug) {
     poster: `${image.split("?")[0]}?auto=webp&fit=cover&height=720&width=1280`,
     release_date: /^\d{4}$/.test(year) ? year : "",
     metacritic: Number.isFinite(score) ? Math.round(score) : null,
+    genre: Array.isArray(data.genre)
+      ? data.genre.join(", ")
+      : data.genre || "",
   };
 }
 
@@ -154,7 +157,9 @@ async function worker() {
           short_description: info.description,
           description: info.description,
           game_url: `https://www.metacritic.com/game/${slug}/`,
-          genre: "",
+          genre: Array.isArray(info.genre)
+            ? info.genre.join(", ")
+            : info.genre || "",
           platform: "",
           publisher: "",
           developer: "",

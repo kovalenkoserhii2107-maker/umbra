@@ -83,7 +83,10 @@ async function enrich(game) {
     thumbnail: data?.header_image || game.thumbnail,
     short_description: clean(data?.short_description).slice(0, 400),
     game_url: `https://store.steampowered.com/app/${game.id}`,
-    genre: data?.genres?.[0]?.description || "",
+    genre: (data?.genres || [])
+      .map((genre) => genre.description)
+      .filter((name) => name && name !== "Free To Play" && name !== "Early Access")
+      .join(", "),
     platform: "PC (Steam)",
     publisher: data?.publishers?.[0] || "",
     developer: data?.developers?.[0] || "",

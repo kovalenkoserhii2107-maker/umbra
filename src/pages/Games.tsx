@@ -21,10 +21,6 @@ export function GamesPage() {
 
   return (
     <div className="rise">
-      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
-        игры
-      </p>
-      <h1 className="mt-1 mb-8 text-3xl tracking-tight">Игры</h1>
       {lead ? (
         <Link
           to={`/games/${lead.id}`}

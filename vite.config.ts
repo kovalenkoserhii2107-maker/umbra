@@ -60,7 +60,7 @@ export default defineConfig({
         clientsClaim: true,
         navigateFallback: "index.html",
         navigateFallbackAllowlist: [/^\/umbra(?:\/|$)/],
-        globPatterns: ["**/*.{js,css,svg,png,woff2,ico,html}"],
+        globPatterns: ["**/*.{js,css,svg,png,woff2,ico,html,json}"],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/image\.tmdb\.org\//,

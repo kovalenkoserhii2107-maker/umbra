@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import { ErrorBox, useAsync } from "../components";
 import { GameRow } from "../components/GameCard";
 import { GameMark } from "../components/GameMark";
+import { GameScoreLine, GameScores } from "../components/GameScores";
 import { gameDetails, gameYear, gamesList } from "../lib/games";
 
 export function GamesPage() {
@@ -47,10 +48,11 @@ export function GamesPage() {
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
               {lead.genre}
             </p>
-            <p className="mt-1 text-2xl tracking-tight text-white sm:text-3xl">
+            <p className="mt-1 max-w-[70%] text-2xl tracking-tight text-white sm:text-3xl">
               {lead.title}
             </p>
           </div>
+          <GameScores id={lead.id} />
         </Link>
       ) : null}
       <GameRow title="Популярные" items={rest} />
@@ -85,6 +87,7 @@ export function GamePage() {
         {gameYear(item) ? ` · ${gameYear(item)}` : ""}
         {item.developer ? ` · ${item.developer}` : ""}
       </p>
+      <GameScoreLine id={item.id} />
       <img
         src={item.thumbnail}
         alt=""

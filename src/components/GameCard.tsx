@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { gameYear, type Game } from "../lib/games";
+import { GameScores } from "./GameScores";
 
 export function GameCard({
   game,
@@ -13,13 +14,14 @@ export function GameCard({
       to={`/games/${game.id}`}
       className={`block ${layout === "grid" ? "w-full" : "w-[68vw] shrink-0 sm:w-72"}`}
     >
-      <div className="poster-hover overflow-hidden rounded-xl border border-hairline bg-card">
+      <div className="poster-hover relative overflow-hidden rounded-xl border border-hairline bg-card">
         <img
           src={game.thumbnail}
           alt=""
           className="aspect-video w-full object-cover"
           loading="lazy"
         />
+        <GameScores id={game.id} />
       </div>
       <p className="mt-2 line-clamp-2 text-sm leading-snug">{game.title}</p>
       <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">

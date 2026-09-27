@@ -1,41 +1,41 @@
 export function BrandMark({ size = 28 }: { size?: number }) {
   return (
-    <svg
+    <img
+      src={`${import.meta.env.BASE_URL}brand-mark.jpg`}
       width={size}
       height={size}
-      viewBox="0 0 64 64"
-      fill="none"
-      aria-hidden="true"
-    >
-      <rect width="64" height="64" rx="15" fill="#0a0a0a" />
-      <circle cx="32" cy="32" r="19.2" fill="#ffb87a" />
-      <circle cx="34" cy="32" r="17.1" fill="#0a0a0a" />
-    </svg>
+      alt=""
+      draggable={false}
+      className="shrink-0 rounded-[22%]"
+    />
   );
 }
 
 export function BrandWordmark({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const scale =
-    size === "lg"
-      ? "text-[34px] sm:text-[40px]"
-      : size === "sm"
-        ? "text-[15px]"
-        : "text-[22px]";
+    size === "lg" ? "text-4xl" : size === "sm" ? "text-[17px]" : "text-2xl";
   return (
     <span
-      className={`leading-none tracking-[0.26em] text-ink ${scale}`}
-      style={{ fontWeight: 600 }}
+      className={`font-['Playfair_Display'] font-bold leading-none text-[#D4AF37] ${scale}`}
     >
-      UMBRA
+      Umbra
     </span>
   );
 }
 
 export function BrandLockup({ size = "sm" }: { size?: "sm" | "lg" }) {
+  if (size === "lg") {
+    return (
+      <span className="inline-flex flex-col items-center gap-3">
+        <BrandMark size={112} />
+        <BrandWordmark size="lg" />
+      </span>
+    );
+  }
   return (
-    <span className="inline-flex items-center gap-2.5">
-      <BrandMark size={size === "lg" ? 36 : 28} />
-      <BrandWordmark size={size === "lg" ? "lg" : "sm"} />
+    <span className="inline-flex items-center gap-2">
+      <BrandMark size={30} />
+      <BrandWordmark size="sm" />
     </span>
   );
 }

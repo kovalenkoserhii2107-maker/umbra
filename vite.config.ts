@@ -24,10 +24,11 @@ export default defineConfig({
       registerType: "prompt",
       injectRegister: false,
       includeAssets: [
-        "favicon.svg",
-        "icon.svg",
-        "icon-maskable.svg",
+        "favicon-32.png",
         "apple-touch-icon.png",
+        "icon-192.png",
+        "icon-512.png",
+        "brand-mark.jpg",
       ],
       manifest: {
         name: "Umbra",
@@ -41,15 +42,21 @@ export default defineConfig({
         lang: "ru",
         icons: [
           {
-            src: "icon.svg",
-            sizes: "512x512",
-            type: "image/svg+xml",
+            src: "icon-192.png",
+            sizes: "192x192",
+            type: "image/png",
             purpose: "any",
           },
           {
-            src: "icon-maskable.svg",
+            src: "icon-512.png",
             sizes: "512x512",
-            type: "image/svg+xml",
+            type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: "icon-512.png",
+            sizes: "512x512",
+            type: "image/png",
             purpose: "maskable",
           },
         ],
@@ -60,7 +67,7 @@ export default defineConfig({
         clientsClaim: true,
         navigateFallback: "index.html",
         navigateFallbackAllowlist: [/^\/umbra(?:\/|$)/],
-        globPatterns: ["**/*.{js,css,svg,png,woff2,ico,html,json}"],
+        globPatterns: ["**/*.{js,css,svg,png,jpg,woff2,ico,html,json}"],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/image\.tmdb\.org\//,

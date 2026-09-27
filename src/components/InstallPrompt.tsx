@@ -78,7 +78,7 @@ export function InstallPrompt() {
       <div className="rise mx-auto max-w-xl rounded-2xl border border-hairline bg-card/95 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.55)] backdrop-blur-md">
         <div className="flex items-start gap-3">
           <img
-            src={`${import.meta.env.BASE_URL}favicon.svg`}
+            src={`${import.meta.env.BASE_URL}icon-192.png`}
             alt=""
             className="h-12 w-12 shrink-0 rounded-xl"
           />

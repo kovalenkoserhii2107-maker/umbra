@@ -432,6 +432,51 @@ export const tmdb = {
       params.with_companies = companies.join("|");
     return request<TmdbPage<TmdbItem>>(`/discover/${type}`, params);
   },
+  platformPopular: async (
+    providerId: number,
+    region: string,
+  ): Promise<TmdbItem[]> => {
+    const params = {
+      with_watch_providers: providerId,
+      watch_region: region,
+      with_watch_monetization_types: "flatrate|free|ads",
+      sort_by: "popularity.desc",
+      "vote_count.gte": 100,
+      page: 1,
+    };
+    const [movies, shows] = await Promise.all([
+      request<TmdbPage<TmdbItem>>("/discover/movie", params),
+      request<TmdbPage<TmdbItem>>("/discover/tv", params),
+    ]);
+    const merged = [
+      ...movies.results.map((item) => ({ ...item, media_type: "movie" as const })),
+      ...shows.results.map((item) => ({ ...item, media_type: "tv" as const })),
+    ];
+    const seen = new Set<string>();
+    return merged
+      .filter((item) => {
+        const key = `${item.media_type}:${item.id}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+      .slice(0, 20);
+  },
+  platformMovies: (
+    providerId: number,
+    region: string,
+    companies?: number[],
+  ) =>
+    request<TmdbPage<TmdbItem>>("/discover/movie", {
+      with_watch_providers: providerId,
+      watch_region: region,
+      with_watch_monetization_types: "flatrate|free|ads",
+      without_companies: companies?.length ? companies.join(",") : undefined,
+      sort_by: "popularity.desc",
+      "vote_count.gte": 40,
+      page: 1,
+    }).then((data) => asPage(data, "movie")),
   platformNewest: async (
     providerId: number,
     region: string,

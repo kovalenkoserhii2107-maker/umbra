@@ -17,8 +17,8 @@ export function PlatformsPage() {
       </p>
       <h1 className="mt-1 text-3xl tracking-tight">Где смотреть</h1>
       <p className="mt-2 max-w-xl text-sm text-mute">
-        Сначала новые оригиналы сервиса, потом остальной каталог. Регион:{" "}
-        {settings.region}.
+        Сначала новое от сервиса, затем популярное на нём, потом фильмы не от
+        платформы. Регион: {settings.region}.
       </p>
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
         {shown.map((p) => (
@@ -37,7 +37,7 @@ export function PlatformsPage() {
               />
             </div>
             <h2 className="mt-6 text-2xl tracking-tight">{p.name}</h2>
-            <p className="mt-1 text-sm text-mute">Новое и каталог сервиса</p>
+            <p className="mt-1 text-sm text-mute">Новое, популярное и каталог</p>
           </Link>
         ))}
       </div>
@@ -62,17 +62,28 @@ export function PlatformPage() {
         : Promise.resolve([]),
     [platform?.id, settings.region],
   );
+  const popular = useAsync(
+    () =>
+      platform
+        ? tmdb.platformPopular(platform.id, settings.region)
+        : Promise.resolve([]),
+    [platform?.id, settings.region],
+  );
   const movies = useAsync(
     () =>
       platform
-        ? tmdb.discover("movie", platform.id, settings.region)
+        ? tmdb.platformMovies(
+            platform.id,
+            settings.region,
+            platform.movieCompanies,
+          )
         : Promise.resolve({
             results: [],
             page: 1,
             total_pages: 0,
             total_results: 0,
           }),
-    [platform?.id, settings.region],
+    [platform?.id, settings.region, platform?.movieCompanies?.join(",")],
   );
   const shows = useAsync(
     () =>
@@ -89,8 +100,16 @@ export function PlatformPage() {
 
   if (!platform)
     return <p className="text-sm text-mute">Платформа не найдена.</p>;
-  const err = newest.error || movies.error || shows.error;
-  if (err && !newest.data && !movies.data) return <ErrorBox code={err} />;
+  const err = newest.error || popular.error || movies.error || shows.error;
+  if (err && !newest.data && !popular.data && !movies.data)
+    return <ErrorBox code={err} />;
+
+  const fresh = new Set(
+    (newest.data ?? []).map((item) => `${item.media_type || "movie"}:${item.id}`),
+  );
+  const popularItems = (popular.data ?? []).filter(
+    (item) => !fresh.has(`${item.media_type || "movie"}:${item.id}`),
+  );
 
   return (
     <div className="rise">
@@ -99,9 +118,10 @@ export function PlatformPage() {
       </p>
       <h1 className="mt-1 mb-8 text-3xl tracking-tight">{platform.name}</h1>
       <Row title="Новое от сервиса" items={byCatalogRank(newest.data ?? [])} />
+      <Row title="Популярное на платформе" items={popularItems} />
       <section className="mb-10">
         <h2 className="mb-3 text-lg font-medium tracking-tight">
-          Фильмы в каталоге
+          Фильмы не от сервиса
         </h2>
         {movies.loading ? (
           <p className="text-sm text-mute">Загрузка…</p>

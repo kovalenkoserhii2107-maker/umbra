@@ -22,7 +22,7 @@ class Boundary extends Component<
         <div
           style={{
             minHeight: "100dvh",
-            background: "#0a0a0a",
+            background: "#000000",
             color: "#fcfcfc",
             padding: 24,
             fontFamily: "Manrope, sans-serif",

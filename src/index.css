@@ -3,7 +3,7 @@
 @theme {
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
-  --color-canvas: #0a0a0a;
+  --color-canvas: #000000;
   --color-canvas-soft: #101010;
   --color-card: #141414;
   --color-hairline: #212121;

@@ -159,6 +159,59 @@ export function GamePlatformPage() {
   );
 }
 
+export function StudioPage() {
+  const { name = "" } = useParams();
+  const studio = decodeURIComponent(name);
+  const catalog = useAsync(() => loadSteamCatalog(), []);
+  const games = catalog.data
+    ? catalogGames(
+        catalog.data,
+        catalog.data.studios?.[studio] ||
+          Object.values(catalog.data.games)
+            .filter((game) => game.developer === studio)
+            .sort((a, b) => Number(b.release_date || 0) - Number(a.release_date || 0))
+            .map((game) => game.id),
+      )
+    : [];
+  const groups: { year: string; items: typeof games }[] = [];
+  let seenYear = false;
+  for (const game of games) {
+    const year = game.release_date || (seenYear ? "Без даты" : "Скоро");
+    if (game.release_date) seenYear = true;
+    const last = groups.at(-1);
+    if (!last || last.year !== year) groups.push({ year, items: [game] });
+    else last.items.push(game);
+  }
+
+  return (
+    <div className="rise">
+      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
+        студия
+      </p>
+      <h1 className="mt-1 text-3xl tracking-tight">{studio}</h1>
+      <p className="mt-2 text-sm text-mute">
+        {games.length ? `${games.length} игр, от новых к ранним` : "Собираю список…"}
+      </p>
+      {catalog.error && !catalog.data ? <ErrorBox code={catalog.error} /> : null}
+      {!catalog.loading && !games.length ? (
+        <Empty text="У этой студии пока нет игр в каталоге." />
+      ) : null}
+      {groups.map((group) => (
+        <section key={group.year} className="mt-8">
+          <h2 className="mb-3 font-mono text-[11px] uppercase tracking-[0.16em] text-dim">
+            {group.year}
+          </h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {group.items.map((game) => (
+              <GameCard key={game.id} game={game} layout="grid" />
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 export function GameLibraryPage() {
   const items = useGameLibrary();
   const [filter, setFilter] = useState<"all" | "played" | "want">("all");

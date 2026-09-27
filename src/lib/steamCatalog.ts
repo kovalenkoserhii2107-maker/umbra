@@ -6,6 +6,7 @@ export type SteamCatalog = {
   upcoming: number[];
   top: number[];
   games: Record<string, Game>;
+  studios?: Record<string, number[]>;
 };
 
 let loading: Promise<SteamCatalog> | null = null;

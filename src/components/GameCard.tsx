@@ -10,29 +10,38 @@ export function GameCard({
   layout?: "row" | "grid";
 }) {
   return (
-    <Link
-      to={`/games/${game.id}`}
+    <div
       className={`block ${layout === "grid" ? "w-full" : "w-[68vw] shrink-0 sm:w-72"}`}
     >
-      <div className="poster-hover relative overflow-hidden rounded-xl border border-hairline bg-card">
-        <img
-          src={game.thumbnail}
-          alt=""
-          className="aspect-video w-full object-cover"
-          loading="lazy"
-        />
-        <GameScores
-          id={game.id}
-          metacritic={game.metacritic}
-          steam={game.steam}
-        />
-      </div>
-      <p className="mt-2 line-clamp-2 text-sm leading-snug">{game.title}</p>
+      <Link to={`/games/${game.id}`}>
+        <div className="poster-hover relative overflow-hidden rounded-xl border border-hairline bg-card">
+          <img
+            src={game.thumbnail}
+            alt=""
+            className="aspect-video w-full object-cover"
+            loading="lazy"
+          />
+          <GameScores
+            id={game.id}
+            metacritic={game.metacritic}
+            steam={game.steam}
+          />
+        </div>
+        <p className="mt-2 line-clamp-2 text-sm leading-snug">{game.title}</p>
+      </Link>
+      {game.developer ? (
+        <Link
+          to={`/games/studio/${encodeURIComponent(game.developer)}`}
+          className="mt-1 block truncate font-mono text-[11px] uppercase tracking-[0.14em] text-accent"
+        >
+          {game.developer}
+        </Link>
+      ) : null}
       <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
         {game.genre}
         {gameYear(game) ? ` · ${gameYear(game)}` : ""}
       </p>
-    </Link>
+    </div>
   );
 }
 

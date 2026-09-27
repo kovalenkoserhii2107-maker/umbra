@@ -82,8 +82,15 @@ export function GamePage() {
       <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
         {item.platform}
         {gameYear(item) ? ` · ${gameYear(item)}` : ""}
-        {item.developer ? ` · ${item.developer}` : ""}
       </p>
+      {item.developer ? (
+        <Link
+          to={`/games/studio/${encodeURIComponent(item.developer)}`}
+          className="mt-3 inline-flex rounded-full border border-accent/50 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-accent"
+        >
+          {item.developer}
+        </Link>
+      ) : null}
       <GameScoreLine
         id={item.id}
         metacritic={item.metacritic}

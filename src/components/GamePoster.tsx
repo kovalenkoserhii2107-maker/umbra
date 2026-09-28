@@ -14,9 +14,18 @@ export function GamePoster({
   className?: string;
 }) {
   // Use verified catalog images. Console IDs are not Steam AppIDs.
-  const list = [
-    ...new Set([poster, fallback].filter((s): s is string => Boolean(s))),
-  ];
+  let officialSteamImage = false;
+  try {
+    officialSteamImage = new URL(fallback).hostname.endsWith(
+      ".steamstatic.com",
+    );
+  } catch {
+    /* Empty fallback is allowed. */
+  }
+  const preferred = officialSteamImage
+    ? [fallback, poster]
+    : [poster, fallback];
+  const list = [...new Set(preferred.filter((s): s is string => Boolean(s)))];
   const sized = list.map((src) => {
     try {
       const url = new URL(src);

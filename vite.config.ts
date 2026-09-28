@@ -88,7 +88,7 @@ export default defineConfig({
           },
           {
             urlPattern:
-              /^https:\/\/(?:shared\.fastly\.steamstatic\.com|cdn\.cloudflare\.steamstatic\.com|www\.metacritic\.com\/a\/img)\//,
+              /^https:\/\/(?:(?:[a-z0-9-]+\.)+steamstatic\.com|www\.metacritic\.com\/a\/img)\//,
             handler: "CacheFirst",
             options: {
               cacheName: "umbra-game-images",

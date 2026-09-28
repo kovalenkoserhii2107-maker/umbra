@@ -157,3 +157,29 @@ test("visited production game remains readable offline without preloading every 
   ).toBeVisible();
   await context.close();
 });
+test("changing game status preserves notes and updates another tab", async ({
+  context,
+  page,
+}) => {
+  await context.route("**/catalog/details/620.json", (route) =>
+    route.fulfill({ json: game }),
+  );
+  const other = await context.newPage();
+  await page.goto("#/games/620");
+  await other.goto("http://127.0.0.1:5187/umbra/#/games/library");
+  await page.getByRole("button", { name: "В пройденные", exact: true }).click();
+  await page.getByRole("button", { name: "8 из 10", exact: true }).click();
+  await page.getByPlaceholder("Комментарий").fill("Keep my note");
+  await page.getByRole("button", { name: "Подтвердить", exact: true }).click();
+  await expect(other.getByText("Portal 2", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Хочу поиграть", exact: true })
+    .click();
+  expect(
+    await page.evaluate(
+      () => JSON.parse(localStorage.getItem("umbra.gamesLibrary")!)[0],
+    ),
+  ).toMatchObject({ rating: 8, note: "Keep my note", status: "want" });
+  await expect(other.getByText(/хочу поиграть/).last()).toBeVisible();
+  await other.close();
+});

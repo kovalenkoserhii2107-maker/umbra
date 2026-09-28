@@ -26,7 +26,7 @@ class Boundary extends Component<
             background: "#000000",
             color: "#fcfcfc",
             padding: 24,
-            fontFamily: "Manrope, sans-serif",
+            fontFamily: "Manrope Variable, sans-serif",
           }}
         >
           <p style={{ color: "#ff9e64", letterSpacing: "0.2em", fontSize: 11 }}>
@@ -46,8 +46,8 @@ class Boundary extends Component<
               borderRadius: 999,
             }}
             onClick={() => {
-              this.setState({ err: null });
               window.location.assign(`${import.meta.env.BASE_URL}#/`);
+              window.location.reload();
             }}
           >
             На главную

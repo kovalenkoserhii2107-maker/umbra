@@ -46,6 +46,12 @@ export function GameFacts({ game }: { game: Game }) {
           </span>
         </p>
       ) : null}
+      {game.steam != null ? (
+        <p className="mt-4 text-xs text-mute">
+          Steam: доля положительных среди всех отзывов, включая активации
+          ключей. Она может отличаться от оценки покупок в магазине.
+        </p>
+      ) : null}
       <div className="mt-4 flex flex-wrap gap-4 text-sm text-accent">
         {game.steamAppId ? (
           <a

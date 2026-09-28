@@ -31,7 +31,9 @@ Offer timestamps travel with each price; a failed comparison request preserves
 previous offers with their original timestamps. Missing price does not mean free.
 Steam prices and availability may differ by account and country at checkout.
 
-Steam rating is the percentage of positive reviews, with its review count.
+Steam percentage uses all reviews (`purchase_type=all`), including key activations,
+with its review count. The detail page states this methodology: it may differ
+from the storefront score, which only counts eligible Steam purchases.
 Metacritic is a separate critic score. Missing scores stay missing. Current
 Steam player count is a timestamped snapshot, not the maximum number of players
 in a session. Supported modes are shown separately; unknown session limits are

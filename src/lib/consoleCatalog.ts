@@ -1,3 +1,4 @@
+import { requestJson } from "./http";
 import { type Game } from "./games";
 
 export type ConsoleShelf = {
@@ -13,18 +14,11 @@ export type ConsoleCatalog = {
   games: Record<string, Game>;
 };
 
-let loading: Promise<ConsoleCatalog> | null = null;
-
 export function loadConsoleCatalog() {
-  if (!loading) {
-    loading = fetch(`${import.meta.env.BASE_URL}console-catalog.json`).then(
-      (response) => {
-        if (!response.ok) throw new Error(`HTTP_${response.status}`);
-        return response.json() as Promise<ConsoleCatalog>;
-      },
-    );
-  }
-  return loading;
+  return requestJson<ConsoleCatalog>(
+    `${import.meta.env.BASE_URL}catalog/consoles.json`,
+    300_000,
+  );
 }
 
 export function consoleGames(catalog: ConsoleCatalog, ids: number[]) {

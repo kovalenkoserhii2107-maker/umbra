@@ -1,16 +1,22 @@
 const pending = new Map<string, Promise<unknown>>();
 const cache = new Map<string, { until: number; value: unknown }>();
-let running = 0;
-const queue: Array<() => void> = [];
-async function slot<T>(fn: () => Promise<T>): Promise<T> {
-  if (running >= 6) await new Promise<void>((resolve) => queue.push(resolve));
-  else running++;
+// Keep small same-origin catalog files responsive while remote feeds are busy.
+const lanes = {
+  local: { running: 0, limit: 3, queue: [] as Array<() => void> },
+  remote: { running: 0, limit: 6, queue: [] as Array<() => void> },
+};
+async function slot<T>(url: string, fn: () => Promise<T>): Promise<T> {
+  const lane =
+    url.startsWith("/") && !url.startsWith("//") ? lanes.local : lanes.remote;
+  if (lane.running >= lane.limit)
+    await new Promise<void>((resolve) => lane.queue.push(resolve));
+  else lane.running++;
   try {
     return await fn();
   } finally {
-    const next = queue.shift();
+    const next = lane.queue.shift();
     if (next) next();
-    else running--;
+    else lane.running--;
   }
 }
 export async function requestJson<T>(url: string, ttl = 60_000): Promise<T> {
@@ -18,7 +24,7 @@ export async function requestJson<T>(url: string, ttl = 60_000): Promise<T> {
   if (hit && hit.until > Date.now()) return hit.value as T;
   const inflight = pending.get(url);
   if (inflight) return inflight as Promise<T>;
-  const task = slot(async () => {
+  const task = slot(url, async () => {
     for (let attempt = 0; ; attempt++) {
       let response: Response;
       try {

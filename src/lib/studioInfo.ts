@@ -1,3 +1,4 @@
+import { requestJson } from "./http";
 export type StudioInfo = {
   title: string;
   description: string;
@@ -23,11 +24,10 @@ function titled(name: string, page: string) {
 
 async function summary(title: string): Promise<StudioInfo | null> {
   for (const host of ["ru.wikipedia.org", "en.wikipedia.org"]) {
-    const response = await fetch(
-      `https://${host}/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, "_"))}`,
-    );
-    if (!response.ok) continue;
-    const data = (await response.json()) as Summary;
+    const data = await requestJson<Summary>(
+      `https://${host}/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, "_"))}`, 900_000,
+    ).catch(() => null);
+    if (!data) continue;
     if (data.type === "disambiguation" || !data.extract || !data.title) continue;
     if (!titled(title, data.title)) continue;
     return {
@@ -49,11 +49,10 @@ export async function studioInfo(name: string): Promise<StudioInfo | null> {
     const retry = await summary(cleaned);
     if (retry) return retry;
   }
-  const response = await fetch(
-    `https://ru.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(name)}&limit=1&namespace=0&format=json&origin=*`,
-  );
-  if (!response.ok) return null;
-  const data = (await response.json()) as [string, string[]];
+  const data = await requestJson<[string, string[]]>(
+    `https://ru.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(name)}&limit=1&namespace=0&format=json&origin=*`, 900_000,
+  ).catch(() => null);
+  if (!data) return null;
   const hit = data[1]?.[0];
   if (!hit || !titled(name, hit)) return null;
   return summary(hit);

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { gameYear, type Game } from "../lib/games";
 import { GamePoster } from "./GamePoster";
@@ -47,15 +48,25 @@ export function GameCard({
 }
 
 export function GameRow({ title, items }: { title: string; items: Game[] }) {
+  const [limit, setLimit] = useState(20);
   if (!items.length) return null;
   return (
     <section className="rise mb-10">
       <h2 className="mb-3 text-lg font-medium tracking-tight">{title}</h2>
       <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
-        {items.map((game) => (
+        {items.slice(0, limit).map((game) => (
           <GameCard key={game.id} game={game} />
         ))}
       </div>
+      {limit < items.length ? (
+        <button
+          type="button"
+          onClick={() => setLimit((n) => n + 20)}
+          className="mt-2 rounded-full border border-hairline px-4 py-2 text-sm"
+        >
+          Ещё игры ({items.length - limit})
+        </button>
+      ) : null}
     </section>
   );
 }

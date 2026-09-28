@@ -15,22 +15,42 @@ export type Game = {
   steam?: number | null;
   poster?: string;
   description?: string;
-  screenshots?: { id: number; image: string }[];
+  screenshots?: { id: number; image: string; full?: string }[];
+  steamAppId?: number;
+  metacriticUrl?: string | null;
+  steamReviewCount?: number | null;
+  platforms?: string[];
+  modes?: string[];
+  playerCount?: number | null;
+  releaseLabel?: string;
+  requirements?: string;
+  checkedAt?: string;
+  pcDetails?: boolean;
+  offers?: {
+    store: string;
+    url: string;
+    price: number;
+    regularPrice?: number;
+    currency: string;
+    region: string;
+    checkedAt: string;
+    source?: string;
+  }[];
 };
 
 export type GameDetails = Game & {
   status?: string;
 };
 
-const BASE = "https://www.freetogame.com/api";
-
-export function gamesList(params: Record<string, string> = {}) {
-  const qs = new URLSearchParams(params).toString();
-  return requestJson<Game[]>(`${BASE}/games${qs ? `?${qs}` : ""}`, 3_600_000);
-}
-
-export function gameDetails(id: number) {
-  return requestJson<GameDetails>(`${BASE}/game?id=${id}`, 3_600_000);
+export async function gameDetails(id: number) {
+  if (!Number.isSafeInteger(id) || id <= 0) throw new Error("HTTP_404");
+  const game = await requestJson<GameDetails>(
+    `${import.meta.env.BASE_URL}catalog/details/${id}.json`,
+    300_000,
+  );
+  if (game.id !== id || typeof game.title !== "string")
+    throw new Error("INVALID_GAME");
+  return game;
 }
 
 export type Giveaway = {
@@ -63,19 +83,20 @@ export function gameYear(game: Pick<Game, "release_date">) {
 }
 
 export async function platformGiveaways(platforms: string[]) {
-  const lists = await Promise.all(
+  const results = await Promise.allSettled(
     platforms.map(async (platform) => {
-      try {
-        const data = await requestJson<Giveaway[] | { status?: number }>(
-          `https://www.gamerpower.com/api/giveaways?platform=${platform}`,
-          600_000,
-        );
-        return Array.isArray(data) ? data : [];
-      } catch {
-        return [];
-      }
+      const data = await requestJson<Giveaway[] | { status?: number }>(
+        `https://www.gamerpower.com/api/giveaways?platform=${platform}`,
+        600_000,
+      );
+      return Array.isArray(data) ? data : [];
     }),
   );
+  const successful = results.filter(
+    (r): r is PromiseFulfilledResult<Giveaway[]> => r.status === "fulfilled",
+  );
+  if (!successful.length) throw new Error("NETWORK");
+  const lists = successful.map((r) => r.value);
   const seen = new Set<number>();
   return lists.flat().filter((item) => {
     if (seen.has(item.id)) return false;

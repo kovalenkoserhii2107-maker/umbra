@@ -1,3 +1,4 @@
+import { requestJson } from "./http";
 import { type Game } from "./games";
 
 export type SteamCatalog = {
@@ -9,18 +10,11 @@ export type SteamCatalog = {
   studios?: Record<string, number[]>;
 };
 
-let loading: Promise<SteamCatalog> | null = null;
-
 export function loadSteamCatalog() {
-  if (!loading) {
-    loading = fetch(`${import.meta.env.BASE_URL}steam-catalog.json`).then(
-      (response) => {
-        if (!response.ok) throw new Error(`HTTP_${response.status}`);
-        return response.json() as Promise<SteamCatalog>;
-      },
-    );
-  }
-  return loading;
+  return requestJson<SteamCatalog>(
+    `${import.meta.env.BASE_URL}catalog/steam.json`,
+    300_000,
+  );
 }
 
 export function catalogGames(catalog: SteamCatalog, ids: number[]) {

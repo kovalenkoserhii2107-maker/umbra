@@ -1,94 +1,48 @@
-import { useEffect, useState } from "react";
-import { loadSteamScores, type SteamScore } from "../lib/steamScores";
-
+type Scores = { id: number; metacritic?: number | null; steam?: number | null };
+function valid(score: number | null | undefined) {
+  return (
+    typeof score === "number" &&
+    Number.isFinite(score) &&
+    score >= 0 &&
+    score <= 100
+  );
+}
 function metacriticColor(score: number) {
-  if (score >= 75) return "text-[#00ce7a]";
-  if (score >= 50) return "text-[#ffbd3f]";
-  return "text-[#ff6874]";
+  return score >= 75
+    ? "text-[#00ce7a]"
+    : score >= 50
+      ? "text-[#ffbd3f]"
+      : "text-[#ff6874]";
 }
-
-export function useSteamScore(id: number) {
-  const [score, setScore] = useState<SteamScore | null>(null);
-  useEffect(() => {
-    if (!id) return;
-    let alive = true;
-    loadSteamScores().then((all) => {
-      if (alive) setScore(all[String(id)] ?? null);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [id]);
-  return score;
-}
-
-function shownScores(
-  id: number,
-  metacritic: number | null | undefined,
-  steam: number | null | undefined,
-) {
-  const embedded = metacritic !== undefined || steam !== undefined;
-  const looked = useSteamScore(embedded ? 0 : id);
-  return {
-    metacritic: embedded ? metacritic : looked?.metacritic,
-    steam: embedded ? steam : looked?.steam,
-  };
-}
-
-export function GameScores({
-  id,
-  metacritic,
-  steam,
-}: {
-  id: number;
-  metacritic?: number | null;
-  steam?: number | null;
-}) {
-  const score = shownScores(id, metacritic, steam);
-  if (score.metacritic == null && score.steam == null) return null;
+export function GameScores({ metacritic, steam }: Scores) {
   return (
     <div className="absolute bottom-1.5 right-1.5 flex flex-col items-end gap-1">
-      {score.metacritic != null ? (
+      {valid(metacritic) ? (
         <p
-          className={`rounded-md bg-black/75 px-1.5 py-0.5 font-mono text-[10px] font-bold leading-none ${metacriticColor(score.metacritic)}`}
+          className={`rounded-md bg-black/75 px-1.5 py-0.5 font-mono text-[10px] font-bold leading-none ${metacriticColor(metacritic!)}`}
         >
-          MC {score.metacritic}
+          MC {metacritic}
         </p>
       ) : null}
-      {score.steam != null ? (
+      {valid(steam) ? (
         <p className="rounded-md bg-black/75 px-1.5 py-0.5 font-mono text-[10px] font-bold leading-none text-[#66c0f4]">
-          Steam {score.steam}%
+          Steam {steam}%
         </p>
       ) : null}
     </div>
   );
 }
-
-export function GameScoreLine({
-  id,
-  metacritic,
-  steam,
-}: {
-  id: number;
-  metacritic?: number | null;
-  steam?: number | null;
-}) {
-  const score = shownScores(id, metacritic, steam);
-  if (score.metacritic == null && score.steam == null) return null;
+export function GameScoreLine({ metacritic, steam }: Scores) {
   return (
-    <p className="mt-3 flex flex-wrap gap-2">
-      {score.metacritic != null ? (
-        <span
-          className={`rounded-full border border-hairline bg-card px-3 py-1 font-mono text-[11px] uppercase tracking-[0.12em] ${metacriticColor(score.metacritic)}`}
-        >
-          Metacritic {score.metacritic}
-        </span>
-      ) : null}
-      {score.steam != null ? (
-        <span className="rounded-full border border-hairline bg-card px-3 py-1 font-mono text-[11px] uppercase tracking-[0.12em] text-[#66c0f4]">
-          Steam {score.steam}%
-        </span>
-      ) : null}
-    </p>
+    <div className="mt-3 flex flex-wrap gap-2 text-sm">
+      <span
+        className={`rounded-full border border-hairline px-3 py-1 ${valid(metacritic) ? metacriticColor(metacritic!) : "text-mute"}`}
+      >
+        Metacritic: {valid(metacritic) ? `${metacritic}/100` : "нет оценки"}
+      </span>
+      <span className="rounded-full border border-hairline px-3 py-1 text-[#66c0f4]">
+        Steam: {valid(steam) ? `${steam}% положительных` : "нет оценки"}
+      </span>
+    </div>
   );
 }

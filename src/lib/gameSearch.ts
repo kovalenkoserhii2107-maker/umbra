@@ -14,7 +14,8 @@ export const GAME_GENRES = [
   { id: "Casual", label: "Казуальные" },
 ] as const;
 
-export type GamePlatformFilter = "all" | "pc" | "playstation" | "xbox" | "nintendo";
+export type GamePlatformFilter =
+  "all" | "pc" | "playstation" | "xbox" | "nintendo";
 export type GameSort = "relevance" | "popular" | "rating" | "year";
 
 export type GameFilters = {
@@ -34,15 +35,24 @@ export const defaultGameFilters: GameFilters = {
 };
 
 const GENRE_WORDS: Record<string, string[]> = {
-  Action: ["action", "shooter", "fps", "fighting", "beat", "survival"],
-  Adventure: ["adventure", "platformer", "metroidvania"],
-  RPG: ["rpg", "role-playing", "role playing"],
-  Strategy: ["strategy", "tactics"],
+  Action: [
+    "action",
+    "shooter",
+    "fps",
+    "fighting",
+    "beat",
+    "survival",
+    "экшен",
+    "боевик",
+  ],
+  Adventure: ["adventure", "platformer", "metroidvania", "приключ"],
+  RPG: ["rpg", "role-playing", "role playing", "ролев"],
+  Strategy: ["strategy", "tactics", "стратег"],
   Simulation: ["simulation", "симул"],
-  Sports: ["sport"],
-  Racing: ["racing"],
-  Indie: ["indie"],
-  Casual: ["casual"],
+  Sports: ["sport", "спорт"],
+  Racing: ["racing", "гонк"],
+  Indie: ["indie", "инди"],
+  Casual: ["casual", "казуал"],
 };
 
 function fold(value: string) {
@@ -81,7 +91,10 @@ function hasGenre(game: Game, genre: string) {
   );
 }
 
-export function gamePool(steam: SteamCatalog | null, consoles: ConsoleCatalog | null) {
+export function gamePool(
+  steam: SteamCatalog | null,
+  consoles: ConsoleCatalog | null,
+) {
   return [
     ...Object.values(steam?.games ?? {}),
     ...Object.values(consoles?.games ?? {}),
@@ -122,19 +135,22 @@ export function filterGames(
     if (filters.genre && !hasGenre(game, filters.genre)) return false;
     if (filters.minScore && gameScore(game) < filters.minScore) return false;
     if (!needle) return true;
-    return [game.title, game.genre, game.developer, game.publisher]
-      .join(" ")
-      .toLowerCase()
-      .includes(query.trim().toLowerCase());
+    return fold(
+      [game.title, game.genre, game.developer, game.publisher].join(" "),
+    ).includes(needle);
   });
-  const sort = !needle && filters.sort === "relevance" ? "popular" : filters.sort;
-  const unique =
-    filters.platform === "all" ? dedupe(matched) : matched;
+  const sort =
+    !needle && filters.sort === "relevance" ? "popular" : filters.sort;
+  const unique = filters.platform === "all" ? dedupe(matched) : matched;
   const copy = unique.slice();
   if (sort === "rating") {
-    copy.sort((a, b) => gameScore(b) - gameScore(a) || gameYear(b) - gameYear(a));
+    copy.sort(
+      (a, b) => gameScore(b) - gameScore(a) || gameYear(b) - gameYear(a),
+    );
   } else if (sort === "year") {
-    copy.sort((a, b) => gameYear(b) - gameYear(a) || gameScore(b) - gameScore(a));
+    copy.sort(
+      (a, b) => gameYear(b) - gameYear(a) || gameScore(b) - gameScore(a),
+    );
   } else if (sort === "popular") {
     copy.sort(
       (a, b) =>

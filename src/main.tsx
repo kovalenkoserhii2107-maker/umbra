@@ -1,6 +1,7 @@
 import { StrictMode, Component, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { HashRouter } from "react-router-dom";
+import "./fonts.css";
 import "./index.css";
 import App from "./App.tsx";
 import { AppStateProvider } from "./state.tsx";
@@ -25,7 +26,7 @@ class Boundary extends Component<
             background: "#000000",
             color: "#fcfcfc",
             padding: 24,
-            fontFamily: "Manrope, sans-serif",
+            fontFamily: "Manrope Variable, sans-serif",
           }}
         >
           <p style={{ color: "#ff9e64", letterSpacing: "0.2em", fontSize: 11 }}>
@@ -44,9 +45,10 @@ class Boundary extends Component<
               padding: "8px 14px",
               borderRadius: 999,
             }}
-            onClick={() =>
-              window.location.assign(`${import.meta.env.BASE_URL}#/`)
-            }
+            onClick={() => {
+              window.location.assign(`${import.meta.env.BASE_URL}#/`);
+              window.location.reload();
+            }}
           >
             На главную
           </button>

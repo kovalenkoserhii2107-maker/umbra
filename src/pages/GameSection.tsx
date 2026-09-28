@@ -1,13 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Empty, ErrorBox, useAsync } from "../components";
 import { GameCard, GameRow } from "../components/GameCard";
 import { useGameLibrary } from "../lib/gameLibrary";
-import {
-  GAME_PLATFORMS,
-  gamePlatform,
-  platformGiveaways,
-} from "../lib/games";
+import { GAME_PLATFORMS, gamePlatform, platformGiveaways } from "../lib/games";
 import { catalogGames, loadSteamCatalog } from "../lib/steamCatalog";
 import { consoleGames, loadConsoleCatalog } from "../lib/consoleCatalog";
 import {
@@ -29,6 +25,7 @@ const GAME_SCORES = [0, 5, 6, 7, 8, 9];
 
 export function GameSearchPage() {
   const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
   const [filters, setFilters] = useState<GameFilters>(defaultGameFilters);
   const [limit, setLimit] = useState(40);
   const steam = useAsync(() => loadSteamCatalog(), []);
@@ -42,8 +39,8 @@ export function GameSearchPage() {
     [steam.data, consoles.data],
   );
   const shown = useMemo(
-    () => filterGames(pool, query, filters, rank),
-    [pool, query, filters, rank],
+    () => filterGames(pool, deferredQuery, filters, rank),
+    [pool, deferredQuery, filters, rank],
   );
 
   useEffect(() => {
@@ -82,7 +79,9 @@ export function GameSearchPage() {
             <button
               key={id}
               className={chip(filters.platform === id)}
-              onClick={() => setFilters((current) => ({ ...current, platform: id }))}
+              onClick={() =>
+                setFilters((current) => ({ ...current, platform: id }))
+              }
             >
               {label}
             </button>
@@ -100,7 +99,9 @@ export function GameSearchPage() {
             <button
               key={id}
               className={chip(filters.sort === id)}
-              onClick={() => setFilters((current) => ({ ...current, sort: id }))}
+              onClick={() =>
+                setFilters((current) => ({ ...current, sort: id }))
+              }
             >
               {label}
             </button>
@@ -139,7 +140,9 @@ export function GameSearchPage() {
         <div className="row-scroll flex gap-2 overflow-x-auto pb-1">
           <button
             className={chip(!filters.genre)}
-            onClick={() => setFilters((current) => ({ ...current, genre: null }))}
+            onClick={() =>
+              setFilters((current) => ({ ...current, genre: null }))
+            }
           >
             Все жанры
           </button>
@@ -261,6 +264,14 @@ export function GamePlatformPage() {
         {platform.short}
       </p>
       <h1 className="mt-1 mb-8 text-3xl tracking-tight">{platform.name}</h1>
+      {(id === "pc" ? catalog.loading : consoles.loading) ? (
+        <p role="status" className="mb-6 text-sm text-mute">
+          Загружаю игры…
+        </p>
+      ) : null}
+      {(id === "pc" ? catalog.error : consoles.error) ? (
+        <ErrorBox code={(id === "pc" ? catalog.error : consoles.error)!} />
+      ) : null}
       {id === "pc" && catalog.data ? (
         <>
           <GameRow
@@ -271,7 +282,10 @@ export function GamePlatformPage() {
             title="Скоро выходит"
             items={catalogGames(catalog.data, catalog.data.upcoming)}
           />
-          <GameRow title="Топ 100" items={catalogGames(catalog.data, catalog.data.top)} />
+          <GameRow
+            title="Топ 100"
+            items={catalogGames(catalog.data, catalog.data.top)}
+          />
         </>
       ) : null}
       {consoles.data &&
@@ -292,8 +306,18 @@ export function GamePlatformPage() {
         </>
       ) : null}
       <section className="mb-10">
-        <h2 className="mb-3 text-lg font-medium tracking-tight">Сейчас раздают</h2>
-        {drops.data?.length ? (
+        <h2 className="mb-3 text-lg font-medium tracking-tight">
+          Сейчас раздают
+        </h2>
+        {drops.loading ? (
+          <p role="status" className="text-sm text-mute">
+            Проверяю раздачи…
+          </p>
+        ) : drops.error ? (
+          <p className="text-sm text-mute">
+            Не удалось проверить раздачи. Попробуй позже.
+          </p>
+        ) : drops.data?.length ? (
           <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
             {drops.data.map((item) => (
               <a
@@ -327,7 +351,7 @@ export function GamePlatformPage() {
 
 export function StudioPage() {
   const { name = "" } = useParams();
-  const studio = decodeURIComponent(name);
+  const studio = name;
   const catalog = useAsync(() => loadSteamCatalog(), []);
   const games = catalog.data
     ? catalogGames(
@@ -335,7 +359,10 @@ export function StudioPage() {
         catalog.data.studios?.[studio] ||
           Object.values(catalog.data.games)
             .filter((game) => game.developer === studio)
-            .sort((a, b) => Number(b.release_date || 0) - Number(a.release_date || 0))
+            .sort(
+              (a, b) =>
+                Number(b.release_date || 0) - Number(a.release_date || 0),
+            )
             .map((game) => game.id),
       )
     : [];
@@ -367,7 +394,9 @@ export function StudioPage() {
       </p>
       <h1 className="mt-1 text-3xl tracking-tight">{studio}</h1>
       <p className="mt-2 text-sm text-mute">
-        {games.length ? `${games.length} игр, от новых к ранним` : "Собираю список…"}
+        {games.length
+          ? `${games.length} игр, от новых к ранним`
+          : "Собираю список…"}
       </p>
       {about ? (
         <div className="mt-5 flex gap-4 rounded-2xl border border-hairline bg-card p-4">
@@ -384,7 +413,9 @@ export function StudioPage() {
                 {about.description}
               </p>
             ) : null}
-            <p className="mt-2 text-sm leading-relaxed text-mute">{about.extract}</p>
+            <p className="mt-2 text-sm leading-relaxed text-mute">
+              {about.extract}
+            </p>
             {about.url ? (
               <a
                 href={about.url}
@@ -398,7 +429,9 @@ export function StudioPage() {
           </div>
         </div>
       ) : null}
-      {catalog.error && !catalog.data ? <ErrorBox code={catalog.error} /> : null}
+      {catalog.error && !catalog.data ? (
+        <ErrorBox code={catalog.error} />
+      ) : null}
       {!catalog.loading && !games.length ? (
         <Empty text="У этой студии пока нет игр в каталоге." />
       ) : null}

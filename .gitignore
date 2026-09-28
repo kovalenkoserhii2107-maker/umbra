@@ -23,3 +23,6 @@ playwright-report/
 test-results/
 *-debug.log
 .ui-evidence/
+
+public/catalog/
+data/game-details/*.tmp

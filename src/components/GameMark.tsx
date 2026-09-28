@@ -21,6 +21,7 @@ function StarIcon() {
 export function GameMark({ game }: { game: Game }) {
   const items = useGameLibrary();
   const mine = items.find((item) => item.id === game.id);
+  const [error, setError] = useState("");
   const [panel, setPanel] = useState(false);
   const [stars, setStars] = useState(mine?.rating ?? 0);
   const [note, setNote] = useState(mine?.note ?? "");
@@ -28,15 +29,24 @@ export function GameMark({ game }: { game: Game }) {
   const wanted = mine?.status === "want";
 
   function entry(patch: Pick<GameShelfItem, "status" | "rating" | "note">) {
-    saveGame({
-      id: game.id,
-      title: game.title,
-      thumbnail: game.thumbnail,
-      year: gameYear(game),
-      genre: game.genre,
-      updatedAt: Date.now(),
-      ...patch,
-    });
+    try {
+      saveGame({
+        id: game.id,
+        title: game.title,
+        thumbnail: game.thumbnail,
+        year: gameYear(game),
+        genre: game.genre,
+        updatedAt: Date.now(),
+        ...patch,
+      });
+      setError("");
+      return true;
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Не удалось сохранить игру.",
+      );
+      return false;
+    }
   }
 
   return (
@@ -57,7 +67,11 @@ export function GameMark({ game }: { game: Game }) {
           type="button"
           onClick={() => {
             setPanel(false);
-            entry({ status: "want", rating: null, note: "" });
+            entry({
+              status: "want",
+              rating: mine?.rating ?? null,
+              note: mine?.note ?? "",
+            });
           }}
           className={`rounded-full border px-3 py-1.5 text-sm ${wanted ? "border-ink bg-ink text-canvas" : "border-hairline text-mute"}`}
         >
@@ -68,7 +82,16 @@ export function GameMark({ game }: { game: Game }) {
             type="button"
             onClick={() => {
               setPanel(false);
-              removeGame(game.id);
+              try {
+                removeGame(game.id);
+                setError("");
+              } catch (error) {
+                setError(
+                  error instanceof Error
+                    ? error.message
+                    : "Не удалось удалить игру.",
+                );
+              }
             }}
             className="rounded-full border border-hairline px-3 py-1.5 text-sm text-dim"
           >
@@ -76,6 +99,11 @@ export function GameMark({ game }: { game: Game }) {
           </button>
         ) : null}
       </div>
+      {error ? (
+        <p role="alert" className="mt-3 text-sm text-accent">
+          {error}
+        </p>
+      ) : null}
       {played && mine.rating ? (
         <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-accent">
           {mine.rating}/10
@@ -84,18 +112,24 @@ export function GameMark({ game }: { game: Game }) {
       ) : null}
       {panel ? (
         <div className="mt-4">
-          <div className="flex flex-wrap gap-0.5" role="radiogroup" aria-label="Оценка">
-            {Array.from({ length: 10 }, (_, index) => index + 1).map((score) => (
-              <button
-                key={score}
-                type="button"
-                aria-label={`${score} из 10`}
-                onClick={() => setStars(score)}
-                className={`rounded-md p-0.5 ${score <= stars ? "text-accent" : "text-dim"}`}
-              >
-                <StarIcon />
-              </button>
-            ))}
+          <div
+            className="flex flex-wrap gap-0.5"
+            role="radiogroup"
+            aria-label="Оценка"
+          >
+            {Array.from({ length: 10 }, (_, index) => index + 1).map(
+              (score) => (
+                <button
+                  key={score}
+                  type="button"
+                  aria-label={`${score} из 10`}
+                  onClick={() => setStars(score)}
+                  className={`rounded-md p-0.5 ${score <= stars ? "text-accent" : "text-dim"}`}
+                >
+                  <StarIcon />
+                </button>
+              ),
+            )}
           </div>
           <textarea
             value={note}
@@ -108,8 +142,8 @@ export function GameMark({ game }: { game: Game }) {
             type="button"
             disabled={stars < 1}
             onClick={() => {
-              entry({ status: "played", rating: stars, note: note.trim() });
-              setPanel(false);
+              if (entry({ status: "played", rating: stars, note: note.trim() }))
+                setPanel(false);
             }}
             className="mt-3 rounded-full bg-accent px-4 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-[#1a1008] disabled:opacity-40"
           >

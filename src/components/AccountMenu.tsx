@@ -105,6 +105,24 @@ export function AccountMenu() {
               {error}
             </p>
           ) : null}
+          {account ? (
+            <>
+              <Link
+                to="/stats"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-3 text-sm hover:bg-white/5"
+              >
+                Статистика и итоги
+              </Link>
+              <Link
+                to="/friends"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-3 text-sm hover:bg-white/5"
+              >
+                Друзья
+              </Link>
+            </>
+          ) : null}
           <Link
             to="/settings"
             onClick={() => setOpen(false)}

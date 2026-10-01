@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { dateLabel } from "../lib/format";
+import {
+  episodeLabel,
+  isWatched,
+  nextEpisode,
+  previousEpisode,
+  type Episode,
+} from "../lib/tracking";
 import { fetchImdbRatings } from "../lib/ratings";
 import {
   tvApi,
@@ -32,19 +39,57 @@ function barFill(score?: string | null) {
   return "linear-gradient(180deg, #c9c9c9, #7a7a7a 60%, #4a4a4a)";
 }
 
+function Check({ on }: { on: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={on ? 2.4 : 1.7}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m5 12.5 4.5 4.5L19 7.5" />
+    </svg>
+  );
+}
+
 export function Seasons({
   tvId,
   seasons,
-  nextEpisode,
+  nextEpisode: upcoming,
   lastEpisode,
+  progress = null,
+  onMark,
 }: {
   tvId: number;
   seasons?: SeasonInfo[];
   nextEpisode?: EpisodeRef | null;
   lastEpisode?: EpisodeRef | null;
+  /** Last watched episode; earlier ones count as watched. */
+  progress?: Episode | null;
+  /** Called with the new last watched episode (0/0 when nothing is left). */
+  onMark?: (ep: Episode) => void;
 }) {
   const regular = (seasons || []).filter((s) => s.season_number > 0);
-  const [current, setCurrent] = useState(1);
+  const toWatch = nextEpisode(progress, regular);
+  const [current, setCurrent] = useState(
+    () => toWatch?.season || progress?.season || regular[0]?.season_number || 1,
+  );
+  function toggle(ep: Episode) {
+    if (!onMark) return;
+    onMark(isWatched(progress, ep) ? previousEpisode(ep, regular) : ep);
+  }
+  const seasonInfo = regular.find((s) => s.season_number === current);
+  const seasonDone =
+    seasonInfo && seasonInfo.episode_count > 0
+      ? isWatched(progress, {
+          season: current,
+          episode: seasonInfo.episode_count,
+        })
+      : false;
   const [episodes, setEpisodes] = useState<EpisodeInfo[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -113,13 +158,17 @@ export function Seasons({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-lg tracking-tight">Сезоны и серии</h2>
-          {nextEpisode ? (
+          {onMark && progress ? (
+            <p className="mt-1 text-sm text-accent">
+              Просмотрено до {episodeLabel(progress)}
+              {toWatch ? ` · дальше ${episodeLabel(toWatch)}` : ""}
+            </p>
+          ) : null}
+          {upcoming ? (
             <p className="mt-1 text-sm text-mute">
-              Следующая: S{nextEpisode.season_number}E
-              {nextEpisode.episode_number} {nextEpisode.name}
-              {nextEpisode.air_date
-                ? ` · ${dateLabel(nextEpisode.air_date)}`
-                : ""}
+              Следующая: S{upcoming.season_number}E{upcoming.episode_number}{" "}
+              {upcoming.name}
+              {upcoming.air_date ? ` · ${dateLabel(upcoming.air_date)}` : ""}
             </p>
           ) : lastEpisode ? (
             <p className="mt-1 text-sm text-mute">
@@ -149,6 +198,12 @@ export function Seasons({
                 : "border-hairline text-mute"
             }`}
           >
+            {isWatched(progress, {
+              season: season.season_number,
+              episode: season.episode_count,
+            }) && season.episode_count > 0
+              ? "✓ "
+              : ""}
             S{season.season_number}
             {season.air_date
               ? ` · ${dateLabel(season.air_date).split(" ").slice(-1)}`
@@ -159,6 +214,24 @@ export function Seasons({
 
       {loading ? (
         <p className="mt-4 text-sm text-mute">Загружаю сезон {current}…</p>
+      ) : null}
+
+      {onMark && seasonInfo && seasonInfo.episode_count > 0 ? (
+        <button
+          type="button"
+          onClick={() =>
+            onMark(
+              seasonDone
+                ? previousEpisode({ season: current, episode: 1 }, regular)
+                : { season: current, episode: seasonInfo.episode_count },
+            )
+          }
+          className={`mt-3 rounded-full border px-3 py-1.5 text-xs ${seasonDone ? "border-accent/50 text-accent" : "border-hairline text-mute"}`}
+        >
+          {seasonDone
+            ? `Сезон ${current} просмотрен · снять отметку`
+            : `Отметить сезон ${current} просмотренным`}
+        </button>
       ) : null}
 
       {episodes.length ? (
@@ -190,30 +263,46 @@ export function Seasons({
           </div>
 
           <div className="mt-4 space-y-2">
-            {episodes.map((ep) => (
-              <div
-                key={ep.id}
-                className="flex items-start justify-between gap-3 rounded-2xl border border-hairline bg-card px-3 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm">
-                    <span className="font-mono text-dim">
-                      E{ep.episode_number}
-                    </span>
-                    <span className="ml-2">{ep.name}</span>
-                  </p>
-                  <p className="mt-1 text-xs text-mute">
-                    {ep.air_date ? dateLabel(ep.air_date) : "Дата не указана"}
-                    {ep.runtime ? ` · ${ep.runtime} мин` : ""}
-                  </p>
-                </div>
-                <span
-                  className={`shrink-0 rounded-full px-2 py-1 font-mono text-sm font-bold ${tone(ep.imdb)}`}
+            {episodes.map((ep) => {
+              const ref = { season: current, episode: ep.episode_number };
+              const seen = isWatched(progress, ref);
+              return (
+                <div
+                  key={ep.id}
+                  className={`flex items-start justify-between gap-3 rounded-2xl border bg-card px-3 py-3 ${seen ? "border-accent/30" : "border-hairline"}`}
                 >
-                  {ep.imdb || "—"}
-                </span>
-              </div>
-            ))}
+                  {onMark ? (
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={seen}
+                      aria-label={`${episodeLabel(ref)} просмотрена`}
+                      onClick={() => toggle(ref)}
+                      className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${seen ? "border-accent bg-accent text-black" : "border-hairline text-dim"}`}
+                    >
+                      <Check on={seen} />
+                    </button>
+                  ) : null}
+                  <div className={`min-w-0 flex-1 ${seen ? "opacity-70" : ""}`}>
+                    <p className="text-sm">
+                      <span className="font-mono text-dim">
+                        E{ep.episode_number}
+                      </span>
+                      <span className="ml-2">{ep.name}</span>
+                    </p>
+                    <p className="mt-1 text-xs text-mute">
+                      {ep.air_date ? dateLabel(ep.air_date) : "Дата не указана"}
+                      {ep.runtime ? ` · ${ep.runtime} мин` : ""}
+                    </p>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-1 font-mono text-sm font-bold ${tone(ep.imdb)}`}
+                  >
+                    {ep.imdb || "—"}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </>
       ) : null}

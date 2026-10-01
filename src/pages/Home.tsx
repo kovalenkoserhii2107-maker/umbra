@@ -8,6 +8,12 @@ import {
 } from "../lib/spotlight";
 import { loadFeedPage, FEEDS } from "../lib/feeds";
 import { useAppState } from "../state";
+import {
+  continueWatching,
+  episodeLabel,
+  loadWatchingShows,
+  type ContinueItem,
+} from "../lib/tracking";
 import { dayMonthLabel, plural, yearOf } from "../lib/format";
 import {
   daysUntil,
@@ -193,6 +199,71 @@ function WatchlistReleases({ list }: { list: Release[] }) {
   );
 }
 
+function ContinueCard({ row }: { row: ContinueItem }) {
+  const { update } = useAppState();
+  const { item, next, available, date } = row;
+  return (
+    <div className="w-[42vw] shrink-0 sm:w-40">
+      <Link to={`/title/tv/${item.id}`} className="group block">
+        <div className="poster-hover relative overflow-hidden rounded-xl border border-hairline bg-card">
+          {item.poster ? (
+            <img
+              src={correctPosterUrl(item.poster)}
+              alt={item.title}
+              className="aspect-[2/3] w-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <div className="flex aspect-[2/3] items-end p-3 text-sm text-mute">
+              {item.title}
+            </div>
+          )}
+          {next ? (
+            <p
+              className={`absolute left-1.5 top-1.5 rounded-md px-1.5 py-1 font-mono text-[11px] font-bold leading-none ${available ? "bg-accent text-black" : "bg-black/75 text-accent backdrop-blur-sm"}`}
+            >
+              {episodeLabel(next)}
+            </p>
+          ) : null}
+        </div>
+        <p className="mt-2 line-clamp-1 text-sm leading-snug">{item.title}</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-accent">
+          {available
+            ? "следующая серия"
+            : date
+              ? `ждём · ${dayMonthLabel(date)}`
+              : "новых серий нет"}
+        </p>
+      </Link>
+      {available && next ? (
+        <button
+          type="button"
+          onClick={() => update("tv", item.id, next)}
+          className="mt-2 w-full rounded-full border border-hairline py-1.5 text-xs text-mute hover:border-accent hover:text-ink"
+        >
+          ✓ Просмотрено
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function ContinueRow({ rows }: { rows: ContinueItem[] }) {
+  if (!rows.length) return null;
+  return (
+    <section className="rise mb-10">
+      <h2 className="mb-3 text-lg font-medium tracking-tight">
+        Продолжить смотреть
+      </h2>
+      <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
+        {rows.map((row) => (
+          <ContinueCard key={row.item.id} row={row} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function HomePage() {
   const { items, settings, sync } = useAppState();
   const seed = tasteSeed(items);
@@ -207,6 +278,11 @@ export function HomePage() {
     [watchlistKey, settings.region],
   );
   const episodes = useAsync(() => loadNewEpisodes(items), [showsKey]);
+  const watchingKey = items
+    .filter((x) => x.type === "tv" && x.status === "watching")
+    .map((x) => x.id)
+    .join();
+  const watchingShows = useAsync(() => loadWatchingShows(items), [watchingKey]);
   const theaters = useAsync(() => loadFeedPage("theaters", 1), []);
   const trending = useAsync(() => loadFeedPage("trending", 1), []);
   const airing = useAsync(() => loadFeedPage("airing", 1), []);
@@ -284,6 +360,7 @@ export function HomePage() {
         <FeaturedPlaceholder />
       ) : null}
       <WatchlistReleases list={releaseList} />
+      <ContinueRow rows={continueWatching(items, watchingShows.data ?? {})} />
       <Row
         title={preview("theaters").title}
         items={theaters.data?.results ?? []}

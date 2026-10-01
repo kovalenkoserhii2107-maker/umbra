@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import type { MediaType } from "../lib/tmdb";
-import { useAppState } from "../state";
+import { useAppState, type Status } from "../state";
+import { episodeLabel, progressOf } from "../lib/tracking";
 
 function StarIcon() {
   return (
@@ -23,7 +24,11 @@ function Stars({
   onPick?: (value: number) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-0.5" role="radiogroup" aria-label="Оценка">
+    <div
+      className="flex flex-wrap gap-0.5"
+      role="radiogroup"
+      aria-label="Оценка"
+    >
       {Array.from({ length: 10 }, (_, index) => index + 1).map((score) => {
         const on = score <= value;
         const className = `rounded-md p-0.5 ${on ? "text-accent" : "text-dim"}`;
@@ -71,6 +76,9 @@ export function CollectionMark({
   const mine = get(media, id);
   const watched = mine?.status === "watched";
   const wanted = mine?.status === "watchlist";
+  const watching = mine?.status === "watching";
+  const dropped = mine?.status === "dropped";
+  const progress = progressOf(mine);
   const [panel, setPanel] = useState(false);
   const [stars, setStars] = useState(0);
   const [comment, setComment] = useState("");
@@ -136,9 +144,32 @@ export function CollectionMark({
     });
   }
 
+  function mark(status: Status) {
+    if (!account) {
+      login();
+      return;
+    }
+    setPanel(false);
+    if (mine) {
+      if (mine.status !== status) update(media, id, { status });
+      return;
+    }
+    upsert({
+      id,
+      type: media,
+      title,
+      poster,
+      year,
+      status,
+      rating: null,
+      note: "",
+    });
+  }
+
   const idle =
     "rounded-full border border-hairline px-4 py-2 text-sm text-mute";
-  const on = "rounded-full border border-ink bg-ink px-4 py-2 text-sm text-canvas";
+  const on =
+    "rounded-full border border-ink bg-ink px-4 py-2 text-sm text-canvas";
 
   return (
     <section className="mt-8 rounded-2xl border border-hairline bg-card p-4">
@@ -146,6 +177,16 @@ export function CollectionMark({
         коллекция
       </p>
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        {media === "tv" ? (
+          <button
+            type="button"
+            disabled={authStatus === "initializing"}
+            onClick={() => mark("watching")}
+            className={watching && !panel ? on : idle}
+          >
+            Смотрю
+          </button>
+        ) : null}
         <button
           type="button"
           disabled={authStatus === "initializing"}
@@ -222,8 +263,19 @@ export function CollectionMark({
               отдельно.
             </p>
           ) : null}
-          {mine.status !== "watched" && mine.status !== "watchlist" ? (
-            <p className="text-sm text-mute">Старая отметка. Можно перенести.</p>
+          {watching ? (
+            <p className="text-sm text-mute">
+              Смотришь
+              {progress
+                ? ` · просмотрено до ${episodeLabel(progress)}`
+                : " · отмечай просмотренные серии ниже"}
+            </p>
+          ) : null}
+          {dropped ? (
+            <p className="text-sm text-mute">
+              Брошен
+              {progress ? ` на ${episodeLabel(progress)}` : ""}
+            </p>
           ) : null}
           {mine.note && watched ? (
             <p className="text-sm text-ink/90">{mine.note}</p>
@@ -236,6 +288,24 @@ export function CollectionMark({
                 className="rounded-full border border-hairline px-3 py-1.5 text-sm text-mute"
               >
                 Изменить оценку
+              </button>
+            ) : null}
+            {watching ? (
+              <button
+                type="button"
+                onClick={() => mark("dropped")}
+                className="rounded-full border border-hairline px-3 py-1.5 text-sm text-mute"
+              >
+                Бросил
+              </button>
+            ) : null}
+            {dropped ? (
+              <button
+                type="button"
+                onClick={() => mark("watching")}
+                className="rounded-full border border-hairline px-3 py-1.5 text-sm text-mute"
+              >
+                Вернуться к просмотру
               </button>
             ) : null}
             <button

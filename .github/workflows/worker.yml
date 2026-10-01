@@ -35,25 +35,71 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - id: deploy
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: worker
-          # Real secrets: they stay in Cloudflare and never reach the site.
-          secrets: |
-            TWITCH_CLIENT_ID
-            TWITCH_CLIENT_SECRET
-            ITAD_API_KEY
-            OPENCRITIC_API_KEY
-            STEAM_API_KEY
+      # Says which keys GitHub actually hands to this job, without printing them.
+      # Cloudflare keys are required; any service key that is missing is skipped
+      # and shows up as "нет ключа" in the app settings.
+      - id: keys
+        name: Check keys
         env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}
           TWITCH_CLIENT_SECRET: ${{ secrets.TWITCH_CLIENT_SECRET }}
           ITAD_API_KEY: ${{ secrets.ITAD_API_KEY }}
           OPENCRITIC_API_KEY: ${{ secrets.OPENCRITIC_API_KEY }}
           STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+          AS_VARIABLES: >-
+            ${{ vars.CLOUDFLARE_API_TOKEN != '' && 'CLOUDFLARE_API_TOKEN ' || '' }}${{ vars.CLOUDFLARE_ACCOUNT_ID != '' && 'CLOUDFLARE_ACCOUNT_ID ' || '' }}${{ vars.TWITCH_CLIENT_ID != '' && 'TWITCH_CLIENT_ID ' || '' }}${{ vars.TWITCH_CLIENT_SECRET != '' && 'TWITCH_CLIENT_SECRET ' || '' }}${{ vars.ITAD_API_KEY != '' && 'ITAD_API_KEY ' || '' }}${{ vars.OPENCRITIC_API_KEY != '' && 'OPENCRITIC_API_KEY ' || '' }}${{ vars.STEAM_API_KEY != '' && 'STEAM_API_KEY ' || '' }}
+        run: |
+          {
+            echo "### Keys"
+            echo "| Name | Repository secret |"
+            echo "| --- | --- |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          missing_required=""
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID TWITCH_CLIENT_ID TWITCH_CLIENT_SECRET ITAD_API_KEY OPENCRITIC_API_KEY STEAM_API_KEY; do
+            if [ -n "${!name}" ]; then
+              echo "| $name | ✅ |" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "| $name | ❌ missing |" >> "$GITHUB_STEP_SUMMARY"
+              echo "::warning::$name is not a repository secret (Settings → Secrets and variables → Actions → Secrets → Repository secrets)"
+              case "$name" in CLOUDFLARE_*) missing_required="$missing_required $name" ;; esac
+            fi
+          done
+          if [ -n "${AS_VARIABLES// /}" ]; then
+            echo "::warning::These are saved as Variables, not Secrets: $AS_VARIABLES. Move them to Repository secrets."
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Saved as **Variables** instead of **Secrets**: $AS_VARIABLES" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -n "$missing_required" ]; then
+            echo "::error::Cannot deploy without:$missing_required"
+            exit 1
+          fi
+      - id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.145.0"
+          workingDirectory: worker
+      # Real secrets: they stay in Cloudflare and never reach the site.
+      # Uploaded after the deploy so the worker already exists; empty ones are skipped.
+      - name: Upload service keys
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}
+          TWITCH_CLIENT_SECRET: ${{ secrets.TWITCH_CLIENT_SECRET }}
+          ITAD_API_KEY: ${{ secrets.ITAD_API_KEY }}
+          OPENCRITIC_API_KEY: ${{ secrets.OPENCRITIC_API_KEY }}
+          STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+        run: |
+          jq -n 'env
+            | with_entries(select(
+                (.key | IN("TWITCH_CLIENT_ID", "TWITCH_CLIENT_SECRET", "ITAD_API_KEY", "OPENCRITIC_API_KEY", "STEAM_API_KEY"))
+                and .value != ""))' \
+            | npx --yes wrangler@4.145.0 secret bulk
       - name: Show the worker address
         run: |
           echo "Worker: ${{ steps.deploy.outputs.deployment-url }}" >> "$GITHUB_STEP_SUMMARY"

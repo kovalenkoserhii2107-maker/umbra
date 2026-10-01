@@ -4,12 +4,13 @@ import { byCatalogRank } from "./rank";
 const BASE = "https://api.themoviedb.org/3";
 const IMG = "https://image.tmdb.org/t/p";
 
-/** The key earlier releases shipped; still the fallback when no variable is set. */
-export const BUILT_IN_TMDB_KEY = "efe08a32a1ab86042a1bc8f93ad63cc8";
-// Public by design, like OMDb's: set it with the TMDB_KEY repository variable.
-export const DEFAULT_TMDB_KEY =
-  (import.meta.env.VITE_TMDB_KEY as string | undefined)?.trim() ||
-  BUILT_IN_TMDB_KEY;
+/**
+ * TMDB key from the build: the TMDB_KEY repository variable (VITE_TMDB_KEY).
+ * It is not kept in the source; locally put VITE_TMDB_KEY in .env.local.
+ */
+export function tmdbKey() {
+  return (import.meta.env.VITE_TMDB_KEY as string | undefined)?.trim() || "";
+}
 
 export type MediaType = "movie" | "tv";
 
@@ -203,12 +204,8 @@ export type ShowAirDates = TmdbItem & {
   status?: string;
 };
 
-function keyFromStore() {
-  return readStorage("umbra.tmdbKey")?.trim() || DEFAULT_TMDB_KEY;
-}
-
 export function hasApiKey() {
-  return Boolean(keyFromStore());
+  return Boolean(tmdbKey());
 }
 
 // TMDB currently labels this Bulgarian Digger teaser as Russian.
@@ -250,7 +247,7 @@ async function request<T>(
   params: Record<string, string | number | undefined> = {},
   ttl?: number,
 ): Promise<T> {
-  const key = keyFromStore();
+  const key = tmdbKey();
   if (!key) throw new Error("NO_KEY");
   const url = new URL(BASE + path);
   url.searchParams.set("api_key", key);

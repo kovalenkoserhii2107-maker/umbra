@@ -165,6 +165,8 @@ E2E-тесты подменяют ответы TMDB и подставляют т
 - `GET /health` — какие сервисы подключены (только да/нет).
 - `POST /igdb/:endpoint` — запрос IGDB (APICalypse в теле) к разрешённым разделам; ответы кэшируются от часа до недели, токен Twitch обновляется сам.
 - `GET /twitch/top-games?first=20` — что смотрят на Twitch, кэш 10 минут.
+- `GET /opencritic?name=&year=` — оценка OpenCritic, уровень и самые читаемые рецензии; ответ хранится 3 дня (бесплатный план — 200 запросов в сутки).
+- `GET /steam/app/:appId` — страница игры в Steam на русском, Metascore, сводка отзывов, достижения, требования и число играющих сейчас; кэш 6 часов.
 - `POST /steam/verify` — проверка входа через Steam (OpenID `check_authentication`), возвращает SteamID.
 - Отвечает только сайтам из `ALLOWED_ORIGINS` (`worker/wrangler.toml`); остальным — 403.
 

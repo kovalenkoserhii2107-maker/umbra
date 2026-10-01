@@ -68,42 +68,14 @@ export default defineConfig({
         navigateFallback: "index.html",
         navigateFallbackAllowlist: [/^\/umbra(?:\/|$)/],
         globPatterns: ["**/*.{js,css,svg,png,jpg,woff2,ico,html,json}"],
-        globIgnores: [
-          "**/catalog/**",
-          "**/steam-catalog.json",
-          "**/console-catalog.json",
-          "**/steam-ratings.json",
-        ],
         runtimeCaching: [
           {
-            urlPattern: ({ url, sameOrigin }) =>
-              sameOrigin &&
-              /^\/umbra\/catalog\/(steam|consoles)\.json$/.test(url.pathname),
-            handler: "StaleWhileRevalidate",
-            options: {
-              cacheName: "umbra-game-catalogs",
-              expiration: { maxEntries: 2, maxAgeSeconds: 86400 },
-              cacheableResponse: { statuses: [200] },
-            },
-          },
-          {
-            urlPattern:
-              /^https:\/\/(?:(?:[a-z0-9-]+\.)+steamstatic\.com|www\.metacritic\.com\/a\/img)\//,
+            urlPattern: /^https:\/\/images\.igdb\.com\//,
             handler: "CacheFirst",
             options: {
               cacheName: "umbra-game-images",
-              expiration: { maxEntries: 100, maxAgeSeconds: 7 * 86400 },
+              expiration: { maxEntries: 300, maxAgeSeconds: 14 * 86400 },
               cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: ({ url, sameOrigin }) =>
-              sameOrigin && url.pathname.startsWith("/umbra/catalog/details/"),
-            handler: "StaleWhileRevalidate",
-            options: {
-              cacheName: "umbra-game-details",
-              expiration: { maxEntries: 80, maxAgeSeconds: 86400 },
-              cacheableResponse: { statuses: [200] },
             },
           },
           {

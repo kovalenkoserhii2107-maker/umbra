@@ -13,6 +13,8 @@ export type GameShelfItem = {
   rating: number | null;
   note: string;
   updatedAt: number;
+  /** Set for IGDB ids; older entries hold Steam or Metacritic ids. */
+  source?: "igdb";
 };
 
 const KEY = "umbra.gamesLibrary";
@@ -44,6 +46,7 @@ function parseItem(value: unknown): GameShelfItem | null {
     rating: rating as number | null,
     note: typeof v.note === "string" ? v.note : "",
     updatedAt: typeof v.updatedAt === "number" ? v.updatedAt : 0,
+    ...(v.source === "igdb" ? { source: "igdb" as const } : {}),
   };
 }
 
@@ -77,6 +80,34 @@ export function saveGame(item: GameShelfItem) {
 
 export function removeGame(id: number) {
   publish(readAll().filter((row) => row.id !== id));
+}
+
+/** Entries saved before the catalog moved to IGDB. */
+export function legacyGames() {
+  return readAll().filter((row) => row.source !== "igdb");
+}
+
+/**
+ * Moves old entries to their IGDB ids. Entries without a match stay as they
+ * are; a match that is already in the library keeps the newer entry.
+ */
+export function moveToIgdb(ids: Map<number, number>) {
+  const rows = readAll();
+  const moved = rows.map((row) =>
+    row.source !== "igdb" && ids.has(row.id)
+      ? { ...row, id: ids.get(row.id)!, source: "igdb" as const }
+      : row,
+  );
+  const seen = new Set<number>();
+  const next = moved
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .filter((row) => {
+      if (row.source !== "igdb") return true;
+      if (seen.has(row.id)) return false;
+      seen.add(row.id);
+      return true;
+    });
+  publish(next);
 }
 
 function subscribe(listener: () => void) {

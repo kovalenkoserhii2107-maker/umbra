@@ -2,8 +2,16 @@ import { Link } from "react-router-dom";
 import { Row, ErrorBox, RatingBadge, useAsync } from "../components";
 import { loadFeedPage, FEEDS } from "../lib/feeds";
 import { useAppState } from "../state";
+import { dayMonthLabel, plural } from "../lib/format";
+import {
+  daysUntil,
+  loadWatchlistReleases,
+  localIso,
+  type Release,
+} from "../lib/releases";
 import {
   backdropUrl,
+  correctPosterUrl,
   mediaOf,
   titleOf,
   type MediaType,
@@ -44,6 +52,87 @@ function Featured({ item }: { item: TmdbItem }) {
       </div>
       <RatingBadge type={media} id={item.id} />
     </Link>
+  );
+}
+
+function whenLabel(date: string) {
+  const days = daysUntil(date, localIso(new Date()));
+  if (days === 0) return "выход сегодня";
+  if (days === 1) return "выход завтра";
+  if (days === -1) return "вышел вчера";
+  const n = Math.abs(days);
+  const span = `${n} ${plural(n, "день", "дня", "дней")}`;
+  return days > 0 ? `выход через ${span}` : `вышел ${span} назад`;
+}
+
+function ReleaseCard({ release }: { release: Release }) {
+  const { item, date, kind, season } = release;
+  const upcoming = daysUntil(date, localIso(new Date())) >= 0;
+  return (
+    <Link
+      to={`/title/${item.type}/${item.id}`}
+      className="group block w-[42vw] shrink-0 sm:w-40"
+    >
+      <div className="poster-hover relative overflow-hidden rounded-xl border border-hairline bg-card">
+        {item.poster ? (
+          <img
+            src={correctPosterUrl(item.poster)}
+            alt={item.title}
+            className="aspect-[2/3] w-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex aspect-[2/3] items-end p-3 text-sm text-mute">
+            {item.title}
+          </div>
+        )}
+        <p
+          className={`absolute left-1.5 top-1.5 rounded-md px-1.5 py-1 font-mono text-[11px] font-bold leading-none ${upcoming ? "bg-accent text-black" : "bg-black/75 text-accent backdrop-blur-sm"}`}
+        >
+          {dayMonthLabel(date)}
+        </p>
+        <RatingBadge type={item.type} id={item.id} />
+      </div>
+      <div className="mt-2 space-y-0.5">
+        <p className="line-clamp-2 text-sm leading-snug">{item.title}</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-accent">
+          {kind === "season" ? `сезон ${season} · ` : ""}
+          {whenLabel(date)}
+        </p>
+      </div>
+    </Link>
+  );
+}
+
+function WatchlistReleases() {
+  const { items, settings } = useAppState();
+  const watchlist = items.filter((x) => x.status === "watchlist");
+  const key = watchlist.map((x) => `${x.type}-${x.id}`).join(",");
+  const releases = useAsync(
+    () => loadWatchlistReleases(watchlist, settings.region),
+    [key, settings.region],
+  );
+  const list = releases.data ?? [];
+  if (!list.length) return null;
+  return (
+    <section className="rise mb-10">
+      <div className="mb-3">
+        <h2 className="text-lg font-medium tracking-tight">
+          Релизы из «Хочу посмотреть»
+        </h2>
+        <p className="mt-0.5 text-xs text-mute">
+          Выходят в ближайшую неделю или вышли за последнюю
+        </p>
+      </div>
+      <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
+        {list.map((release) => (
+          <ReleaseCard
+            key={`${release.item.type}-${release.item.id}`}
+            release={release}
+          />
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -92,6 +181,7 @@ export function HomePage() {
 
   return (
     <div className="rise space-y-2">
+      <WatchlistReleases />
       {hero ? <Featured item={hero} /> : null}
       <Row
         title={preview("theaters").title}

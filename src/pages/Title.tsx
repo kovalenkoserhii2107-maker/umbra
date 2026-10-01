@@ -12,7 +12,12 @@ import {
   type MediaType,
   type PersonRef,
 } from "../lib/tmdb";
-import { fetchImdbRating, rememberRating } from "../lib/ratings";
+import {
+  fetchCriticScores,
+  fetchImdbRating,
+  rememberRating,
+  type CriticScores,
+} from "../lib/ratings";
 import { dateLabel, runtimeLabel, yearOf } from "../lib/format";
 import { PLATFORMS } from "../lib/providers";
 import { byCatalogRank } from "../lib/rank";
@@ -82,27 +87,170 @@ function CrewColumn({
   );
 }
 
+function ScorePill({
+  label,
+  value,
+  color,
+  href,
+}: {
+  label: string;
+  /** undefined while loading, null when the source has no score. */
+  value: string | null | undefined;
+  color: string;
+  href?: string;
+}) {
+  const body = (
+    <>
+      <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-mute">
+        {label}
+      </span>
+      <span
+        className="font-mono text-base font-bold leading-none"
+        style={{ color: value ? color : undefined }}
+      >
+        {value === undefined ? "…" : value || "—"}
+      </span>
+    </>
+  );
+  const className =
+    "inline-flex items-center gap-2 rounded-full border border-hairline bg-canvas/60 px-3 py-1.5";
+  return href ? (
+    <a href={href} target="_blank" rel="noreferrer" className={className}>
+      {body}
+    </a>
+  ) : (
+    <span className={className}>{body}</span>
+  );
+}
+
+function tomatoColor(score: number) {
+  return score >= 60 ? "#fa320a" : "#0ac855";
+}
+
+function metascoreColor(score: number) {
+  if (score >= 61) return "#66cc33";
+  if (score >= 40) return "#ffcc33";
+  return "#ff4d4d";
+}
+
+function rottenTomatoesUrl(critics: CriticScores | null, title: string) {
+  if (critics?.rottenTomatoesId)
+    return `https://www.rottentomatoes.com/${critics.rottenTomatoesId}`;
+  return `https://www.rottentomatoes.com/search?search=${encodeURIComponent(title)}`;
+}
+
+function CriticReviews({
+  imdbId,
+  critics,
+  title,
+}: {
+  imdbId: string;
+  critics: CriticScores | null;
+  title: string;
+}) {
+  const metascore = critics?.metascore ?? null;
+  const tomatometer = critics?.tomatometer ?? null;
+  return (
+    <section className="mt-8">
+      <h2 className="text-lg tracking-tight">Отзывы критиков</h2>
+      <div className="mt-3 rounded-2xl border border-hairline bg-card p-4 sm:p-5">
+        {!critics ? (
+          <p className="text-sm text-mute">Собираю оценки критиков…</p>
+        ) : metascore === null && tomatometer === null ? (
+          <p className="text-sm text-mute">
+            Сводные оценки критиков для этого тайтла пока не опубликованы.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-4">
+            {metascore !== null ? (
+              <div className="flex items-center gap-3">
+                <span
+                  className="flex h-12 w-12 items-center justify-center rounded-lg font-mono text-lg font-bold text-black"
+                  style={{ background: metascoreColor(metascore) }}
+                >
+                  {metascore}
+                </span>
+                <div>
+                  <p className="text-sm">Metascore</p>
+                  <p className="text-xs text-mute">
+                    сводка рецензий критиков на IMDb
+                  </p>
+                </div>
+              </div>
+            ) : null}
+            {tomatometer !== null ? (
+              <div className="flex items-center gap-3">
+                <span
+                  className="flex h-12 min-w-12 items-center justify-center rounded-lg px-1.5 font-mono text-lg font-bold text-white"
+                  style={{ background: tomatoColor(tomatometer) }}
+                >
+                  {tomatometer}%
+                </span>
+                <div>
+                  <p className="text-sm">Tomatometer</p>
+                  <p className="text-xs text-mute">
+                    {tomatometer >= 60 ? "свежий" : "гнилой"} · доля
+                    положительных рецензий
+                  </p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <a
+            href={`https://www.imdb.com/title/${imdbId}/criticreviews/`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-3 py-1.5 text-xs text-ink hover:border-accent"
+          >
+            Все рецензии критиков на IMDb
+            <span className="text-accent">↗</span>
+          </a>
+          <a
+            href={rottenTomatoesUrl(critics, title)}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-3 py-1.5 text-xs text-mute hover:text-ink"
+          >
+            Rotten Tomatoes
+            <span className="text-accent">↗</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function TitlePage() {
   const { type = "movie", id = "" } = useParams();
   const media = (type === "tv" ? "tv" : "movie") as MediaType;
   const { settings } = useAppState();
   const query = useAsync(() => tmdb.details(media, Number(id)), [media, id]);
-  const [imdb, setImdb] = useState<string | null>(null);
+  const [imdb, setImdb] = useState<string | null | undefined>(undefined);
+  const [critics, setCritics] = useState<CriticScores | null>(null);
 
   useEffect(() => {
     let alive = true;
-    setImdb(null);
+    setImdb(undefined);
+    setCritics(null);
     const item = query.data;
     if (!item || item.id !== Number(id)) return;
     const imdbId = item.external_ids?.imdb_id;
-    if (!imdbId) return;
+    if (!imdbId) {
+      setImdb(null);
+      return;
+    }
     fetchImdbRating(imdbId)
       .then((value) => {
-        if (!alive || !value) return;
+        if (!alive) return;
         setImdb(value);
-        rememberRating(media, item.id, { imdb: value });
+        if (value) rememberRating(media, item.id, { imdb: value });
       })
-      .catch(() => undefined);
+      .catch(() => alive && setImdb(null));
+    fetchCriticScores(imdbId).then((value) => {
+      if (alive) setCritics(value);
+    });
     return () => {
       alive = false;
     };
@@ -140,7 +288,9 @@ export function TitlePage() {
   const region = item["watch/providers"]?.results[settings.region];
   const flatrate = region?.flatrate ?? [];
   const knownIds = new Set(PLATFORMS.map((p) => p.id));
-  const score = imdb || "";
+  const imdbId = item.external_ids?.imdb_id || "";
+  const tmdbScore =
+    item.vote_count && item.vote_average ? item.vote_average.toFixed(1) : null;
 
   return (
     <article className="rise pb-8">
@@ -165,12 +315,40 @@ export function TitlePage() {
           {item.tagline ? (
             <p className="mt-1 text-sm text-mute">{item.tagline}</p>
           ) : null}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <ScorePill
+              label="IMDb"
+              value={imdb}
+              color="#f5c518"
+              href={
+                imdbId ? `https://www.imdb.com/title/${imdbId}/` : undefined
+              }
+            />
+            <ScorePill
+              label="TMDB"
+              value={tmdbScore}
+              color="#01b4e4"
+              href={`https://www.themoviedb.org/${media}/${item.id}`}
+            />
+            <ScorePill
+              label="Rotten Tomatoes"
+              value={
+                !imdbId
+                  ? null
+                  : critics === null
+                    ? undefined
+                    : critics.tomatometer === null
+                      ? null
+                      : `${critics.tomatometer}%`
+              }
+              color={tomatoColor(critics?.tomatometer ?? 100)}
+              href={rottenTomatoesUrl(
+                critics,
+                item.original_title || item.original_name || title,
+              )}
+            />
+          </div>
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-mute">
-            {score ? (
-              <span className="font-mono text-base font-bold text-[#f5c518]">
-                {score}
-              </span>
-            ) : null}
             {runtime ? <span>{runtimeLabel(runtime)}</span> : null}
             {item.number_of_seasons ? (
               <span>{item.number_of_seasons} сез.</span>
@@ -198,6 +376,14 @@ export function TitlePage() {
         <p className="max-w-3xl text-[15px] leading-7 text-ink/90">
           {item.overview}
         </p>
+      ) : null}
+
+      {imdbId ? (
+        <CriticReviews
+          imdbId={imdbId}
+          critics={critics}
+          title={item.original_title || item.original_name || title}
+        />
       ) : null}
 
       {media === "tv" ? (

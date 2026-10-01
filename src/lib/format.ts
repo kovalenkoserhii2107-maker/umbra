@@ -29,6 +29,12 @@ export function dateLabel(date?: string | null) {
   return `${day} ${MONTHS[month - 1]} ${year}`;
 }
 
+export function dayMonthLabel(date?: string | null) {
+  const match = date?.match(/^\d{4}-(\d{2})-(\d{2})/);
+  if (!match) return "";
+  return `${Number(match[2])} ${MONTHS[Number(match[1]) - 1]}`;
+}
+
 export function runtimeLabel(minutes?: number | null) {
   if (!minutes) return "";
   const h = Math.floor(minutes / 60);

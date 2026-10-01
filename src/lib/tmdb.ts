@@ -109,6 +109,26 @@ export type TitleDetails = TmdbItem & {
   similar?: TmdbPage<TmdbItem>;
 };
 
+export type MovieReleases = TmdbItem & {
+  release_dates?: {
+    results: Array<{
+      iso_3166_1: string;
+      release_dates: Array<{ release_date: string; type: number }>;
+    }>;
+  };
+};
+
+export type AirDate = {
+  air_date?: string | null;
+  season_number: number;
+  episode_number: number;
+};
+
+export type ShowAirDates = TmdbItem & {
+  next_episode_to_air?: AirDate | null;
+  last_episode_to_air?: AirDate | null;
+};
+
 function keyFromStore() {
   return readStorage("umbra.tmdbKey")?.trim() || DEFAULT_TMDB_KEY;
 }
@@ -154,6 +174,7 @@ export function mediaOf(item: TmdbItem, fallback?: MediaType): MediaType {
 async function request<T>(
   path: string,
   params: Record<string, string | number | undefined> = {},
+  ttl?: number,
 ): Promise<T> {
   const key = keyFromStore();
   if (!key) throw new Error("NO_KEY");
@@ -164,7 +185,7 @@ async function request<T>(
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== "") url.searchParams.set(k, String(v));
   }
-  return requestJson<T>(url.toString());
+  return requestJson<T>(url.toString(), ttl);
 }
 
 const CHART_CACHE = "umbra.imdbCharts";
@@ -377,6 +398,14 @@ export const tmdb = {
     request<TitleDetails>(`/${type}/${id}`, {
       append_to_response: "videos,credits,watch/providers,external_ids,similar",
     }),
+  movieReleases: (id: number) =>
+    request<MovieReleases>(
+      `/movie/${id}`,
+      { append_to_response: "release_dates" },
+      6 * 3600_000,
+    ),
+  showAirDates: (id: number) =>
+    request<ShowAirDates>(`/tv/${id}`, {}, 6 * 3600_000),
   externalIds: (type: MediaType, id: number) =>
     request<{ imdb_id?: string }>(`/${type}/${id}/external_ids`),
   person: (id: number) =>

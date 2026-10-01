@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { RequireAccount } from "./components/RequireAccount";
-import { Route, Routes } from "react-router-dom";
+import { Outlet, Route, Routes } from "react-router-dom";
 import { Layout } from "./components";
 const FeedPage = lazy(() =>
   import("./pages/Feed").then((m) => ({ default: m.FeedPage })),
@@ -63,52 +63,61 @@ const TitlePage = lazy(() =>
   import("./pages/Title").then((m) => ({ default: m.TitlePage })),
 );
 
+function Screen() {
+  return (
+    <Suspense fallback={<p role="status">Загружаю экран…</p>}>
+      <Outlet />
+    </Suspense>
+  );
+}
+
 export default function App() {
   return (
-    <Layout>
-      <Suspense fallback={<p role="status">Загружаю экран…</p>}>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/feed/:id" element={<FeedPage />} />
-          <Route path="/platforms" element={<PlatformsPage />} />
-          <Route path="/platforms/:slug" element={<PlatformPage />} />
-          <Route
-            path="/library"
-            element={
-              <RequireAccount>
-                <LibraryPage />
-              </RequireAccount>
-            }
-          />
-          <Route path="/games" element={<GamesPage />} />
-          <Route path="/games/search" element={<GameSearchPage />} />
-          <Route path="/games/platforms" element={<GamePlatformsPage />} />
-          <Route path="/games/platforms/:id" element={<GamePlatformPage />} />
-          <Route path="/games/library" element={<GameLibraryPage />} />
-          <Route path="/games/studio/:name" element={<StudioPage />} />
-          <Route path="/games/:id" element={<GamePage />} />
-          <Route path="/guide" element={<GuidePage />} />
-          <Route path="/guide/year/:year" element={<GuideListPage />} />
-          <Route path="/guide/:genreId" element={<GuideListPage />} />
-          <Route path="/search" element={<SearchPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route
-            path="/cabinet"
-            element={
-              <RequireAccount>
-                <CabinetPage />
-              </RequireAccount>
-            }
-          />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/title/:type/:id" element={<TitlePage />} />
-          <Route path="/person/:id" element={<PersonPage />} />
-          <Route
-            path="*"
-            element={<p>Страница не найдена. Выбери раздел в меню.</p>}
-          />
-        </Routes>
-      </Suspense>
-    </Layout>
+    <Routes>
+      <Route
+        element={
+          <Layout bare>
+            <Screen />
+          </Layout>
+        }
+      >
+        <Route path="/login" element={<LoginPage />} />
+      </Route>
+      {/* The whole catalog opens only after sign-in or registration. */}
+      <Route
+        element={
+          <RequireAccount>
+            <Layout>
+              <Screen />
+            </Layout>
+          </RequireAccount>
+        }
+      >
+        <Route path="/" element={<HomePage />} />
+        <Route path="/feed/:id" element={<FeedPage />} />
+        <Route path="/platforms" element={<PlatformsPage />} />
+        <Route path="/platforms/:slug" element={<PlatformPage />} />
+        <Route path="/library" element={<LibraryPage />} />
+        <Route path="/games" element={<GamesPage />} />
+        <Route path="/games/search" element={<GameSearchPage />} />
+        <Route path="/games/platforms" element={<GamePlatformsPage />} />
+        <Route path="/games/platforms/:id" element={<GamePlatformPage />} />
+        <Route path="/games/library" element={<GameLibraryPage />} />
+        <Route path="/games/studio/:name" element={<StudioPage />} />
+        <Route path="/games/:id" element={<GamePage />} />
+        <Route path="/guide" element={<GuidePage />} />
+        <Route path="/guide/year/:year" element={<GuideListPage />} />
+        <Route path="/guide/:genreId" element={<GuideListPage />} />
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/cabinet" element={<CabinetPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/title/:type/:id" element={<TitlePage />} />
+        <Route path="/person/:id" element={<PersonPage />} />
+        <Route
+          path="*"
+          element={<p>Страница не найдена. Выбери раздел в меню.</p>}
+        />
+      </Route>
+    </Routes>
   );
 }

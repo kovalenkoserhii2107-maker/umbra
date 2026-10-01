@@ -34,6 +34,119 @@ const episodes = [1, 2, 3].map((n) => ({
   season_number: 1,
   air_date: "2025-01-01",
 }));
+const rich = {
+  id: 303,
+  title: "Стражи Галактики. Часть 2",
+  original_title: "Guardians of the Galaxy Vol. 2",
+  original_language: "en",
+  release_date: "2017-04-19",
+  runtime: 136,
+  status: "Released",
+  vote_average: 7.6,
+  vote_count: 21000,
+  overview: "Стражи пытаются удержать команду вместе.",
+  genres: [{ id: 28, name: "боевик" }],
+  budget: 200000000,
+  revenue: 863756051,
+  homepage: "https://example.com/gotg2",
+  production_companies: [{ id: 420, name: "Marvel Studios" }],
+  production_countries: [
+    { iso_3166_1: "US", name: "United States of America" },
+  ],
+  spoken_languages: [{ iso_639_1: "en" }],
+  belongs_to_collection: { id: 10, name: "Стражи Галактики" },
+  external_ids: { imdb_id: "tt3896198", wikidata_id: "Q20001199" },
+  credits: {
+    cast: [],
+    crew: [
+      { id: 1, name: "James Gunn", job: "Director", profile_path: null },
+      {
+        id: 2,
+        name: "Tyler Bates",
+        job: "Original Music Composer",
+        profile_path: null,
+      },
+    ],
+  },
+  videos: {
+    results: [
+      {
+        key: "vid-en",
+        site: "YouTube",
+        type: "Trailer",
+        name: "Trailer",
+        official: true,
+        iso_639_1: "en",
+      },
+      {
+        key: "vid-ru",
+        site: "YouTube",
+        type: "Trailer",
+        name: "Трейлер",
+        official: true,
+        iso_639_1: "ru",
+      },
+      {
+        key: "vid-bts",
+        site: "YouTube",
+        type: "Featurette",
+        name: "Making of",
+        official: true,
+        iso_639_1: "en",
+      },
+    ],
+  },
+  images: {
+    backdrops: [
+      { file_path: "/s1.jpg", iso_639_1: null },
+      { file_path: "/s2.jpg", iso_639_1: null },
+    ],
+  },
+  release_dates: {
+    results: [
+      {
+        iso_3166_1: "UA",
+        release_dates: [
+          {
+            release_date: "2017-05-04T00:00:00.000Z",
+            type: 3,
+            certification: "16+",
+          },
+          {
+            release_date: "2017-08-22T00:00:00.000Z",
+            type: 4,
+            certification: "",
+          },
+        ],
+      },
+    ],
+  },
+  "watch/providers": {
+    results: {
+      UA: {
+        link: "https://www.themoviedb.org/movie/303/watch?locale=UA",
+        flatrate: [
+          {
+            provider_id: 337,
+            provider_name: "Disney Plus",
+            logo_path: "/d.jpg",
+          },
+        ],
+        rent: [
+          { provider_id: 2, provider_name: "Apple TV", logo_path: "/a.jpg" },
+        ],
+      },
+    },
+  },
+  recommendations: {
+    page: 1,
+    total_pages: 1,
+    total_results: 1,
+    results: [{ id: 305, title: "Мстители: Война бесконечности" }],
+  },
+  similar: { page: 1, total_pages: 1, total_results: 0, results: [] },
+};
+
 async function catalog(context: BrowserContext) {
   await context.route("https://api.themoviedb.org/**", (route) => {
     const url = route.request().url();
@@ -44,6 +157,41 @@ async function catalog(context: BrowserContext) {
       });
     if (url.includes("/tv/202/season/")) return route.fulfill({ json: {} });
     if (url.includes("/tv/202?")) return route.fulfill({ json: show });
+    if (url.includes("/movie/303/reviews"))
+      return route.fulfill({
+        json: {
+          page: 1,
+          total_pages: 1,
+          total_results: 1,
+          results: [
+            {
+              id: "r1",
+              author: "critic42",
+              author_details: { rating: 8 },
+              content: "A fun, heartfelt sequel.",
+              created_at: "2017-05-06T00:00:00Z",
+              url: "https://www.themoviedb.org/review/r1",
+            },
+          ],
+        },
+      });
+    if (url.includes("/movie/303?")) return route.fulfill({ json: rich });
+    if (url.includes("/collection/10?"))
+      return route.fulfill({
+        json: {
+          id: 10,
+          name: "Стражи Галактики (Коллекция)",
+          parts: [
+            { id: 301, title: "Стражи Галактики", release_date: "2014-07-30" },
+            rich,
+            {
+              id: 304,
+              title: "Стражи Галактики. Часть 3",
+              release_date: "2023-05-03",
+            },
+          ],
+        },
+      });
     if (url.includes("/movie/now_playing"))
       return route.fulfill({
         json: {
@@ -72,6 +220,11 @@ async function catalog(context: BrowserContext) {
                 { Source: "Metacritic", Value: "79/100" },
               ],
               Metascore: "79",
+              Awards: "Nominated for 1 Oscar. 15 wins & 62 nominations total",
+              BoxOffice: "$389,813,101",
+              Rated: "PG-13",
+              imdbVotes: "828,114",
+              imdbRating: "7.6",
             }
           : { Response: "False", Error: "Invalid API key!" },
     }),
@@ -235,4 +388,61 @@ test("series tracking, collection filters, stats and sharing", async ({
   await expect(page.getByRole("heading", { name: "Статистика" })).toBeVisible();
   await expect(page.getByText("≈2")).toBeVisible();
   await expect(page.getByText("Драма")).toBeVisible();
+});
+
+test("title card shows everything TMDB and OMDb return", async ({
+  page,
+  context,
+}) => {
+  await catalog(context);
+  await context.addInitScript(() =>
+    localStorage.setItem("umbra.omdbKey", "demo-key"),
+  );
+  await register(page, "Cinephile");
+  await page.goto("#/title/movie/303");
+  await expect(
+    page.getByRole("heading", { name: "Стражи Галактики. Часть 2" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Guardians of the Galaxy Vol. 2").first(),
+  ).toBeVisible();
+  await expect(page.getByText("16+", { exact: true })).toBeVisible();
+  await expect(page.getByText("828 тыс. голосов")).toBeVisible();
+  await expect(page.getByText("93%").first()).toBeVisible();
+  await expect(
+    page.getByText("«Оскар»: 1 номинация · всего 15 наград и 62 номинации"),
+  ).toBeVisible();
+  await expect(page.getByText("По подписке")).toBeVisible();
+  await expect(page.getByText("Аренда")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Все варианты ↗" }),
+  ).toHaveAttribute("href", /watch\?locale=UA/);
+  await expect(page.getByText("22 августа 2017")).toBeVisible();
+  await expect(page.locator('iframe[src*="vid-ru"]')).toHaveCount(1);
+  await expect(page.getByText("$200 млн")).toBeVisible();
+  await expect(page.getByText("$864 млн")).toBeVisible();
+  await expect(page.getByText("$390 млн")).toBeVisible();
+  await expect(page.getByText("Marvel Studios")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Tyler Bates" })).toBeVisible();
+  await expect(
+    page.getByText("Стражи Галактики. Часть 3").first(),
+  ).toBeVisible();
+  await expect(page.getByText("A fun, heartfelt sequel.")).toBeVisible();
+  await expect(
+    page.getByText("Мстители: Война бесконечности").first(),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Wikidata ↗" })).toHaveAttribute(
+    "href",
+    /Q20001199/,
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: ".ui-evidence/title-rich-mobile.png",
+    fullPage: true,
+  });
 });

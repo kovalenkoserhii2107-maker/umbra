@@ -1,6 +1,28 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ErrorBox, PlatformChip, PosterCard, useAsync } from "../components";
+import { ErrorBox, PosterCard, useAsync } from "../components";
+import {
+  AwardsLine,
+  CrewList,
+  Facts,
+  Franchise,
+  Gallery,
+  LinksRow,
+  ReleaseDates,
+  Reviews,
+  Section,
+  Videos,
+  WatchOptions,
+} from "../components/TitleDetails";
+import { fetchOmdbInfo, type OmdbScores } from "../lib/omdb";
+import {
+  certification,
+  extraCrew,
+  showTypeLabel,
+  sortedVideos,
+  statusLabel,
+  votesLabel,
+} from "../lib/titleFacts";
 import { CollectionMark } from "../components/CollectionMark";
 import { ShareButton } from "../components/ShareButton";
 import { useAuth } from "../lib/auth";
@@ -23,7 +45,6 @@ import {
   type CriticScores,
 } from "../lib/ratings";
 import { dateLabel, runtimeLabel, yearOf } from "../lib/format";
-import { PLATFORMS } from "../lib/providers";
 import { byCatalogRank } from "../lib/rank";
 import { useAppState } from "../state";
 import { progressOf, type Episode } from "../lib/tracking";
@@ -97,12 +118,15 @@ function ScorePill({
   value,
   color,
   href,
+  hint,
 }: {
   label: string;
   /** undefined while loading, null when the source has no score. */
   value: string | null | undefined;
   color: string;
   href?: string;
+  /** Small note after the value, e.g. the number of votes. */
+  hint?: string | null;
 }) {
   const body = (
     <>
@@ -115,6 +139,9 @@ function ScorePill({
       >
         {value === undefined ? "…" : value || "—"}
       </span>
+      {value && hint ? (
+        <span className="font-mono text-[10px] text-dim">{hint}</span>
+      ) : null}
     </>
   );
   const className =
@@ -278,11 +305,13 @@ export function TitlePage() {
   const query = useAsync(() => tmdb.details(media, Number(id)), [media, id]);
   const [imdb, setImdb] = useState<string | null | undefined>(undefined);
   const [critics, setCritics] = useState<CriticScores | null>(null);
+  const [omdb, setOmdb] = useState<OmdbScores | null>(null);
 
   useEffect(() => {
     let alive = true;
     setImdb(undefined);
     setCritics(null);
+    setOmdb(null);
     const item = query.data;
     if (!item || item.id !== Number(id)) return;
     const imdbId = item.external_ids?.imdb_id;
@@ -299,6 +328,9 @@ export function TitlePage() {
       .catch(() => alive && setImdb(null));
     fetchCriticScores(imdbId).then((value) => {
       if (alive) setCritics(value);
+    });
+    fetchOmdbInfo(imdbId).then((value) => {
+      if (alive) setOmdb(value);
     });
     return () => {
       alive = false;
@@ -319,10 +351,9 @@ export function TitlePage() {
   const year = yearOf(released);
   const releasedOn = dateLabel(released);
   const runtime = item.runtime || item.episode_run_time?.[0];
-  const trailer =
-    item.videos?.results.find(
-      (v) => v.site === "YouTube" && v.type === "Trailer",
-    ) || item.videos?.results.find((v) => v.site === "YouTube");
+  const videos = sortedVideos(item.videos?.results);
+  const rated = certification(item, media, settings.region);
+  const status = statusLabel(item.status);
   const crew = item.credits?.crew || [];
   const directors = uniquePeople([
     ...crew.filter((c) => c.job === "Director"),
@@ -335,8 +366,7 @@ export function TitlePage() {
     crew.filter((c) => c.job && WRITER_JOBS.has(c.job)),
   );
   const region = item["watch/providers"]?.results[settings.region];
-  const flatrate = region?.flatrate ?? [];
-  const knownIds = new Set(PLATFORMS.map((p) => p.id));
+  const original = item.original_title || item.original_name;
   const imdbId = item.external_ids?.imdb_id || "";
   function markEpisode(ep: Episode) {
     if (mine) {
@@ -387,13 +417,17 @@ export function TitlePage() {
               text={`«${title}»${year ? ` (${year})` : ""}${imdb ? ` — IMDb ${imdb}` : ""}. Смотри в Umbra:`}
             />
           </div>
+          {original && original !== title ? (
+            <p className="mt-0.5 text-sm text-dim">{original}</p>
+          ) : null}
           {item.tagline ? (
             <p className="mt-1 text-sm text-mute">{item.tagline}</p>
           ) : null}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <ScorePill
               label="IMDb"
-              value={imdb}
+              value={imdb || omdb?.imdbRating || imdb}
+              hint={votesLabel(omdb?.imdbVotes)}
               color="#f5c518"
               href={
                 imdbId ? `https://www.imdb.com/title/${imdbId}/` : undefined
@@ -402,6 +436,7 @@ export function TitlePage() {
             <ScorePill
               label="TMDB"
               value={tmdbScore}
+              hint={votesLabel(item.vote_count)}
               color="#01b4e4"
               href={`https://www.themoviedb.org/${media}/${item.id}`}
             />
@@ -425,6 +460,20 @@ export function TitlePage() {
           </div>
           <FriendsOnTitle media={media} id={item.id} />
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-mute">
+            {rated ? (
+              <span
+                title={`Возрастной рейтинг · ${rated.country}`}
+                className="rounded border border-mute/60 px-1.5 font-mono text-xs text-ink"
+              >
+                {rated.code}
+              </span>
+            ) : null}
+            {status && (media === "tv" || item.status !== "Released") ? (
+              <span className="text-accent">{status}</span>
+            ) : null}
+            {media === "tv" && showTypeLabel(item.type) ? (
+              <span>{showTypeLabel(item.type)}</span>
+            ) : null}
             {runtime ? <span>{runtimeLabel(runtime)}</span> : null}
             {item.number_of_seasons ? (
               <span>{item.number_of_seasons} сез.</span>
@@ -453,6 +502,7 @@ export function TitlePage() {
           {item.overview}
         </p>
       ) : null}
+      <AwardsLine omdb={omdb} />
 
       {imdbId ? (
         <CriticReviews
@@ -483,46 +533,14 @@ export function TitlePage() {
         />
       ) : null}
 
-      <section className="mt-8">
-        <h2 className="text-lg tracking-tight">
-          Где смотреть · {settings.region}
-        </h2>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {flatrate.length ? (
-            flatrate.map((p) =>
-              knownIds.has(p.provider_id) ? (
-                <PlatformChip key={p.provider_id} id={p.provider_id} />
-              ) : (
-                <span
-                  key={p.provider_id}
-                  className="rounded-full border border-hairline px-3 py-1 text-xs text-mute"
-                >
-                  {p.provider_name}
-                </span>
-              ),
-            )
-          ) : (
-            <p className="text-sm text-mute">
-              В этом регионе подписка не найдена. Смени регион в настройках.
-            </p>
-          )}
-        </div>
-      </section>
-
-      {trailer ? (
-        <section className="mt-8">
-          <h2 className="text-lg tracking-tight">Трейлер</h2>
-          <div className="mt-3 overflow-hidden rounded-2xl border border-hairline">
-            <iframe
-              title={trailer.name}
-              className="aspect-video w-full"
-              src={`https://www.youtube.com/embed/${trailer.key}`}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-        </section>
+      <WatchOptions region={region} regionCode={settings.region} />
+      {media === "movie" ? (
+        <ReleaseDates item={item} region={settings.region} />
       ) : null}
+      <Videos videos={videos} />
+      <Gallery item={item} />
+      <Facts item={item} media={media} omdb={omdb} title={title} />
+      <Franchise item={item} currentId={item.id} />
 
       <section className="mt-8">
         <div className="grid gap-6 md:grid-cols-3">
@@ -530,6 +548,7 @@ export function TitlePage() {
           <CrewColumn title="Продюсер" people={producers} role="продюсер" />
           <CrewColumn title="Сценарист" people={writers} role="сценарист" />
         </div>
+        <CrewList rows={extraCrew(item)} />
       </section>
 
       {item.credits?.cast?.length ? (
@@ -543,11 +562,12 @@ export function TitlePage() {
         </section>
       ) : null}
 
-      {item.similar?.results?.length ? (
-        <section className="mt-8">
-          <h2 className="mb-3 text-lg tracking-tight">Похожее</h2>
+      <Reviews media={media} id={item.id} />
+
+      {item.recommendations?.results?.length ? (
+        <Section title="Рекомендации">
           <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
-            {byCatalogRank(item.similar.results)
+            {byCatalogRank(item.recommendations.results)
               .slice(0, 12)
               .map((s) => (
                 <PosterCard
@@ -557,8 +577,31 @@ export function TitlePage() {
                 />
               ))}
           </div>
-        </section>
+        </Section>
       ) : null}
+
+      {item.similar?.results?.length ? (
+        <Section title="Похожее">
+          <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
+            {byCatalogRank(
+              item.similar.results.filter(
+                (s) =>
+                  !item.recommendations?.results.some((r) => r.id === s.id),
+              ),
+            )
+              .slice(0, 12)
+              .map((s) => (
+                <PosterCard
+                  key={s.id}
+                  item={s}
+                  type={kindOf({ ...s, media_type: media })}
+                />
+              ))}
+          </div>
+        </Section>
+      ) : null}
+
+      <LinksRow item={item} media={media} />
     </article>
   );
 }

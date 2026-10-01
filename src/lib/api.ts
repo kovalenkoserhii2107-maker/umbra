@@ -136,3 +136,47 @@ export const steamApp = (appId: number) =>
 /** Microsoft Store ids of a Game Pass list. */
 export const gamePass = (list: string) =>
   call<{ list: string; ids: string[] }>(`/gamepass/${list}`);
+
+export type Deal = {
+  shop: string;
+  price: number;
+  regular: number;
+  cut: number;
+  currency: string;
+  url: string;
+  voucher: string | null;
+  storeLow: number | null;
+  drm: string[];
+  expiry: string | null;
+};
+
+export type Prices =
+  | { found: false }
+  | {
+      found: true;
+      id: string;
+      title: string;
+      url: string;
+      deals: Deal[];
+      historyLow: { amount: number; currency: string } | null;
+    };
+
+/** PC store prices from IsThereAnyDeal for a Steam app or a title. */
+export const gamePrices = (
+  steamId: number | null,
+  title: string,
+  country: string,
+) =>
+  call<Prices>(
+    `/prices?${steamId ? `steam=${steamId}&` : ""}title=${encodeURIComponent(title)}&country=${country}`,
+  );
+
+export type DealItem = {
+  title: string;
+  slug: string;
+  image: string;
+  deal: Deal;
+};
+
+export const currentDeals = (country: string) =>
+  call<{ list: DealItem[] }>(`/deals?country=${country}`);

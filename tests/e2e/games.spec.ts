@@ -205,6 +205,8 @@ async function mockApi(
             summary(2, "The Witcher 2"),
           ]);
         if (body.startsWith("search")) {
+          if (body.includes("fields id;") && body.includes("Witcher 3"))
+            return reply([{ id: 1942 }]);
           if (body.includes('"witcher"'))
             return reply([
               {
@@ -230,6 +232,62 @@ async function mockApi(
       }
       return reply([]);
     }
+    if (url.pathname === "/prices")
+      return reply({
+        found: true,
+        id: "itad-1",
+        title: "The Witcher 3",
+        url: "https://isthereanydeal.com/game/the-witcher-3-wild-hunt/info/",
+        historyLow: { amount: 5.99, currency: "USD" },
+        deals: [
+          {
+            shop: "GOG",
+            price: 7.99,
+            regular: 39.99,
+            cut: 80,
+            currency: "USD",
+            url: "https://itad.link/gog",
+            voucher: null,
+            storeLow: 7.99,
+            drm: ["DRM Free"],
+            expiry: null,
+          },
+          {
+            shop: "Steam",
+            price: 39.99,
+            regular: 39.99,
+            cut: 0,
+            currency: "USD",
+            url: "https://itad.link/steam",
+            voucher: null,
+            storeLow: 5.99,
+            drm: ["Steam"],
+            expiry: null,
+          },
+        ],
+      });
+    if (url.pathname === "/deals")
+      return reply({
+        list: [
+          {
+            title: "The Witcher 3: Wild Hunt",
+            slug: "the-witcher-3-wild-hunt",
+            image: "https://images.igdb.com/banner.jpg",
+            deal: {
+              shop: "GOG",
+              price: 7.99,
+              regular: 39.99,
+              cut: 80,
+              currency: "USD",
+              url: "https://itad.link/gog",
+              voucher: null,
+              storeLow: 7.99,
+              drm: [],
+              expiry: null,
+            },
+          },
+        ],
+      });
     if (url.pathname === "/twitch/top-games")
       return reply({
         data: [
@@ -333,7 +391,7 @@ test("game card gathers ratings, Russian description and facts from every source
 
   await expect(page.getByText("An absolute triumph")).toBeVisible();
   const stores = page.locator("section", { hasText: "Где купить" });
-  await expect(stores.getByRole("link", { name: /Steam/ })).toHaveAttribute(
+  await expect(stores.getByRole("link", { name: "Steam ↗" })).toHaveAttribute(
     "href",
     "https://store.steampowered.com/app/292030",
   );
@@ -343,6 +401,11 @@ test("game card gathers ratings, Russian description and facts from every source
   await expect(
     stores.getByRole("link", { name: /Nintendo eShop/ }),
   ).toBeVisible();
+  const gog = stores.getByRole("link", { name: /GOG/ }).first();
+  await expect(gog).toContainText("−80%");
+  await expect(gog).toContainText("7,99");
+  await expect(gog).toContainText("минимум в магазине");
+  await expect(stores).toContainText("Минимум за всё время: 5,99");
   await expect(
     page.getByRole("heading", { name: "Серия «The Witcher»" }),
   ).toBeVisible();
@@ -396,6 +459,9 @@ test("feed puts popular new releases first and finds awaited games like GTA VI",
       })
       .getByText("Halo Infinite"),
   ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Скидки на ПК" }),
+  ).toBeVisible();
   // The app does not zoom on phones.
   expect(
     await page.locator('meta[name="viewport"]').getAttribute("content"),
@@ -404,6 +470,14 @@ test("feed puts popular new releases first and finds awaited games like GTA VI",
   expect(feed).toContain("popularity_type = 2");
   expect(feed).toContain("first_release_date = null");
   await page.screenshot({ path: ".ui-evidence/game-feed-mobile.png" });
+  // A deal opens the game in Umbra.
+  await page
+    .locator("section", {
+      has: page.getByRole("heading", { name: "Скидки на ПК" }),
+    })
+    .getByRole("link", { name: /The Witcher 3/ })
+    .click();
+  await expect(page).toHaveURL(/#\/games\/1942$/);
 });
 
 test("feed follows my platforms and remembers them", async ({ page }) => {

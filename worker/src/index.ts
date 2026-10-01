@@ -10,6 +10,7 @@ import {
 } from "./http";
 import { IGDB_ENDPOINTS, igdbQuery } from "./igdb";
 import { gamePassList } from "./gamepass";
+import { country, currentDeals, gamePrices } from "./itad";
 import { openCritic } from "./opencritic";
 import { verifySteamLogin } from "./steam";
 import { steamApp } from "./steamStore";
@@ -93,6 +94,43 @@ async function route(
       headers: {
         "Content-Type": "application/json; charset=utf-8",
         "Cache-Control": "public, max-age=3600",
+        "X-Cache": hit ? "HIT" : "MISS",
+      },
+    });
+  }
+
+  if (path === "/prices" && request.method === "GET") {
+    const appId = Number(url.searchParams.get("steam")) || null;
+    const title = (url.searchParams.get("title") || "").trim().slice(0, 200);
+    if (!appId && !title)
+      throw new ApiError(400, "bad_game", "Steam app id or title is required");
+    const region = country(url.searchParams.get("country"));
+    const key = `itad/prices/${region}/${appId ?? (await sha256(title.toLowerCase()))}`;
+    // Prices move with sales; three hours keeps under the request limit.
+    const { body, hit } = await cached(deps, key, 10800, async () =>
+      JSON.stringify(await gamePrices(deps, appId, title, region)),
+    );
+    return new Response(body, {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "public, max-age=1800",
+        "X-Cache": hit ? "HIT" : "MISS",
+      },
+    });
+  }
+
+  if (path === "/deals" && request.method === "GET") {
+    const region = country(url.searchParams.get("country"));
+    const { body, hit } = await cached(
+      deps,
+      `itad/deals/${region}`,
+      10800,
+      async () => JSON.stringify(await currentDeals(deps, region)),
+    );
+    return new Response(body, {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "public, max-age=1800",
         "X-Cache": hit ? "HIT" : "MISS",
       },
     });

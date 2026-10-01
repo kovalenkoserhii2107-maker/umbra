@@ -222,3 +222,17 @@ export function gameLinks(game: RawGame, steamId: number | null) {
   });
   return { stores, other };
 }
+
+/** "399 ₴", "$9.99"; prices keep cents only when they have them. */
+export function money(amount: number, currency: string) {
+  try {
+    return new Intl.NumberFormat("ru-RU", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${amount} ${currency}`;
+  }
+}

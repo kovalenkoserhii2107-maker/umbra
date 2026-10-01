@@ -3,6 +3,9 @@ import { useAsync } from "../components";
 import { CARD } from "./TitleDetails";
 import { GameError, GameShelf, releaseLabel } from "./GameTile";
 import { GIVEAWAY_PLATFORMS, platformGiveaways } from "../lib/games";
+import { currentDeals } from "../lib/api";
+import { money } from "../lib/gameFacts";
+import { useAppState } from "../state";
 import {
   gamePassGames,
   imageUrl,
@@ -200,5 +203,67 @@ export function GamePassShelves() {
       <PassShelf list="coming" title="Скоро в Game Pass" dated />
       <PassShelf list="leaving" title="Скоро уйдут из Game Pass" />
     </>
+  );
+}
+
+/** PC discounts ranked by IsThereAnyDeal; a tap opens the game in Umbra. */
+export function DealsShelf() {
+  const { settings } = useAppState();
+  const deals = useAsync(
+    () => currentDeals(settings.region),
+    [settings.region],
+  );
+  const list = (deals.data?.list ?? []).filter((d) => d.deal.cut > 0);
+  if (!list.length) return null;
+  return (
+    <section className="mb-10">
+      <div className="mb-3 flex items-end justify-between gap-3">
+        <h2 className="text-lg font-medium tracking-tight">Скидки на ПК</h2>
+        <a
+          href="https://isthereanydeal.com/deals/"
+          target="_blank"
+          rel="noreferrer"
+          className="font-mono text-[11px] uppercase tracking-[0.12em] text-accent"
+        >
+          IsThereAnyDeal ↗
+        </a>
+      </div>
+      <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
+        {list.map((item) => (
+          <Link
+            key={`${item.slug}-${item.deal.shop}`}
+            to={`/games/find?title=${encodeURIComponent(item.title)}`}
+            className="block w-[68vw] shrink-0 sm:w-72"
+          >
+            <div className="relative overflow-hidden rounded-xl border border-hairline bg-card">
+              {item.image ? (
+                <img
+                  src={item.image}
+                  alt=""
+                  loading="lazy"
+                  className="aspect-[2/1] w-full object-cover"
+                />
+              ) : (
+                <div className="aspect-[2/1] w-full" />
+              )}
+              <span className="absolute left-1.5 top-1.5 rounded bg-ok px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#08130b]">
+                −{item.deal.cut}%
+              </span>
+            </div>
+            <p className="mt-2 line-clamp-1 text-sm">{item.title}</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
+              <span className="text-ok">
+                {money(item.deal.price, item.deal.currency)}
+              </span>{" "}
+              <span className="line-through">
+                {money(item.deal.regular, item.deal.currency)}
+              </span>
+              {" · "}
+              {item.deal.shop}
+            </p>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }

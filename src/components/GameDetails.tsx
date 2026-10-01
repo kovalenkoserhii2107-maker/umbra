@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Aside, AsideLink, CARD, Fact, Section } from "./TitleDetails";
-import type { OpenCritic, SteamApp } from "../lib/api";
+import type { OpenCritic, Prices, SteamApp } from "../lib/api";
 import {
   gameLinks,
+  money,
   multiplayerLabel,
   releaseRows,
   steamReviewLabel,
@@ -237,18 +238,115 @@ export function CriticReviews({ oc }: { oc: OpenCritic | null | undefined }) {
 const chip =
   "inline-flex items-center gap-1.5 rounded-full border border-hairline px-3 py-1.5 text-xs hover:border-accent";
 
+function PcPrices({ prices }: { prices: Prices | null | undefined }) {
+  if (prices === undefined)
+    return (
+      <p role="status" className="mb-3 text-sm text-mute">
+        Проверяю цены в магазинах ПК…
+      </p>
+    );
+  if (!prices?.found || !prices.deals.length) return null;
+  const low = prices.historyLow;
+  return (
+    <div className={`${CARD} mb-3 divide-y divide-hairline`}>
+      {prices.deals.map((d) => {
+        const best = d.storeLow !== null && d.price <= d.storeLow;
+        return (
+          <a
+            key={`${d.shop}-${d.url}`}
+            href={d.url}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-3 px-4 py-3 hover:bg-canvas/40"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm">{d.shop}</span>
+              <span className="block truncate font-mono text-[10px] uppercase tracking-[0.12em] text-dim">
+                {[
+                  d.drm.length ? d.drm.join(", ") : "",
+                  best ? "минимум в магазине" : "",
+                  d.voucher ? `код ${d.voucher}` : "",
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            </span>
+            {d.cut > 0 ? (
+              <span className="rounded bg-ok px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#08130b]">
+                −{d.cut}%
+              </span>
+            ) : null}
+            <span className="shrink-0 text-right">
+              <span
+                className={`block font-mono text-sm font-bold ${d.cut > 0 ? "text-ok" : ""}`}
+              >
+                {d.price === 0 ? "бесплатно" : money(d.price, d.currency)}
+              </span>
+              {d.cut > 0 ? (
+                <span className="block font-mono text-[11px] text-dim line-through">
+                  {money(d.regular, d.currency)}
+                </span>
+              ) : null}
+            </span>
+          </a>
+        );
+      })}
+      <div className="flex items-center justify-between gap-3 px-4 py-2.5 text-xs text-mute">
+        <span>
+          {low
+            ? `Минимум за всё время: ${money(low.amount, low.currency)}`
+            : ""}
+        </span>
+        <a
+          href={prices.url}
+          target="_blank"
+          rel="noreferrer"
+          className="shrink-0 text-accent"
+        >
+          IsThereAnyDeal ↗
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export function GameLinks({
   game,
   steamId,
+  prices,
+  part,
 }: {
   game: RawGame;
   steamId: number | null;
+  /** PC prices; undefined while loading, null for games without a PC version. */
+  prices?: Prices | null;
+  /** Stores with prices sit high on the card; other links at the end. */
+  part: "stores" | "links";
 }) {
   const { stores, other } = gameLinks(game, steamId);
+  if (part === "links")
+    return (
+      <Section title="Ссылки">
+        <div className="flex flex-wrap gap-2">
+          {other.map((l) => (
+            <a
+              key={l.label}
+              href={l.href}
+              target="_blank"
+              rel="noreferrer"
+              className={`${chip} text-mute hover:text-ink`}
+            >
+              {l.label} ↗
+            </a>
+          ))}
+        </div>
+      </Section>
+    );
   return (
     <>
       {stores.length ? (
         <Section title="Где купить">
+          <PcPrices prices={prices} />
           <div className="flex flex-wrap gap-2">
             {stores.map((l) => (
               <a
@@ -265,26 +363,13 @@ export function GameLinks({
               </a>
             ))}
           </div>
-          <p className="mt-2 text-[11px] text-dim">
-            Цены и скидки появятся на следующем этапе.
-          </p>
+          {prices === null ? null : (
+            <p className="mt-2 text-[11px] text-dim">
+              Цены — магазины ПК; консольные магазины открываются ссылкой.
+            </p>
+          )}
         </Section>
       ) : null}
-      <Section title="Ссылки">
-        <div className="flex flex-wrap gap-2">
-          {other.map((l) => (
-            <a
-              key={l.label}
-              href={l.href}
-              target="_blank"
-              rel="noreferrer"
-              className={`${chip} text-mute hover:text-ink`}
-            >
-              {l.label} ↗
-            </a>
-          ))}
-        </div>
-      </Section>
     </>
   );
 }

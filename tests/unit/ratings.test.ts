@@ -67,7 +67,7 @@ describe("OMDb scores", () => {
         Metascore: "82",
         tomatoURL: "https://www.rottentomatoes.com/m/shawshank_redemption",
       }),
-    ).toEqual({
+    ).toMatchObject({
       tomatometer: 89,
       metascore: 82,
       rottenTomatoesUrl:
@@ -89,9 +89,21 @@ describe("OMDb scores", () => {
         imdbID: "tt3896198",
         Type: "movie",
         BoxOffice: "$389,813,101",
+        Rated: "PG-13",
+        imdbVotes: "828,114",
+        Awards: "Nominated for 1 Oscar. 15 wins & 62 nominations total",
         Response: "True",
       }),
-    ).toEqual({ tomatometer: 85, metascore: 67, rottenTomatoesUrl: null });
+    ).toEqual({
+      tomatometer: 85,
+      metascore: 67,
+      rottenTomatoesUrl: null,
+      awards: "Nominated for 1 Oscar. 15 wins & 62 nominations total",
+      boxOffice: "$389,813,101",
+      rated: "PG-13",
+      imdbVotes: 828114,
+      imdbRating: "7.6",
+    });
   });
   it("treats N/A, errors and foreign links as missing", () => {
     expect(
@@ -101,7 +113,7 @@ describe("OMDb scores", () => {
         Metascore: "N/A",
         tomatoURL: "N/A",
       }),
-    ).toEqual({ tomatometer: null, metascore: null, rottenTomatoesUrl: null });
+    ).toMatchObject({ tomatometer: null, metascore: null, rottenTomatoesUrl: null });
     expect(
       parseOmdb({ Response: "False", Error: "Invalid API key!" }),
     ).toBeNull();

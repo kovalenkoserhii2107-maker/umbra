@@ -6,7 +6,11 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { DEFAULT_TMDB_KEY, type MediaType } from "./lib/tmdb";
+import {
+  BUILT_IN_TMDB_KEY,
+  DEFAULT_TMDB_KEY,
+  type MediaType,
+} from "./lib/tmdb";
 import { useAuth, cloudUid } from "./lib/auth";
 import {
   dropItem,
@@ -40,8 +44,11 @@ function loadSettings(): Settings {
   try {
     const v = JSON.parse(readStorage("umbra.settings") || "{}");
     return {
+      // Devices saved the old built-in key; let a new build-time key replace it.
       tmdbKey:
-        typeof v.tmdbKey === "string" && v.tmdbKey
+        typeof v.tmdbKey === "string" &&
+        v.tmdbKey &&
+        v.tmdbKey !== BUILT_IN_TMDB_KEY
           ? v.tmdbKey
           : DEFAULT_TMDB_KEY,
       region: ["UA", "US", "GB", "DE", "PL"].includes(v.region)
@@ -114,7 +121,11 @@ function SessionState({
   useEffect(() => {
     if (!writeStorage("umbra.settings", JSON.stringify(settings)))
       setSyncError("Настройки не сохраняются на этом устройстве.");
-    writeStorage("umbra.tmdbKey", settings.tmdbKey);
+    // Only a key someone entered by hand is stored; the build key stays current.
+    writeStorage(
+      "umbra.tmdbKey",
+      settings.tmdbKey === DEFAULT_TMDB_KEY ? null : settings.tmdbKey,
+    );
   }, [settings]);
   useEffect(() => {
     if (!uid) return;

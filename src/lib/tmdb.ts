@@ -4,7 +4,12 @@ import { byCatalogRank } from "./rank";
 const BASE = "https://api.themoviedb.org/3";
 const IMG = "https://image.tmdb.org/t/p";
 
-export const DEFAULT_TMDB_KEY = "efe08a32a1ab86042a1bc8f93ad63cc8";
+/** The key earlier releases shipped; still the fallback when no variable is set. */
+export const BUILT_IN_TMDB_KEY = "efe08a32a1ab86042a1bc8f93ad63cc8";
+// Public by design, like OMDb's: set it with the TMDB_KEY repository variable.
+export const DEFAULT_TMDB_KEY =
+  (import.meta.env.VITE_TMDB_KEY as string | undefined)?.trim() ||
+  BUILT_IN_TMDB_KEY;
 
 export type MediaType = "movie" | "tv";
 
@@ -68,6 +73,34 @@ export type Video = {
   type: string;
   name: string;
   official: boolean;
+  iso_639_1?: string;
+  published_at?: string;
+};
+
+export type ImageRef = {
+  file_path: string;
+  iso_639_1?: string | null;
+  width?: number;
+  height?: number;
+  vote_average?: number;
+};
+
+export type Named = { id: number; name: string; logo_path?: string | null };
+
+export type Review = {
+  id: string;
+  author: string;
+  author_details?: { rating?: number | null; avatar_path?: string | null };
+  content: string;
+  created_at?: string;
+  url?: string;
+};
+
+export type CollectionDetails = {
+  id: number;
+  name: string;
+  overview?: string;
+  parts: TmdbItem[];
 };
 
 export type CreditWork = TmdbItem & {
@@ -105,8 +138,47 @@ export type TitleDetails = TmdbItem & {
   credits?: Credits;
   created_by?: PersonRef[];
   "watch/providers"?: { results: Record<string, WatchGroup> };
-  external_ids?: { imdb_id?: string };
+  external_ids?: {
+    imdb_id?: string | null;
+    wikidata_id?: string | null;
+    facebook_id?: string | null;
+    instagram_id?: string | null;
+    twitter_id?: string | null;
+  };
   similar?: TmdbPage<TmdbItem>;
+  recommendations?: TmdbPage<TmdbItem>;
+  images?: { backdrops?: ImageRef[]; posters?: ImageRef[] };
+  budget?: number;
+  revenue?: number;
+  homepage?: string | null;
+  original_language?: string;
+  origin_country?: string[];
+  spoken_languages?: Array<{ iso_639_1: string; name?: string }>;
+  production_companies?: Named[];
+  production_countries?: Array<{ iso_3166_1: string; name: string }>;
+  networks?: Named[];
+  type?: string;
+  in_production?: boolean;
+  belongs_to_collection?: {
+    id: number;
+    name: string;
+    poster_path?: string | null;
+    backdrop_path?: string | null;
+  } | null;
+  release_dates?: {
+    results: Array<{
+      iso_3166_1: string;
+      release_dates: Array<{
+        release_date: string;
+        type: number;
+        certification?: string;
+        note?: string;
+      }>;
+    }>;
+  };
+  content_ratings?: {
+    results: Array<{ iso_3166_1: string; rating: string }>;
+  };
 };
 
 export type MovieReleases = TmdbItem & {
@@ -398,8 +470,20 @@ export const tmdb = {
   },
   details: (type: MediaType, id: number) =>
     request<TitleDetails>(`/${type}/${id}`, {
-      append_to_response: "videos,credits,watch/providers,external_ids,similar",
+      append_to_response: `videos,credits,watch/providers,external_ids,similar,recommendations,images,${type === "movie" ? "release_dates" : "content_ratings"}`,
+      // Russian first, but keep English trailers and language-free stills.
+      include_video_language: "ru,en",
+      include_image_language: "null,ru,en",
     }),
+  collection: (id: number) =>
+    request<CollectionDetails>(`/collection/${id}`, {}, 6 * 3600_000),
+  /** TMDB viewer reviews are almost all English, so ask for them in English. */
+  reviews: (type: MediaType, id: number) =>
+    request<TmdbPage<Review>>(
+      `/${type}/${id}/reviews`,
+      { language: "en-US" },
+      3600_000,
+    ),
   movieReleases: (id: number) =>
     request<MovieReleases>(
       `/movie/${id}`,

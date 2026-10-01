@@ -8,8 +8,7 @@ import {
   GameTile,
   PlatformPicker,
 } from "../components/GameTile";
-import { useGameLibrary } from "../lib/gameLibrary";
-import { migrateGameLibrary } from "../lib/gameMigration";
+import { GameCollection, SteamPanel } from "../components/GameCollection";
 import {
   BestShelf,
   DealsShelf,
@@ -403,87 +402,14 @@ export function StudioPage() {
 }
 
 export function GameLibraryPage() {
-  const items = useGameLibrary();
-  const [filter, setFilter] = useState<"all" | "played" | "want">("all");
-  useEffect(() => {
-    migrateGameLibrary();
-  }, []);
-  const list = items.filter((item) =>
-    filter === "all" ? true : item.status === filter,
-  );
-  const played = items.filter((item) => item.status === "played").length;
-
   return (
     <div className="rise">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
         коллекция
       </p>
-      <h1 className="mt-1 text-3xl tracking-tight">Игры</h1>
-      <p className="mt-2 text-sm text-mute">
-        {played} пройдено · {items.length - played} в «Хочу поиграть»
-      </p>
-      <div className="mb-6 mt-6 flex flex-wrap gap-2">
-        {(
-          [
-            ["all", "Все"],
-            ["played", "Пройденные"],
-            ["want", "Хочу поиграть"],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setFilter(id)}
-            className={`rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.12em] ${
-              filter === id
-                ? "border-ink bg-ink text-canvas"
-                : "border-hairline text-mute"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      {list.length === 0 ? (
-        <Empty text="Пока пусто. Открой игру и добавь её в пройденные или в «Хочу поиграть»." />
-      ) : (
-        <div className="space-y-2">
-          {list.map((item) => (
-            <Link
-              key={`${item.source ?? "old"}-${item.id}`}
-              to={
-                item.source === "igdb"
-                  ? `/games/${item.id}`
-                  : `/games/search?q=${encodeURIComponent(item.title)}`
-              }
-              className="flex gap-3 rounded-xl border border-hairline bg-card p-2 hover:border-accent/40"
-            >
-              {item.thumbnail ? (
-                <img
-                  src={item.thumbnail}
-                  alt=""
-                  loading="lazy"
-                  className="h-20 w-15 shrink-0 rounded-lg object-cover"
-                />
-              ) : (
-                <div className="h-20 w-15 shrink-0 rounded-lg bg-canvas-soft" />
-              )}
-              <div className="min-w-0 py-1">
-                <p className="truncate">{item.title}</p>
-                <p className="font-mono text-[11px] uppercase tracking-wider text-dim">
-                  {item.genre}
-                  {item.year ? ` · ${item.year}` : ""}
-                  {item.status === "want"
-                    ? " · хочу поиграть"
-                    : item.rating
-                      ? ` · ${item.rating}/10`
-                      : " · пройдено"}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+      <h1 className="mb-4 mt-1 text-3xl tracking-tight">Мои игры</h1>
+      <SteamPanel />
+      <GameCollection />
     </div>
   );
 }

@@ -156,3 +156,62 @@ it("lets people send friend requests only in their own name", async () => {
   await assertSucceeds(deleteDoc(doc(a, "users/A/requests/B")));
   await assertFails(setDoc(doc(a, "users/A/friends/A"), person("Me")));
 });
+
+const game = {
+  id: 1942,
+  title: "The Witcher 3",
+  cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1wyy.jpg",
+  year: "2015",
+  genre: "Ролевая",
+  platforms: ["pc", "playstation"],
+  status: "played",
+  rating: 10,
+  note: "private",
+  hours: 120,
+  updatedAt: serverTimestamp(),
+};
+
+it("keeps games and the Steam link private to the owner and validated", async () => {
+  const db = env.authenticatedContext("A").firestore();
+  const ref = doc(db, "users/A/games/1942");
+  await assertSucceeds(setDoc(ref, game));
+  await assertSucceeds(
+    updateDoc(ref, {
+      status: "owned",
+      steam: {
+        appId: 292030,
+        minutes: 7200,
+        recent: 0,
+        lastPlayed: 1759000000,
+      },
+    }),
+  );
+  await assertFails(setDoc(doc(db, "users/A/games/1"), game));
+  await assertFails(setDoc(ref, { ...game, platforms: ["pc", "dreamcast"] }));
+  await assertFails(setDoc(ref, { ...game, status: "watched" }));
+  await assertFails(
+    setDoc(ref, { ...game, cover: "https://evil.example/x.jpg" }),
+  );
+  await assertFails(setDoc(ref, { ...game, hours: -1 }));
+  await assertFails(
+    updateDoc(ref, {
+      steam: { appId: 1, minutes: 1.5, recent: 0, lastPlayed: 0 },
+    }),
+  );
+  const other = env.authenticatedContext("B").firestore();
+  await assertFails(getDoc(doc(other, "users/A/games/1942")));
+  await assertFails(setDoc(doc(other, "users/A/games/1942"), game));
+
+  const link = doc(db, "users/A/links/steam");
+  const steam = {
+    steamId: "76561198000000001",
+    name: "Gamer",
+    avatar: "",
+    linkedAt: serverTimestamp(),
+  };
+  await assertSucceeds(setDoc(link, steam));
+  await assertSucceeds(updateDoc(link, { syncedAt: serverTimestamp() }));
+  await assertFails(setDoc(link, { ...steam, steamId: "123" }));
+  await assertFails(setDoc(doc(db, "users/A/links/xbox"), steam));
+  await assertFails(getDoc(doc(other, "users/A/links/steam")));
+});

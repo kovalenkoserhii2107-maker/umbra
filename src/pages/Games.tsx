@@ -16,6 +16,7 @@ import {
   releaseLabel,
 } from "../components/GameTile";
 import { GameMark } from "../components/GameMark";
+import { SteamPlay } from "../components/SteamPlay";
 import {
   BestShelf,
   DealsShelf,
@@ -400,11 +401,13 @@ export function GamePage() {
         game={{
           id: game.id,
           title: game.name,
-          thumbnail: imageUrl(game.cover?.image_id, "cover_big"),
+          cover: imageUrl(game.cover?.image_id, "cover_big"),
           year: year ? String(year) : "",
           genre: genres[0] || "",
+          groups: groupsOf(summary.platforms),
         }}
       />
+      <SteamPlay gameId={game.id} />
 
       {about ? <Overview text={about} /> : null}
       {english ? (

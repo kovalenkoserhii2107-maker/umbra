@@ -180,3 +180,46 @@ export type DealItem = {
 
 export const currentDeals = (country: string) =>
   call<{ list: DealItem[] }>(`/deals?country=${country}`);
+
+export type SteamProfile = {
+  steamId: string;
+  name: string;
+  avatar: string;
+  url: string;
+  public: boolean;
+};
+
+export type SteamLibrary = {
+  private: boolean;
+  games: Array<{
+    appId: number;
+    name: string;
+    minutes: number;
+    recent: number;
+    lastPlayed: number;
+  }>;
+  wishlist: number[];
+};
+
+export type SteamAchievement = {
+  name: string;
+  description: string;
+  icon: string;
+  percent: number | null;
+  unlocked: boolean;
+  unlockedAt: number;
+};
+
+export type SteamAchievements = {
+  total: number;
+  achieved: number;
+  rarest: SteamAchievement[];
+  next: SteamAchievement[];
+};
+
+export const steamProfile = (steamId: string) =>
+  call<SteamProfile>(`/steam/user/${steamId}/profile`);
+export const steamLibrary = (steamId: string) =>
+  call<SteamLibrary>(`/steam/user/${steamId}/library`);
+export const steamAchievements = (steamId: string, appId: number) =>
+  call<SteamAchievements>(`/steam/user/${steamId}/achievements/${appId}`);

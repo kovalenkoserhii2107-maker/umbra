@@ -173,14 +173,22 @@ async function mockApi(
         ]);
       if (endpoint === "external_games" && body.includes("9NBLGGH4R315"))
         return reply([{ game: 777, uid: "9NBLGGH4R315" }]);
-      if (endpoint === "external_games")
-        return reply([
-          {
-            game: 1942,
-            uid: "292030",
-            url: "https://store.steampowered.com/app/292030",
-          },
-        ]);
+      if (endpoint === "external_games") {
+        const steam: Record<string, number> = {
+          "292030": 1942,
+          "620": 72,
+          "1091500": 1877,
+        };
+        return reply(
+          Object.entries(steam)
+            .filter(([uid]) => body.includes(`"${uid}"`))
+            .map(([uid, game]) => ({
+              game,
+              uid,
+              url: `https://store.steampowered.com/app/${uid}`,
+            })),
+        );
+      }
       if (endpoint === "games") {
         if (body.startsWith("fields age_ratings"))
           return reply([
@@ -217,6 +225,12 @@ async function mockApi(
             ]);
           return reply([]);
         }
+        if (/where id = \([\d,]*\b72\b/.test(body))
+          return reply([
+            summary(1942, "The Witcher 3: Wild Hunt"),
+            summary(72, "Portal 2"),
+            summary(1877, "Cyberpunk 2077"),
+          ]);
         if (body.includes("where id = (777)"))
           return reply([summary(777, "Halo Infinite")]);
         if (body.includes("where id = (") && body.includes("119133"))
@@ -539,12 +553,13 @@ test("unknown game says so instead of showing another one", async ({
   await expect(page.getByRole("link", { name: "К поиску игр" })).toBeVisible();
 });
 
-test("marking a game updates another tab and old Steam entries move to IGDB", async ({
+test("collection lives in the cloud: marks sync across tabs and old device entries move up", async ({
   context,
   page,
 }) => {
   await mockApi(context);
   await signIn(page);
+  // A game saved on this device by the old version, under its Steam app id.
   await page.evaluate(() =>
     localStorage.setItem(
       "umbra.gamesLibrary",
@@ -568,27 +583,165 @@ test("marking a game updates another tab and old Steam entries move to IGDB", as
   await expect(
     other.getByRole("link", { name: /Ведьмак 3 \(старая запись\)/ }),
   ).toHaveAttribute("href", "#/games/1942");
+  await expect
+    .poll(() =>
+      other.evaluate(() => localStorage.getItem("umbra.gamesLibrary")),
+    )
+    .toBeNull();
+
   await page.goto("#/games/1942");
   await expect(
     page.getByRole("button", { name: "Хочу поиграть", exact: true }),
-  ).toHaveClass(/bg-ink/);
-  await page.getByRole("button", { name: "В пройденные", exact: true }).click();
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Пройдено", exact: true }).click();
+  // The game is on PC, PS4 and Switch: the card asks where it was played.
+  const where = page.getByRole("group", { name: "Где играю" });
+  await where.getByRole("button", { name: "PlayStation" }).click();
   await page.getByRole("button", { name: "9 из 10", exact: true }).click();
+  await page.getByPlaceholder("например, 40").fill("120");
   await page.getByPlaceholder("Комментарий").fill("Шедевр");
-  await page.getByRole("button", { name: "Подтвердить", exact: true }).click();
-  await expect(other.getByText(/9\/10/)).toBeVisible();
-  expect(
-    await page.evaluate(() =>
-      JSON.parse(localStorage.getItem("umbra.gamesLibrary")!),
-    ),
-  ).toEqual([
-    expect.objectContaining({
-      id: 1942,
-      source: "igdb",
-      status: "played",
-      rating: 9,
-      note: "Шедевр",
-    }),
-  ]);
+  await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await expect(page.getByText("«Шедевр»")).toBeVisible();
+
+  const switcher = other.getByRole("group", { name: "Платформа" });
+  await expect(
+    switcher.getByRole("button", { name: /PlayStation 1/ }),
+  ).toBeVisible();
+  await switcher.getByRole("button", { name: /PlayStation/ }).click();
+  await expect(other.getByText(/Пройдено · 9\/10 · 120 ч/)).toBeVisible();
+  await switcher.getByRole("button", { name: /Xbox/ }).click();
+  await expect(
+    other.getByText("Здесь пока пусто", { exact: false }),
+  ).toBeVisible();
+  await other.reload();
+  await expect(
+    other
+      .getByRole("group", { name: "Платформа" })
+      .getByRole("button", { name: /Xbox/ }),
+  ).toHaveAttribute("aria-pressed", "true");
   await other.close();
+});
+
+test("Steam sign-in imports the library, wishlist, play time and achievements", async ({
+  context,
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockApi(context);
+  const steamId = "76561198000000001";
+  const cors = { "Access-Control-Allow-Origin": "*" };
+  await context.route(`${API}/steam/**`, async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === "/steam/verify")
+      return route.fulfill({ json: { steamId }, headers: cors });
+    if (path.endsWith("/profile"))
+      return route.fulfill({
+        json: { steamId, name: "Geralt", avatar: "", url: "", public: true },
+        headers: cors,
+      });
+    if (path.endsWith("/library"))
+      return route.fulfill({
+        json: {
+          private: false,
+          games: [
+            {
+              appId: 292030,
+              name: "The Witcher 3",
+              minutes: 7260,
+              recent: 95,
+              lastPlayed: Math.floor(Date.now() / 1000) - 86400,
+            },
+            {
+              appId: 620,
+              name: "Portal 2",
+              minutes: 600,
+              recent: 0,
+              lastPlayed: 1600000000,
+            },
+            {
+              appId: 999999,
+              name: "Unknown indie",
+              minutes: 5,
+              recent: 0,
+              lastPlayed: 0,
+            },
+          ],
+          wishlist: [1091500],
+        },
+        headers: cors,
+      });
+    if (path.includes("/achievements/292030"))
+      return route.fulfill({
+        json: {
+          total: 78,
+          achieved: 39,
+          rarest: [
+            {
+              name: "Легенда",
+              description: "Пройти на «На смерть!»",
+              icon: "",
+              percent: 2.1,
+              unlocked: true,
+              unlockedAt: 1,
+            },
+          ],
+          next: [
+            {
+              name: "Гвинт",
+              description: "Выиграть партию",
+              icon: "",
+              percent: 61.5,
+              unlocked: false,
+              unlockedAt: 0,
+            },
+          ],
+        },
+        headers: cors,
+      });
+    return route.continue();
+  });
+  await signIn(page);
+  await page.goto("#/games/library");
+  await expect(
+    page.getByRole("link", { name: "Войти через Steam" }),
+  ).toHaveAttribute(
+    "href",
+    /steamcommunity\.com\/openid\/login\?.*return_to=http%3A%2F%2F127\.0\.0\.1%3A5187%2Fumbra%2F%3Fsteam%3D1/,
+  );
+  // Steam sends the browser back to the site root with openid.* parameters.
+  await page.goto(
+    "http://127.0.0.1:5187/umbra/?steam=1&openid.mode=id_res&openid.claimed_id=https%3A%2F%2Fsteamcommunity.com%2Fopenid%2Fid%2F76561198000000001&openid.sig=x",
+  );
+  await expect(page).toHaveURL(/\/umbra\/#\/games\/library$/);
+  await expect(page.getByText("Steam · Geralt")).toBeVisible();
+  await expect(
+    page.getByText(/добавлено 3; 1 игра из Steam не нашлось в IGDB/),
+  ).toBeVisible();
+  const switcher = page.getByRole("group", { name: "Платформа" });
+  await expect(switcher.getByRole("button", { name: /ПК 3/ })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Недавно играл" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /Cyberpunk 2077/ }),
+  ).toContainText("Хочу поиграть");
+  await expect(page.getByRole("link", { name: /Portal 2/ })).toContainText(
+    "В библиотеке · 10 ч",
+  );
+  await page.screenshot({
+    path: ".ui-evidence/game-library-mobile.png",
+    fullPage: true,
+  });
+
+  await page.goto("#/games/1942");
+  const mine = page.locator("section", {
+    has: page.getByRole("heading", { name: "Мой Steam" }),
+  });
+  await expect(mine).toContainText("121 ч");
+  await expect(mine).toContainText("39 из 78 · 50%");
+  await expect(mine).toContainText("Легенда");
+  await expect(mine).toContainText("2,1%");
+  await expect(
+    page.getByRole("button", { name: "Играю", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
 });

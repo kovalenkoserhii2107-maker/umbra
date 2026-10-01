@@ -49,9 +49,36 @@ text repeats for a whole day and is served from the worker's edge cache. The
 client also reuses identical IGDB answers for 10 minutes, and the service
 worker caches IGDB images for two weeks.
 
+## Collection
+
+Games the player marks live in Firestore, `users/{uid}/games/{igdbId}`:
+status (`want`, `playing`, `played`, `dropped`, `owned`), platforms (the four
+groups), rating, note, hours entered by hand, and Steam play time for imported
+games. The rule `validGame` in `firestore.rules` mirrors `parseEntry` in
+`src/lib/gameEntry.ts`. The library page has a platform switcher with counts
+(remembered on the device), status filters and sorting.
+
+## Steam
+
+"Войти через Steam" goes to Steam OpenID with `return_to` set to the site
+root. Steam's answer is parked by `captureSteamReturn` before the app renders,
+then the library page sends it to the worker (`/steam/verify`), which asks
+Steam to confirm it. The SteamID is saved in `users/{uid}/links/steam`.
+
+Sync reads owned games and the wishlist through the worker, matches Steam apps
+to IGDB through `external_games`, and writes the changes in batches: existing
+games keep the player's status, rating and note and get PC plus fresh play
+time; new games come in as "owned" (or "playing" if played in the last two
+weeks); the wishlist becomes "want". Sync runs after linking, on "Обновить",
+and once per visit when the last one is older than 12 hours. The game card
+shows the player's Steam hours and achievements, rarest first.
+
 ## Library entries from the old catalog
 
 Entries saved before the move have Steam app ids (PC) or nine-digit Metacritic
 ids (consoles). On the games pages they are matched once per session: Steam ids
 through IGDB `external_games`, the others by title. Matched entries get the
 IGDB id and `source: "igdb"`; the rest keep linking to a search by title.
+
+After matching, they are uploaded to the cloud collection once and the device
+copy is kept as `umbra.gamesLibrary.backup`.

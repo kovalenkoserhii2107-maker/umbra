@@ -493,6 +493,136 @@ describe("umbra-api", () => {
     });
   });
 
+  describe("Steam account", () => {
+    const id = "76561198000000001";
+    it("returns the library with play time and the wishlist", async () => {
+      const { send, calls } = setup(({ url }) => {
+        if (url.includes("GetOwnedGames"))
+          return Response.json({
+            response: {
+              game_count: 2,
+              games: [
+                {
+                  appid: 292030,
+                  name: "The Witcher 3",
+                  playtime_forever: 7200,
+                  playtime_2weeks: 90,
+                  rtime_last_played: 1759000000,
+                },
+                { appid: 620, name: "Portal 2", playtime_forever: 0 },
+              ],
+            },
+          });
+        return Response.json({ response: { items: [{ appid: 1091500 }] } });
+      });
+      const body = await (await send(`/steam/user/${id}/library`)).json();
+      expect(body).toEqual({
+        private: false,
+        games: [
+          {
+            appId: 292030,
+            name: "The Witcher 3",
+            minutes: 7200,
+            recent: 90,
+            lastPlayed: 1759000000,
+          },
+          {
+            appId: 620,
+            name: "Portal 2",
+            minutes: 0,
+            recent: 0,
+            lastPlayed: 0,
+          },
+        ],
+        wishlist: [1091500],
+      });
+      expect(calls[0].url).toContain("key=steam");
+      expect(calls[0].url).toContain(`steamid=${id}`);
+    });
+
+    it("marks a private library", async () => {
+      const { send } = setup(() => Response.json({ response: {} }));
+      expect(
+        (await (await send(`/steam/user/${id}/library`)).json()).private,
+      ).toBe(true);
+    });
+
+    it("ranks unlocked achievements by rarity", async () => {
+      const { send } = setup(({ url }) => {
+        if (url.includes("GetPlayerAchievements"))
+          return Response.json({
+            playerstats: {
+              success: true,
+              achievements: [
+                { apiname: "A", achieved: 1, unlocktime: 10 },
+                { apiname: "B", achieved: 1, unlocktime: 20 },
+                { apiname: "C", achieved: 0 },
+              ],
+            },
+          });
+        if (url.includes("GetSchemaForGame"))
+          return Response.json({
+            game: {
+              availableGameStats: {
+                achievements: [
+                  {
+                    name: "A",
+                    displayName: "Первый шаг",
+                    description: "d",
+                    icon: "a.jpg",
+                  },
+                  {
+                    name: "B",
+                    displayName: "Легенда",
+                    description: "d",
+                    icon: "b.jpg",
+                  },
+                  {
+                    name: "C",
+                    displayName: "Секрет",
+                    description: "hidden",
+                    hidden: 1,
+                  },
+                ],
+              },
+            },
+          });
+        return Response.json({
+          achievementpercentages: {
+            achievements: [
+              { name: "A", percent: "80.4" },
+              { name: "B", percent: 1.23 },
+              { name: "C", percent: 40 },
+            ],
+          },
+        });
+      });
+      const body = await (
+        await send(`/steam/user/${id}/achievements/292030`)
+      ).json();
+      expect(body.total).toBe(3);
+      expect(body.achieved).toBe(2);
+      expect(body.rarest.map((a: { name: string }) => a.name)).toEqual([
+        "Легенда",
+        "Первый шаг",
+      ]);
+      expect(body.rarest[0].percent).toBe(1.2);
+      expect(body.next[0]).toMatchObject({
+        name: "Секрет",
+        description: "",
+        unlocked: false,
+      });
+    });
+
+    it("rejects malformed ids and explains private stats", async () => {
+      const { send } = setup(() => new Response("", { status: 403 }));
+      expect((await send("/steam/user/123/library")).status).toBe(404);
+      const response = await send(`/steam/user/${id}/profile`);
+      expect(response.status).toBe(403);
+      expect((await response.json()).error).toBe("steam_private");
+    });
+  });
+
   describe("Steam sign-in", () => {
     const steamId = "76561198000000001";
     const params = {

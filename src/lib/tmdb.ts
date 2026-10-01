@@ -4,7 +4,12 @@ import { byCatalogRank } from "./rank";
 const BASE = "https://api.themoviedb.org/3";
 const IMG = "https://image.tmdb.org/t/p";
 
-export const DEFAULT_TMDB_KEY = "efe08a32a1ab86042a1bc8f93ad63cc8";
+/** The key earlier releases shipped; still the fallback when no variable is set. */
+export const BUILT_IN_TMDB_KEY = "efe08a32a1ab86042a1bc8f93ad63cc8";
+// Public by design, like OMDb's: set it with the TMDB_KEY repository variable.
+export const DEFAULT_TMDB_KEY =
+  (import.meta.env.VITE_TMDB_KEY as string | undefined)?.trim() ||
+  BUILT_IN_TMDB_KEY;
 
 export type MediaType = "movie" | "tv";
 

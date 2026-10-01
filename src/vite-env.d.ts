@@ -6,4 +6,6 @@ declare const __APP_VERSION__: string;
 interface ImportMetaEnv {
   /** Free OMDb key for Rotten Tomatoes and Metacritic scores. */
   readonly VITE_OMDB_KEY?: string;
+  /** TMDB API key; the built-in one is used when it is not set. */
+  readonly VITE_TMDB_KEY?: string;
 }

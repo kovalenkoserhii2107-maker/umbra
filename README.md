@@ -170,6 +170,7 @@ E2E-тесты подменяют ответы TMDB и подставляют т
 - `GET /prices?steam=&title=&country=` — цены во всех магазинах ПК и исторический минимум (IsThereAnyDeal); кэш 3 часа, поиск игры — 30 дней.
 - `GET /deals?country=` — текущие скидки на ПК; кэш 3 часа.
 - `GET /gamepass/:list` — Microsoft Store ids из каталога Xbox Game Pass (`recent`, `coming`, `leaving`, `console`, `pc`); кэш 6 часов.
+- `GET /steam/user/:steamId/profile|library|achievements/:appId` — профиль, игры с часами и список желаемого, достижения с редкостью (Steam Web API, ключ на сервере).
 - `POST /steam/verify` — проверка входа через Steam (OpenID `check_authentication`), возвращает SteamID.
 - Отвечает только сайтам из `ALLOWED_ORIGINS` (`worker/wrangler.toml`); остальным — 403.
 

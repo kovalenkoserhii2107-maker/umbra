@@ -8,7 +8,9 @@ import { AppStateProvider } from "./state.tsx";
 import { listenAuth } from "./lib/auth";
 import { listenInstall } from "./lib/install";
 import { blockZoom } from "./lib/zoom";
+import { captureSteamReturn } from "./lib/steamLink";
 
+captureSteamReturn();
 listenAuth();
 listenInstall();
 blockZoom();

@@ -19,6 +19,33 @@ service cloud.firestore {
         && (!('season' in d) || (d.season is int && d.season >= 0))
         && (!('episode' in d) || (d.episode is int && d.episode >= 0));
     }
+    // A game in the owner's collection; the key is the IGDB id.
+    function validGame(d, key) {
+      return d.keys().hasAll(['id', 'title', 'cover', 'year', 'genre', 'platforms', 'status', 'rating', 'note', 'hours', 'updatedAt'])
+        && d.keys().hasOnly(['id', 'title', 'cover', 'year', 'genre', 'platforms', 'status', 'rating', 'note', 'hours', 'updatedAt', 'steam'])
+        && d.id is int && d.id > 0 && d.id <= 9007199254740991 && key == string(d.id)
+        && d.title is string && d.title.size() <= 500
+        && d.cover is string && d.cover.size() <= 2048
+        && (d.cover == '' || d.cover.matches('https://(images[.]igdb[.]com|[a-z0-9.-]+[.]steamstatic[.]com)/.*'))
+        && d.year is string && d.year.size() <= 10
+        && d.genre is string && d.genre.size() <= 100
+        && d.platforms is list && d.platforms.size() <= 4
+        && d.platforms.hasOnly(['pc', 'playstation', 'xbox', 'nintendo'])
+        && d.status in ['want', 'playing', 'played', 'dropped', 'owned']
+        && (d.rating == null || (d.rating is number && d.rating >= 1 && d.rating <= 10))
+        && d.note is string && d.note.size() <= 5000
+        && (d.hours == null || (d.hours is number && d.hours >= 0 && d.hours <= 100000))
+        && (d.updatedAt is timestamp || d.updatedAt is number)
+        && (!('steam' in d) || validSteamPlay(d.steam));
+    }
+    function validSteamPlay(s) {
+      return s is map
+        && s.keys().hasOnly(['appId', 'minutes', 'recent', 'lastPlayed'])
+        && s.appId is int && s.appId > 0
+        && s.minutes is int && s.minutes >= 0
+        && s.recent is int && s.recent >= 0
+        && s.lastPlayed is int && s.lastPlayed >= 0;
+    }
     function validPerson(d) {
       return d.name is string && d.name.size() <= 100
         && d.picture is string && d.picture.size() <= 2048;
@@ -70,6 +97,22 @@ service cloud.firestore {
       match /library/{key} {
         allow read, delete: if owns(uid);
         allow create, update: if owns(uid) && validItem(request.resource.data, key);
+      }
+      match /games/{key} {
+        allow read, delete: if owns(uid);
+        allow create, update: if owns(uid) && validGame(request.resource.data, key);
+      }
+      // Accounts linked to the profile; only Steam for now.
+      match /links/{kind} {
+        allow read, delete: if owns(uid);
+        allow create, update: if owns(uid) && kind == 'steam'
+          && request.resource.data.keys().hasOnly(['steamId', 'name', 'avatar', 'linkedAt', 'syncedAt'])
+          && request.resource.data.steamId is string
+          && request.resource.data.steamId.matches('[0-9]{17}')
+          && request.resource.data.name is string && request.resource.data.name.size() <= 100
+          && request.resource.data.avatar is string && request.resource.data.avatar.size() <= 2048
+          && request.resource.data.linkedAt is timestamp
+          && (!('syncedAt' in request.resource.data) || request.resource.data.syncedAt is timestamp);
       }
       // People the owner shares ratings with.
       match /friends/{friend} {

@@ -785,18 +785,30 @@ export async function companyIdByName(name: string) {
   return rows[0]?.id ?? null;
 }
 
-/** Steam app ids → IGDB game ids, for library entries saved before IGDB. */
+/** Steam app ids → IGDB game ids, for imports and old library entries. */
 export async function idsFromSteam(appIds: number[]) {
-  if (!appIds.length) return new Map<number, number>();
-  const rows = await igdb<Array<{ game?: number; uid?: string; url?: string }>>(
-    "external_games",
-    `fields game,uid,url; where uid = (${appIds.map((id) => `"${id}"`).join(",")}); limit 500;`,
-  );
   const map = new Map<number, number>();
-  for (const r of rows)
-    if (r.game && r.uid && /steampowered\.com\/app\//.test(r.url || ""))
-      map.set(Number(r.uid), r.game);
+  for (let i = 0; i < appIds.length; i += 150) {
+    const chunk = appIds.slice(i, i + 150);
+    const rows = await igdb<
+      Array<{ game?: number; uid?: string; url?: string }>
+    >(
+      "external_games",
+      `fields game,uid,url; where uid = (${chunk.map((id) => `"${id}"`).join(",")}); limit 500;`,
+    );
+    for (const r of rows)
+      if (r.game && r.uid && /steampowered\.com\/app\//.test(r.url || ""))
+        map.set(Number(r.uid), r.game);
+  }
   return map;
+}
+
+/** Summaries for many games, 400 per request. */
+export async function manyGames(ids: number[]) {
+  const out: GameSummary[] = [];
+  for (let i = 0; i < ids.length; i += 400)
+    out.push(...(await gamesByIds(ids.slice(i, i + 400))));
+  return out;
 }
 
 export async function idByTitle(title: string) {

@@ -14,6 +14,12 @@ import { country, currentDeals, gamePrices } from "./itad";
 import { openCritic } from "./opencritic";
 import { verifySteamLogin } from "./steam";
 import { steamApp } from "./steamStore";
+import {
+  STEAM_ID,
+  steamAchievements,
+  steamLibrary,
+  steamProfile,
+} from "./steamUser";
 import { topGames } from "./twitch";
 
 function origins(env: Env) {
@@ -168,6 +174,38 @@ async function route(
       headers: {
         "Content-Type": "application/json; charset=utf-8",
         "Cache-Control": "public, max-age=1800",
+        "X-Cache": hit ? "HIT" : "MISS",
+      },
+    });
+  }
+
+  const user = path.match(
+    /^\/steam\/user\/(\d{17})\/(profile|library|achievements)(?:\/(\d{1,10}))?$/,
+  );
+  if (user && request.method === "GET" && STEAM_ID.test(user[1])) {
+    const [, steamId, part, app] = user;
+    const load =
+      part === "profile"
+        ? { ttl: 3600, run: () => steamProfile(deps, steamId) }
+        : part === "library"
+          ? { ttl: 900, run: () => steamLibrary(deps, steamId) }
+          : app
+            ? {
+                ttl: 1800,
+                run: () => steamAchievements(deps, steamId, Number(app)),
+              }
+            : null;
+    if (!load) throw new ApiError(404, "not_found", "No such route");
+    const { body, hit } = await cached(
+      deps,
+      `steam/user/${steamId}/${part}/${app ?? ""}`,
+      load.ttl,
+      async () => JSON.stringify(await load.run()),
+    );
+    return new Response(body, {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "private, max-age=300",
         "X-Cache": hit ? "HIT" : "MISS",
       },
     });

@@ -110,6 +110,8 @@ export type CreditWork = TmdbItem & {
   department?: string;
   role?: string;
   media_type?: MediaType | "person";
+  episode_count?: number;
+  order?: number;
 };
 
 export type PersonDetails = {
@@ -121,6 +123,15 @@ export type PersonDetails = {
   place_of_birth?: string;
   profile_path?: string | null;
   known_for_department?: string;
+  /** 1 female, 2 male, 0/3 not set or non-binary. */
+  gender?: number;
+  homepage?: string | null;
+  external_ids?: {
+    imdb_id?: string | null;
+    instagram_id?: string | null;
+    twitter_id?: string | null;
+    facebook_id?: string | null;
+  };
   combined_credits?: {
     cast: CreditWork[];
     crew: CreditWork[];
@@ -496,8 +507,15 @@ export const tmdb = {
     request<{ imdb_id?: string }>(`/${type}/${id}/external_ids`),
   person: (id: number) =>
     request<PersonDetails>(`/person/${id}`, {
-      append_to_response: "combined_credits",
+      append_to_response: "combined_credits,external_ids",
     }),
+  /** Russian biographies are often empty; the English one is the fallback. */
+  personBiography: (id: number) =>
+    request<{ biography?: string }>(
+      `/person/${id}`,
+      { language: "en-US" },
+      6 * 3600_000,
+    ),
   find: (imdbId: string) =>
     request<{ movie_results: TmdbItem[]; tv_results: TmdbItem[] }>(
       `/find/${imdbId}`,

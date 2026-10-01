@@ -317,39 +317,48 @@ export function Details({
   );
 }
 
-function People({ people }: { people: PersonRef[] }) {
+
+/** Photo card for cast and crew; opens the person's page. */
+export function PersonCard({
+  person,
+  role,
+}: {
+  person: PersonRef;
+  role: string;
+}) {
   return (
-    <>
-      {people.map((p, i) => (
-        <span key={p.id}>
-          {i ? ", " : ""}
-          <Link
-            to={`/person/${p.id}`}
-            className="underline decoration-hairline underline-offset-4 hover:decoration-accent"
-          >
-            {p.name}
-          </Link>
-        </span>
-      ))}
-    </>
+    <Link to={`/person/${person.id}`} className="group w-28 shrink-0">
+      {person.profile_path ? (
+        <img
+          src={posterUrl(person.profile_path, "w185")}
+          alt=""
+          loading="lazy"
+          className="aspect-[2/3] w-full rounded-xl border border-hairline object-cover group-hover:border-accent"
+        />
+      ) : (
+        <div className="flex aspect-[2/3] items-center justify-center rounded-xl border border-hairline bg-card text-2xl text-dim group-hover:border-accent">
+          {person.name.slice(0, 1)}
+        </div>
+      )}
+      <p className="mt-1.5 line-clamp-2 text-sm leading-snug">{person.name}</p>
+      <p className="line-clamp-2 font-mono text-[10px] text-dim">{role}</p>
+    </Link>
   );
 }
 
 export function Crew({
-  rows,
+  cards,
 }: {
-  rows: Array<{ role: string; people: PersonRef[] }>;
+  cards: Array<{ person: PersonRef; roles: string[] }>;
 }) {
-  if (!rows.length) return null;
+  if (!cards.length) return null;
   return (
     <Section title="Съёмочная группа">
-      <dl className={`${CARD} px-4`}>
-        {rows.map((row) => (
-          <Fact key={row.role} label={row.role}>
-            <People people={row.people.slice(0, 4)} />
-          </Fact>
+      <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
+        {cards.map(({ person, roles }) => (
+          <PersonCard key={person.id} person={person} role={roles.join(", ")} />
         ))}
-      </dl>
+      </div>
     </Section>
   );
 }

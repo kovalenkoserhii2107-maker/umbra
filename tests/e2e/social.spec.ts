@@ -176,6 +176,53 @@ async function catalog(context: BrowserContext) {
         },
       });
     if (url.includes("/movie/303?")) return route.fulfill({ json: rich });
+    if (/\/person\/1\?/.test(url))
+      return route.fulfill({
+        json: url.includes("language=en-US")
+          ? { biography: "James Gunn is an American filmmaker." }
+          : {
+              id: 1,
+              name: "James Gunn",
+              gender: 2,
+              biography: "",
+              birthday: "1966-08-05",
+              place_of_birth: "St. Louis, Missouri, USA",
+              known_for_department: "Directing",
+              external_ids: { imdb_id: "nm0348181" },
+              combined_credits: {
+                cast: [],
+                crew: [
+                  {
+                    id: 303,
+                    title: "Стражи Галактики. Часть 2",
+                    media_type: "movie",
+                    release_date: "2017-04-19",
+                    job: "Director",
+                    department: "Directing",
+                    vote_count: 21000,
+                  },
+                  {
+                    id: 303,
+                    title: "Стражи Галактики. Часть 2",
+                    media_type: "movie",
+                    release_date: "2017-04-19",
+                    job: "Screenplay",
+                    department: "Writing",
+                    vote_count: 21000,
+                  },
+                  {
+                    id: 301,
+                    title: "Стражи Галактики",
+                    media_type: "movie",
+                    release_date: "2014-07-30",
+                    job: "Director",
+                    department: "Directing",
+                    vote_count: 27000,
+                  },
+                ],
+              },
+            },
+      });
     if (url.includes("/collection/10?"))
       return route.fulfill({
         json: {
@@ -429,7 +476,10 @@ test("title card shows everything TMDB and OMDb return", async ({
   await expect(page.getByText("$864 млн")).toBeVisible();
   await expect(page.getByText("$390 млн")).toBeVisible();
   await expect(page.getByText("Marvel Studios")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Tyler Bates" })).toBeVisible();
+  // Crew are photo cards with their roles, like the cast.
+  await expect(
+    page.getByRole("link", { name: /Tyler Bates.*композитор/ }),
+  ).toBeVisible();
   await expect(
     page.getByText("Стражи Галактики. Часть 3").first(),
   ).toBeVisible();
@@ -449,6 +499,27 @@ test("title card shows everything TMDB and OMDb return", async ({
   ).toBe(true);
   await page.screenshot({
     path: ".ui-evidence/title-rich-mobile.png",
+    fullPage: true,
+  });
+
+  // A crew card opens the person's page with their info and filmography.
+  await page.getByRole("link", { name: /James Gunn.*режиссёр/ }).click();
+  await expect(page).toHaveURL(/#\/person\/1$/);
+  await expect(page.getByRole("heading", { name: "James Gunn" })).toBeVisible();
+  await expect(page.getByText("St. Louis, Missouri, USA")).toBeVisible();
+  await expect(
+    page.getByText("James Gunn is an American filmmaker."),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Режиссёр · 2" })).toHaveClass(
+    /bg-ink/,
+  );
+  await expect(page.getByText("режиссёр, сценарий")).toBeVisible();
+  await expect(page.getByRole("link", { name: "IMDb ↗" })).toHaveAttribute(
+    "href",
+    /nm0348181/,
+  );
+  await page.screenshot({
+    path: ".ui-evidence/person-mobile.png",
     fullPage: true,
   });
 });

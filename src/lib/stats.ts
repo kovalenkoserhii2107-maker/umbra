@@ -2,7 +2,13 @@ import type { LibraryItem } from "./library";
 import { metaKey, watchedMinutes, type MetaMap } from "./meta";
 import { yearOfItem } from "./collection";
 
-export type Bar = { label: string; value: number; extra?: string };
+/** One row of a breakdown; `items` are the titles behind the number. */
+export type Bar = {
+  label: string;
+  value: number;
+  extra?: string;
+  items?: LibraryItem[];
+};
 
 export type Stats = {
   movies: number;
@@ -16,6 +22,14 @@ export type Stats = {
   decades: Bar[];
   best: LibraryItem[];
 };
+
+/** "средняя 8,5" for the rated ones, or nothing. */
+export function averageLabel(list: Array<{ rating: number | null }>) {
+  const rated = list.filter((x) => x.rating !== null);
+  if (!rated.length) return undefined;
+  const avg = rated.reduce((s, x) => s + x.rating!, 0) / rated.length;
+  return `средняя ${avg.toLocaleString("ru-RU", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`;
+}
 
 /** Years in which something was marked as seen, newest first. */
 export function statYears(items: LibraryItem[]) {
@@ -47,46 +61,36 @@ export function computeStats(
     0,
   );
 
-  const ratings: Bar[] = Array.from({ length: 10 }, (_, i) => ({
-    label: String(i + 1),
-    value: rated.filter((x) => x.rating === i + 1).length,
-  }));
+  // Highest score first: that is how people read their own ratings.
+  const ratings: Bar[] = Array.from({ length: 10 }, (_, i) => {
+    const items = rated.filter((x) => x.rating === 10 - i);
+    return { label: String(10 - i), value: items.length, items };
+  });
 
-  const genreRows = new Map<
-    string,
-    { n: number; sum: number; rated: number }
-  >();
+  const genreRows = new Map<string, LibraryItem[]>();
   for (const x of seen)
-    for (const g of meta[metaKey(x)]?.genres || []) {
-      const row = genreRows.get(g) || { n: 0, sum: 0, rated: 0 };
-      row.n++;
-      if (x.rating !== null) {
-        row.sum += x.rating;
-        row.rated++;
-      }
-      genreRows.set(g, row);
-    }
+    for (const g of meta[metaKey(x)]?.genres || [])
+      genreRows.set(g, [...(genreRows.get(g) || []), x]);
   const genres = [...genreRows.entries()]
-    .sort((a, b) => b[1].n - a[1].n || a[0].localeCompare(b[0], "ru"))
-    .slice(0, 6)
-    .map(([label, r]) => ({
+    .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], "ru"))
+    .slice(0, 8)
+    .map(([label, items]) => ({
       label,
-      value: r.n,
-      extra: r.rated ? `средняя ${(r.sum / r.rated).toFixed(1)}` : undefined,
+      value: items.length,
+      extra: averageLabel(items),
+      items,
     }));
 
-  const decadeCount = new Map<number, number>();
+  const decadeRows = new Map<number, LibraryItem[]>();
   for (const x of seen) {
     const y = yearOfItem(x, meta);
-    if (y)
-      decadeCount.set(
-        Math.floor(y / 10) * 10,
-        (decadeCount.get(Math.floor(y / 10) * 10) || 0) + 1,
-      );
+    if (!y) continue;
+    const d = Math.floor(y / 10) * 10;
+    decadeRows.set(d, [...(decadeRows.get(d) || []), x]);
   }
-  const decades = [...decadeCount.entries()]
+  const decades = [...decadeRows.entries()]
     .sort((a, b) => b[0] - a[0])
-    .map(([d, value]) => ({ label: `${d}-е`, value }));
+    .map(([d, items]) => ({ label: `${d}-е`, value: items.length, items }));
 
   return {
     movies: done.filter((x) => x.type === "movie").length,

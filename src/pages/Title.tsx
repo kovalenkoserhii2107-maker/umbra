@@ -5,7 +5,7 @@ import { CollectionMark } from "../components/CollectionMark";
 import { ShareButton } from "../components/ShareButton";
 import { useAuth } from "../lib/auth";
 import { loadFriendsOn, useFriendList } from "../lib/friends";
-import { Avatar, sharedStatus } from "./Friends";
+import { Avatar, byInterest, sharedStatus } from "../components/FriendsIndex";
 import { Seasons } from "../components/Seasons";
 import {
   backdropUrl,
@@ -235,42 +235,38 @@ function FriendsOnTitle({ media, id }: { media: MediaType; id: number }) {
     () => loadFriendsOn(friends.list ?? [], media, id),
     [key, media, id],
   );
-  const list = rows.data ?? [];
+  const list = [...(rows.data ?? [])].sort(byInterest);
   if (!list.length) return null;
   const rated = list.filter((r) => r.rating.rating !== null);
-  const average = rated.length
-    ? rated.reduce((s, r) => s + r.rating.rating!, 0) / rated.length
-    : null;
+  const average =
+    rated.length > 1
+      ? rated.reduce((s, r) => s + r.rating.rating!, 0) / rated.length
+      : null;
+  // Sits in the header next to the public ratings, where it is seen first.
   return (
-    <section className="mt-8">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-lg tracking-tight">Оценки друзей</h2>
-        {average !== null ? (
-          <p className="font-mono text-xs text-mute">
-            средняя {average.toFixed(1)}
-          </p>
-        ) : null}
-      </div>
-      <div className="mt-3 space-y-2">
+    <div className="mt-3">
+      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-mute">
+        Оценки друзей
+        {average !== null ? ` · средняя ${average.toFixed(1)}` : ""}
+      </p>
+      <div className="mt-1.5 flex flex-wrap gap-2">
         {list.map(({ friend, rating }) => (
           <Link
             key={friend.uid}
             to={`/friends/${friend.uid}`}
-            className="flex items-center gap-3 rounded-2xl border border-hairline bg-card p-3"
+            className="inline-flex max-w-full items-center gap-2 rounded-full border border-hairline bg-canvas/60 py-1 pl-1 pr-3 hover:border-accent"
           >
-            <Avatar person={friend} size={32} />
-            <span className="min-w-0 flex-1 truncate text-sm">
-              {friend.name}
-            </span>
+            <Avatar person={friend} size={24} />
+            <span className="truncate text-sm">{friend.name}</span>
             <span
-              className={`font-mono text-sm ${rating.rating ? "font-bold text-accent" : "text-mute"}`}
+              className={`shrink-0 font-mono text-sm ${rating.rating ? "font-bold text-accent" : "text-mute"}`}
             >
               {sharedStatus(rating)}
             </span>
           </Link>
         ))}
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -427,6 +423,7 @@ export function TitlePage() {
               )}
             />
           </div>
+          <FriendsOnTitle media={media} id={item.id} />
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-mute">
             {runtime ? <span>{runtimeLabel(runtime)}</span> : null}
             {item.number_of_seasons ? (
@@ -472,8 +469,6 @@ export function TitlePage() {
         poster={posterUrl(item.poster_path, "w185")}
         year={year}
       />
-
-      <FriendsOnTitle media={media} id={item.id} />
 
       {media === "tv" ? (
         <Seasons

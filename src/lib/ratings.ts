@@ -1,6 +1,7 @@
 import { readStorage, writeStorage } from "./storage";
 import { requestJson } from "./http";
 import { tmdb, type MediaType } from "./tmdb";
+import { fetchOmdbScores } from "./omdb";
 
 type Entry = { imdb?: string; tmdb?: number; imdbId?: string; at?: number };
 type Cache = Record<string, Entry>;
@@ -179,7 +180,28 @@ export function parseCriticScores(json: unknown): CriticScores {
   };
 }
 
+/** OMDb first (fresh, needs a key), Wikidata for whatever OMDb lacks. */
 export async function fetchCriticScores(
+  imdbId?: string | null,
+): Promise<CriticScores> {
+  if (!imdbId || !/^tt\d+$/.test(imdbId))
+    return { tomatometer: null, rottenTomatoesId: null, metascore: null };
+  const [omdb, wiki] = await Promise.all([
+    fetchOmdbScores(imdbId),
+    fetchWikidataScores(imdbId),
+  ]);
+  const fromUrl = omdb?.rottenTomatoesUrl?.replace(
+    /^https:\/\/www\.rottentomatoes\.com\//,
+    "",
+  );
+  return {
+    tomatometer: omdb?.tomatometer ?? wiki.tomatometer,
+    metascore: omdb?.metascore ?? wiki.metascore,
+    rottenTomatoesId: wiki.rottenTomatoesId || fromUrl || null,
+  };
+}
+
+async function fetchWikidataScores(
   imdbId?: string | null,
 ): Promise<CriticScores> {
   const empty = { tomatometer: null, rottenTomatoesId: null, metascore: null };

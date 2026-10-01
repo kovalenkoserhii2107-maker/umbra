@@ -5,6 +5,7 @@ import { PLATFORMS, REGIONS } from "../lib/providers";
 import { useAppState } from "../state";
 import { APP_VERSION } from "../version";
 import { forgetDismissal, openInstallHelp } from "../lib/install";
+import { hasBuildOmdbKey, ownOmdbKey, setOmdbKey } from "../lib/omdb";
 
 export function SettingsPage() {
   const { settings, setSettings, exportJson, importJson, items } =
@@ -13,6 +14,8 @@ export function SettingsPage() {
   const { account } = useAuth();
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [omdb, setOmdb] = useState(ownOmdbKey);
+  const [omdbSaved, setOmdbSaved] = useState("");
 
   function toggleProvider(id: number) {
     const has = settings.subscribed.includes(id);
@@ -106,7 +109,8 @@ export function SettingsPage() {
       <section className="rounded-2xl border border-hairline bg-card p-5">
         <h2 className="text-lg">Обновление</h2>
         <p className="mt-2 text-sm text-mute">
-          Новые версии загружаются автоматически. Коллекция сохраняется в аккаунте.
+          Новые версии загружаются автоматически. Коллекция сохраняется в
+          аккаунте.
         </p>
         <button
           onClick={checkUpdate}
@@ -127,6 +131,57 @@ export function SettingsPage() {
         >
           Показать подсказку снова
         </button>
+      </section>
+
+      <section className="rounded-2xl border border-hairline bg-card p-5">
+        <h2 className="text-lg">Rotten Tomatoes и Metacritic</h2>
+        <p className="mt-2 text-sm text-mute">
+          Свежие оценки критиков приходят через OMDb. Нужен бесплатный ключ:
+          зарегистрируйся на{" "}
+          <a
+            href="https://www.omdbapi.com/apikey.aspx"
+            target="_blank"
+            rel="noreferrer"
+            className="text-accent underline underline-offset-4"
+          >
+            omdbapi.com
+          </a>
+          , подтверди почту и вставь ключ сюда. Без ключа оценки берутся из
+          Wikidata и есть не у всех фильмов.
+        </p>
+        <form
+          className="mt-4 flex flex-wrap gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setOmdbKey(omdb);
+            setOmdbSaved(
+              omdb.trim()
+                ? "Ключ сохранён на этом устройстве."
+                : "Ключ удалён с этого устройства.",
+            );
+          }}
+        >
+          <input
+            value={omdb}
+            onChange={(e) => setOmdb(e.target.value)}
+            aria-label="Ключ OMDb"
+            placeholder={
+              hasBuildOmdbKey() ? "Ключ уже задан в сборке" : "Ключ OMDb"
+            }
+            autoComplete="off"
+            spellCheck={false}
+            maxLength={64}
+            className="h-10 min-w-0 flex-1 rounded-full border border-hairline bg-canvas px-4 font-mono text-sm outline-none focus:border-accent"
+          />
+          <button className="rounded-full bg-ink px-4 py-2 text-sm text-canvas">
+            Сохранить
+          </button>
+        </form>
+        {omdbSaved ? (
+          <p role="status" className="mt-2 text-xs text-accent">
+            {omdbSaved}
+          </p>
+        ) : null}
       </section>
 
       <section className="rounded-2xl border border-hairline bg-card p-5">

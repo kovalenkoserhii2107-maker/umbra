@@ -13,47 +13,11 @@ import {
   sendRequest,
   useFriendList,
   useRequests,
-  type Person,
-  type SharedRating,
 } from "../lib/friends";
 import { correctPosterUrl } from "../lib/tmdb";
 import { tasteMatch } from "../lib/taste";
-import { episodeLabel, progressOf } from "../lib/tracking";
 import { useAppState } from "../state";
-
-export function Avatar({
-  person,
-  size = 40,
-}: {
-  person: Person;
-  size?: number;
-}) {
-  return person.picture ? (
-    <img
-      src={person.picture}
-      alt=""
-      referrerPolicy="no-referrer"
-      className="shrink-0 rounded-full object-cover"
-      style={{ width: size, height: size }}
-    />
-  ) : (
-    <span
-      className="flex shrink-0 items-center justify-center rounded-full bg-ink font-medium text-canvas"
-      style={{ width: size, height: size, fontSize: size * 0.4 }}
-    >
-      {person.name.slice(0, 1).toUpperCase()}
-    </span>
-  );
-}
-
-export function sharedStatus(r: SharedRating) {
-  const progress = progressOf(r);
-  if (r.status === "watchlist") return "хочет посмотреть";
-  if (r.status === "watching")
-    return progress ? `смотрит · ${episodeLabel(progress)}` : "смотрит";
-  if (r.status === "dropped") return "бросил";
-  return r.rating ? `${r.rating}/10` : "посмотрел";
-}
+import { Avatar, sharedStatus } from "../components/FriendsIndex";
 
 const button =
   "rounded-full border border-hairline px-3 py-1.5 text-xs text-mute hover:text-ink";

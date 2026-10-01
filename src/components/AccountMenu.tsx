@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { authError, signOutAccount, useAuth } from "../lib/auth";
+import { Link } from "react-router-dom";
+import { useAuth } from "../lib/auth";
 import {
   openInstallHelp,
   promptInstall,
@@ -11,9 +11,7 @@ import {
 export function AccountMenu() {
   const [open, setOpen] = useState(false);
   const { account, status } = useAuth();
-  const [error, setError] = useState("");
   const root = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
   const canInstall = useCanInstall();
   const installed = useInstalled();
 
@@ -32,16 +30,6 @@ export function AccountMenu() {
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
-
-  async function signOut() {
-    try {
-      await signOutAccount();
-      setOpen(false);
-      navigate("/");
-    } catch (error) {
-      setError(authError(error));
-    }
-  }
 
   return (
     <div ref={root} className="relative shrink-0">
@@ -69,8 +57,14 @@ export function AccountMenu() {
       </button>
       {open ? (
         <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-hairline bg-card shadow-[0_18px_50px_rgba(0,0,0,0.55)]">
-          {account ? (
-            <div className="flex items-center gap-3 border-b border-hairline px-4 py-3">
+          {status === "initializing" ? (
+            <p className="px-4 py-3 text-sm">Восстанавливаю вход…</p>
+          ) : account ? (
+            <Link
+              to="/settings"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 border-b border-hairline px-4 py-3 hover:bg-white/5"
+            >
               {account.picture ? (
                 <img
                   src={account.picture}
@@ -87,17 +81,6 @@ export function AccountMenu() {
                 <p className="truncate text-sm">{account.name}</p>
                 <p className="truncate text-xs text-mute">{account.email}</p>
               </div>
-            </div>
-          ) : null}
-          {status === "initializing" ? (
-            <p className="px-4 py-3 text-sm">Восстанавливаю вход…</p>
-          ) : account ? (
-            <Link
-              to="/cabinet"
-              onClick={() => setOpen(false)}
-              className="block px-4 py-3 text-sm hover:bg-white/5"
-            >
-              Личный кабинет
             </Link>
           ) : (
             <Link
@@ -108,11 +91,6 @@ export function AccountMenu() {
               Войти
             </Link>
           )}
-          {error ? (
-            <p role="alert" className="px-4 text-sm text-accent">
-              {error}
-            </p>
-          ) : null}
           {account ? (
             <>
               <Link
@@ -148,16 +126,8 @@ export function AccountMenu() {
             onClick={() => setOpen(false)}
             className="block px-4 py-3 text-sm hover:bg-white/5"
           >
-            Настройки
+            Профиль и настройки
           </Link>
-          {account ? (
-            <button
-              onClick={signOut}
-              className="block w-full px-4 py-3 text-left text-sm text-mute hover:bg-white/5"
-            >
-              Выйти из аккаунта
-            </button>
-          ) : null}
         </div>
       ) : null}
     </div>

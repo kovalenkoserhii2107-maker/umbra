@@ -1,22 +1,44 @@
-import { useState } from "react";
-import { useAuth } from "../lib/auth";
-import { readStorage } from "../lib/storage";
+import { useState, type ReactNode } from "react";
+import { authError, signOutAccount, useAuth, verifyEmail } from "../lib/auth";
 import { PLATFORMS, REGIONS } from "../lib/providers";
 import { useAppState } from "../state";
 import { APP_VERSION } from "../version";
-import { forgetDismissal, openInstallHelp } from "../lib/install";
-import { hasBuildOmdbKey, ownOmdbKey, setOmdbKey } from "../lib/omdb";
-import { ApiStatus } from "../components/ApiStatus";
+import { SteamPanel } from "../components/GameCollection";
 
+function Card({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="rounded-2xl border border-hairline bg-card p-5">
+      <h2 className="text-lg">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+const chip = (on: boolean) =>
+  `rounded-full border px-3 py-1 text-sm ${on ? "border-ink bg-ink text-canvas" : "border-hairline text-mute"}`;
+
+/** Everything about the account and the app in one place. */
 export function SettingsPage() {
-  const { settings, setSettings, exportJson, importJson, items } =
+  const { settings, setSettings, exportJson, importJson, items, sync } =
     useAppState();
-
-  const { account } = useAuth();
+  const { account, error } = useAuth();
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [omdb, setOmdb] = useState(ownOmdbKey);
-  const [omdbSaved, setOmdbSaved] = useState("");
+
+  async function action(fn: () => Promise<void>, success = "") {
+    setBusy(true);
+    setMessage("");
+    try {
+      await fn();
+      setMessage(success);
+    } catch (e) {
+      setMessage(
+        e instanceof Error && !("code" in e) ? e.message : authError(e),
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
 
   function toggleProvider(id: number) {
     const has = settings.subscribed.includes(id);
@@ -27,52 +49,28 @@ export function SettingsPage() {
     });
   }
 
+  function download() {
+    const url = URL.createObjectURL(
+      new Blob([exportJson()], { type: "application/json" }),
+    );
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "umbra-library.json";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   async function onImport(file: File) {
     if (file.size > 5_000_000) {
       setMessage("Максимальный размер файла — 5 МБ.");
       return;
     }
-    setBusy(true);
-    setMessage("Импортирую…");
-    try {
-      await importJson(await file.text());
-      setMessage(
-        "Коллекция импортирована. Совпадающие записи обновлены, остальные остались.",
-      );
-    } catch (error) {
-      setMessage((error as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-  function legacyDownload() {
-    const raw = readStorage("umbra.library");
-    if (!raw) {
-      setMessage("На этом устройстве нет старой полки.");
-      return;
-    }
-    downloadText(
-      JSON.stringify({ version: 1, items: JSON.parse(raw) }, null, 2),
-      "umbra-legacy-backup.json",
+    await action(
+      async () => importJson(await file.text()),
+      "Коллекция импортирована. Совпадающие записи обновлены, остальные остались.",
     );
   }
-  function downloadText(text: string, name: string) {
-    const url = URL.createObjectURL(
-      new Blob([text], { type: "application/json" }),
-    );
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-  function download() {
-    downloadText(exportJson(), "umbra-library.json");
-  }
-  function showInstallAgain() {
-    forgetDismissal();
-    openInstallHelp();
-  }
+
   async function checkUpdate() {
     setMessage("Проверяю обновления…");
     try {
@@ -89,212 +87,166 @@ export function SettingsPage() {
       setMessage(
         reg.waiting
           ? "Новая версия готова. Нажми «Обновить» в уведомлении."
-          : "Проверка завершена. Если новая версия доступна, появится предложение обновиться.",
+          : "У тебя последняя версия.",
       );
     } catch {
       setMessage("Нет связи. Попробуй проверить позже.");
     }
   }
+
   return (
-    <div className="rise max-w-2xl space-y-10">
-      <div>
+    <div className="rise max-w-2xl space-y-6">
+      <div className="mb-4">
         <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
           настройки
         </p>
-        <h1 className="mt-1 text-3xl tracking-tight">Как тебе удобно</h1>
-        <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.16em] text-dim">
-          сборка {APP_VERSION}
-        </p>
+        <h1 className="mt-1 text-3xl tracking-tight">Профиль и настройки</h1>
       </div>
 
-      <ApiStatus />
-
-      <section className="rounded-2xl border border-hairline bg-card p-5">
-        <h2 className="text-lg">Обновление</h2>
-        <p className="mt-2 text-sm text-mute">
-          Новые версии загружаются автоматически. Коллекция сохраняется в
-          аккаунте.
+      {message || error ? (
+        <p role="status" className="text-sm text-accent">
+          {message || error}
         </p>
-        <button
-          onClick={checkUpdate}
-          className="mt-4 rounded-full bg-ink px-4 py-2 text-sm text-canvas"
-        >
-          Проверить обновления
-        </button>
-      </section>
+      ) : null}
 
-      <section className="rounded-2xl border border-hairline bg-card p-5">
-        <h2 className="text-lg">Установка</h2>
-        <p className="mt-2 text-sm text-mute">
-          На iPhone: Поделиться → На экран «Домой».
+      {account ? (
+        <Card title="Аккаунт">
+          <div className="mt-4 flex items-center gap-3">
+            {account.picture ? (
+              <img
+                src={account.picture}
+                alt=""
+                className="h-11 w-11 rounded-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-ink text-sm text-canvas">
+                {account.name.slice(0, 1)}
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="truncate">{account.name}</p>
+              <p className="truncate text-sm text-mute">
+                {account.email}
+                {account.verified ? " · подтверждена" : ""}
+              </p>
+            </div>
+          </div>
+          {sync === "pending" || sync === "offline" ? (
+            <p className="mt-3 text-xs text-mute">
+              Несохранённые изменения отправятся в облако после подключения к
+              сети.
+            </p>
+          ) : null}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {!account.verified ? (
+              <button
+                disabled={busy}
+                onClick={() =>
+                  action(
+                    verifyEmail,
+                    "Письмо отправлено. Перейди по ссылке в письме.",
+                  )
+                }
+                className="rounded-full border border-hairline px-4 py-2 text-sm"
+              >
+                Подтвердить почту
+              </button>
+            ) : null}
+            <button
+              disabled={busy}
+              onClick={() => action(signOutAccount)}
+              className="rounded-full border border-hairline px-4 py-2 text-sm text-mute"
+            >
+              Выйти из аккаунта
+            </button>
+          </div>
+        </Card>
+      ) : null}
+
+      <SteamPanel />
+
+      <Card title="Фильмы и сериалы">
+        <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
+          Страна для «где смотреть» и цен
         </p>
-        <button
-          onClick={showInstallAgain}
-          className="mt-4 rounded-full border border-hairline px-4 py-2 text-sm"
-        >
-          Показать подсказку снова
-        </button>
-      </section>
-
-      <section className="rounded-2xl border border-hairline bg-card p-5">
-        <h2 className="text-lg">Rotten Tomatoes и Metacritic</h2>
-        <p className="mt-2 text-sm text-mute">
-          Свежие оценки критиков приходят через OMDb. Нужен бесплатный ключ:
-          зарегистрируйся на{" "}
-          <a
-            href="https://www.omdbapi.com/apikey.aspx"
-            target="_blank"
-            rel="noreferrer"
-            className="text-accent underline underline-offset-4"
-          >
-            omdbapi.com
-          </a>
-          , подтверди почту и вставь ключ сюда. Без ключа оценки берутся из
-          Wikidata и есть не у всех фильмов.
-        </p>
-        <form
-          className="mt-4 flex flex-wrap gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            setOmdbKey(omdb);
-            setOmdbSaved(
-              omdb.trim()
-                ? "Ключ сохранён на этом устройстве."
-                : "Ключ удалён с этого устройства.",
-            );
-          }}
-        >
-          <input
-            value={omdb}
-            onChange={(e) => setOmdb(e.target.value)}
-            aria-label="Ключ OMDb"
-            placeholder={
-              hasBuildOmdbKey() ? "Ключ уже задан в сборке" : "Ключ OMDb"
-            }
-            autoComplete="off"
-            spellCheck={false}
-            maxLength={64}
-            className="h-10 min-w-0 flex-1 rounded-full border border-hairline bg-canvas px-4 font-mono text-sm outline-none focus:border-accent"
-          />
-          <button className="rounded-full bg-ink px-4 py-2 text-sm text-canvas">
-            Сохранить
-          </button>
-        </form>
-        {omdbSaved ? (
-          <p role="status" className="mt-2 text-xs text-accent">
-            {omdbSaved}
-          </p>
-        ) : null}
-      </section>
-
-      <section className="rounded-2xl border border-hairline bg-card p-5">
-        <h2 className="text-lg">Регион «где смотреть»</h2>
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-2 flex flex-wrap gap-2">
           {REGIONS.map((r) => (
             <button
               key={r.code}
               onClick={() => setSettings({ region: r.code })}
-              className={`rounded-full border px-3 py-1 text-sm ${
-                settings.region === r.code
-                  ? "border-ink bg-ink text-canvas"
-                  : "border-hairline text-mute"
-              }`}
+              className={chip(settings.region === r.code)}
             >
               {r.label}
             </button>
           ))}
         </div>
-      </section>
-
-      <section className="rounded-2xl border border-hairline bg-card p-5">
-        <h2 className="text-lg">Мои платформы</h2>
-        <p className="mt-2 text-sm text-mute">
-          Отметь сервисы для раздела платформ.
+        <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
+          Мои стриминги
         </p>
-        <div className="mt-4 space-y-2">
+        <div className="mt-2 flex flex-wrap gap-2">
           {PLATFORMS.map((p) => {
             const on = settings.subscribed.includes(p.id);
             return (
               <button
                 key={p.id}
+                aria-pressed={on}
                 onClick={() => toggleProvider(p.id)}
-                className="flex w-full items-center justify-between rounded-xl border border-hairline px-3 py-3 text-left"
+                className={`inline-flex items-center gap-2 ${chip(on)}`}
               >
-                <span className="flex items-center gap-3">
-                  <span
-                    className="h-2 w-2 rounded-full"
-                    style={{ background: p.tint }}
-                  />
-                  {p.name}
-                </span>
-                <span className="font-mono text-[11px] uppercase tracking-wider text-dim">
-                  {on ? "включена" : "скрыта"}
-                </span>
+                <span
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{ background: p.tint }}
+                />
+                {p.name}
               </button>
             );
           })}
         </div>
-      </section>
+      </Card>
 
-      {message ? (
-        <p role="status" className="text-sm text-accent">
-          {message}
-        </p>
-      ) : null}
-      <section className="rounded-2xl border border-hairline bg-card p-5">
-        <h2 className="text-lg">Коллекция</h2>
-        <p className="mt-2 text-sm text-mute">
-          {account
-            ? `${items.length} записей в твоём аккаунте. Импорт добавляет записи и обновляет совпадающие; остальные остаются.`
-            : "Войди, чтобы экспортировать или импортировать коллекцию."}
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            onClick={download}
-            disabled={!account || busy}
-            className="rounded-full border border-hairline px-4 py-2 text-sm"
-          >
-            Экспорт JSON
-          </button>
-          <label className="cursor-pointer rounded-full border border-hairline px-4 py-2 text-sm">
-            Импорт JSON
-            <input
-              disabled={!account || busy}
-              type="file"
-              accept="application/json"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) onImport(file);
-              }}
-            />
-          </label>
-        </div>
-      </section>
-      {readStorage("umbra.library") ? (
-        <section className="rounded-2xl border border-hairline p-5">
-          <h2 className="text-lg">Полка из старой версии</h2>
+      {account ? (
+        <Card title="Резервная копия">
           <p className="mt-2 text-sm text-mute">
-            На устройстве остались старые записи без привязки к владельцу.
-            Скачай копию, проверь её и импортируй в свой аккаунт, если это твоя
-            полка.
+            {items.length} фильмов и сериалов в аккаунте. Файл можно загрузить
+            обратно: совпадающие записи обновятся, остальные останутся.
           </p>
-          <button
-            onClick={() => {
-              try {
-                legacyDownload();
-              } catch {
-                setMessage(
-                  "Старая полка повреждена. Не удаляй данные браузера.",
-                );
-              }
-            }}
-            className="mt-3 text-sm text-accent"
-          >
-            Скачать старую полку
-          </button>
-        </section>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              onClick={download}
+              disabled={busy}
+              className="rounded-full border border-hairline px-4 py-2 text-sm"
+            >
+              Скачать
+            </button>
+            <label className="cursor-pointer rounded-full border border-hairline px-4 py-2 text-sm">
+              Загрузить
+              <input
+                disabled={busy}
+                type="file"
+                accept="application/json"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void onImport(file);
+                }}
+              />
+            </label>
+          </div>
+        </Card>
       ) : null}
+
+      <Card title="Приложение">
+        <p className="mt-2 text-sm text-mute">
+          Новые версии загружаются сами. Сборка {APP_VERSION}.
+        </p>
+        <button
+          onClick={checkUpdate}
+          className="mt-4 rounded-full border border-hairline px-4 py-2 text-sm"
+        >
+          Проверить обновления
+        </button>
+      </Card>
     </div>
   );
 }

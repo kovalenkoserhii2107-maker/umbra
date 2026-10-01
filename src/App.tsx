@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { RequireAccount } from "./components/RequireAccount";
-import { Outlet, Route, Routes } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { Layout } from "./components";
 const FeedPage = lazy(() =>
   import("./pages/Feed").then((m) => ({ default: m.FeedPage })),
@@ -55,9 +55,6 @@ const PlatformsPage = lazy(() =>
 );
 const SearchPage = lazy(() =>
   import("./pages/Search").then((m) => ({ default: m.SearchPage })),
-);
-const CabinetPage = lazy(() =>
-  import("./pages/Cabinet").then((m) => ({ default: m.CabinetPage })),
 );
 const SettingsPage = lazy(() =>
   import("./pages/Settings").then((m) => ({ default: m.SettingsPage })),
@@ -129,7 +126,7 @@ export default function App() {
         <Route path="/guide/year/:year" element={<GuideListPage />} />
         <Route path="/guide/:genreId" element={<GuideListPage />} />
         <Route path="/search" element={<SearchPage />} />
-        <Route path="/cabinet" element={<CabinetPage />} />
+        <Route path="/cabinet" element={<Navigate replace to="/settings" />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/title/:type/:id" element={<TitlePage />} />
         <Route path="/person/:id" element={<PersonPage />} />

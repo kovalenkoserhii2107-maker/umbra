@@ -713,7 +713,13 @@ test("Steam sign-in imports the library, wishlist, play time and achievements", 
     return route.continue();
   });
   await signIn(page);
+  // The collection has no Steam controls; they live in the settings.
   await page.goto("#/games/library");
+  await expect(page.getByRole("heading", { name: "Мои игры" })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Войти через Steam" }),
+  ).toHaveCount(0);
+  await page.goto("#/settings");
   await expect(
     page.getByRole("link", { name: "Войти через Steam" }),
   ).toHaveAttribute(
@@ -724,11 +730,16 @@ test("Steam sign-in imports the library, wishlist, play time and achievements", 
   await page.goto(
     "http://127.0.0.1:5187/umbra/?steam=1&openid.mode=id_res&openid.claimed_id=https%3A%2F%2Fsteamcommunity.com%2Fopenid%2Fid%2F76561198000000001&openid.sig=x",
   );
-  await expect(page).toHaveURL(/\/umbra\/#\/games\/library$/);
+  await expect(page).toHaveURL(/\/umbra\/#\/settings$/);
   await expect(page.getByText("Steam · Geralt")).toBeVisible();
   await expect(
     page.getByText(/добавлено 3; 1 игра из Steam не нашлось в IGDB/),
   ).toBeVisible();
+  await page.screenshot({
+    path: ".ui-evidence/settings-mobile.png",
+    fullPage: true,
+  });
+  await page.goto("#/games/library");
   const switcher = page.getByRole("group", { name: "Платформа" });
   await expect(switcher.getByRole("button", { name: /ПК 3/ })).toBeVisible();
   await expect(

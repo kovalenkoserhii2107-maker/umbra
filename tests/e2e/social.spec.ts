@@ -389,17 +389,6 @@ test("series tracking, collection filters, stats and sharing", async ({
   await page.getByRole("button", { name: "Отмена" }).click();
   await page.setViewportSize({ width: 1280, height: 720 });
 
-  // No OMDb key yet: no Tomatometer tile, only the link in «Рецензии».
-  await expect(page.getByRole("link", { name: /Rotten Tomatoes/ })).toHaveCount(
-    1,
-  );
-  await page.goto("#/settings");
-  await page.getByLabel("Ключ OMDb").fill("demo-key");
-  await page.getByRole("button", { name: "Сохранить", exact: true }).click();
-  await expect(
-    page.getByText("Ключ сохранён на этом устройстве."),
-  ).toBeVisible();
-  await page.goto("#/title/tv/202");
   await expect(page.getByText("93%").first()).toBeVisible();
   await expect(
     page.getByRole("link", { name: /^Metascore.*: 79$/ }),
@@ -448,9 +437,6 @@ test("title card shows everything TMDB and OMDb return", async ({
   context,
 }) => {
   await catalog(context);
-  await context.addInitScript(() =>
-    localStorage.setItem("umbra.omdbKey", "demo-key"),
-  );
   await register(page, "Cinephile");
   await page.goto("#/title/movie/303");
   await expect(

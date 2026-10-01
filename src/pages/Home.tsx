@@ -1,8 +1,14 @@
 import { Link } from "react-router-dom";
 import { Row, ErrorBox, RatingBadge, useAsync } from "../components";
+import {
+  loadNewEpisodes,
+  pickSpotlight,
+  tasteSeed,
+  type Spotlight,
+} from "../lib/spotlight";
 import { loadFeedPage, FEEDS } from "../lib/feeds";
 import { useAppState } from "../state";
-import { dayMonthLabel, plural } from "../lib/format";
+import { dayMonthLabel, plural, yearOf } from "../lib/format";
 import {
   daysUntil,
   loadWatchlistReleases,
@@ -12,8 +18,9 @@ import {
 import {
   backdropUrl,
   correctPosterUrl,
-  mediaOf,
+  posterUrl,
   titleOf,
+  tmdb,
   type MediaType,
   type TmdbItem,
 } from "../lib/tmdb";
@@ -23,35 +30,93 @@ function posterPathFromStored(url: string) {
   return match ? match[1] : null;
 }
 
-function Featured({ item }: { item: TmdbItem }) {
-  const media = mediaOf(item);
+function Featured({ spotlight }: { spotlight: Spotlight }) {
+  const { item, media, kicker, note } = spotlight;
+  const { get, upsert } = useAppState();
+  const mine = get(media, item.id);
+  const details = useAsync(
+    () => tmdb.details(media, item.id),
+    [media, item.id],
+  );
+  const videos = details.data?.videos?.results ?? [];
+  const trailer =
+    videos.find((v) => v.site === "YouTube" && v.type === "Trailer") ||
+    videos.find((v) => v.site === "YouTube");
+  const title = titleOf(details.data || item);
   const bg =
     backdropUrl(item.backdrop_path) || backdropUrl(item.poster_path, "w780");
+  function want() {
+    upsert({
+      id: item.id,
+      type: media,
+      title,
+      poster: posterUrl(item.poster_path, "w185"),
+      year: yearOf(item.release_date || item.first_air_date),
+      status: "watchlist",
+      rating: null,
+      note: "",
+    });
+  }
+  const action =
+    "inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-xs font-medium";
   return (
-    <Link
-      to={`/title/${media}/${item.id}`}
-      className="relative mb-10 block overflow-hidden rounded-2xl border border-hairline bg-card"
-    >
+    <section className="relative mb-10 overflow-hidden rounded-2xl border border-hairline bg-card">
       {bg ? (
         <img
           src={bg}
           alt=""
-          className="aspect-[16/9] w-full object-cover sm:aspect-[21/9]"
+          className="aspect-[4/3] w-full object-cover sm:aspect-[21/9]"
         />
       ) : (
-        <div className="aspect-[16/9] sm:aspect-[21/9]" />
+        <div className="aspect-[4/3] sm:aspect-[21/9]" />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6">
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
-          сейчас в кино
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-transparent" />
+      <Link
+        to={`/title/${media}/${item.id}`}
+        aria-label={title}
+        className="absolute inset-0"
+      />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 p-4 sm:p-6">
+        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">
+          {kicker}
         </p>
-        <p className="mt-1 text-2xl tracking-tight text-white sm:text-3xl">
-          {titleOf(item)}
-        </p>
+        <h2 className="mt-1 text-2xl tracking-tight text-white sm:text-3xl">
+          {title}
+        </h2>
+        {note ? <p className="mt-1 text-sm text-white/70">{note}</p> : null}
+        <div className="pointer-events-auto mt-3 flex flex-wrap gap-2">
+          {mine ? null : (
+            <button
+              type="button"
+              onClick={want}
+              className={`${action} bg-ink text-canvas`}
+            >
+              <span aria-hidden="true">+</span> Хочу посмотреть
+            </button>
+          )}
+          {trailer ? (
+            <a
+              href={`https://www.youtube.com/watch?v=${trailer.key}`}
+              target="_blank"
+              rel="noreferrer"
+              className={`${action} border border-white/25 bg-black/40 text-white backdrop-blur-sm`}
+            >
+              <span aria-hidden="true">▶</span> Трейлер
+            </a>
+          ) : null}
+        </div>
       </div>
       <RatingBadge type={media} id={item.id} />
-    </Link>
+    </section>
+  );
+}
+
+function FeaturedPlaceholder() {
+  return (
+    <div
+      aria-hidden="true"
+      className="mb-10 aspect-[4/3] animate-pulse rounded-2xl border border-hairline bg-card sm:aspect-[21/9]"
+    />
   );
 }
 
@@ -104,15 +169,7 @@ function ReleaseCard({ release }: { release: Release }) {
   );
 }
 
-function WatchlistReleases() {
-  const { items, settings } = useAppState();
-  const watchlist = items.filter((x) => x.status === "watchlist");
-  const key = watchlist.map((x) => `${x.type}-${x.id}`).join(",");
-  const releases = useAsync(
-    () => loadWatchlistReleases(watchlist, settings.region),
-    [key, settings.region],
-  );
-  const list = releases.data ?? [];
+function WatchlistReleases({ list }: { list: Release[] }) {
   if (!list.length) return null;
   return (
     <section className="rise mb-10">
@@ -137,10 +194,19 @@ function WatchlistReleases() {
 }
 
 export function HomePage() {
-  const { items } = useAppState();
-  const seed =
-    items.find((x) => x.status === "watched" || x.status === "watchlist") ||
-    items[0];
+  const { items, settings, sync } = useAppState();
+  const seed = tasteSeed(items);
+  const watchlistItems = items.filter((x) => x.status === "watchlist");
+  const watchlistKey = watchlistItems.map((x) => `${x.type}-${x.id}`).join();
+  const showsKey = items
+    .filter((x) => x.type === "tv" && x.status !== "watchlist")
+    .map((x) => `${x.id}-${x.status}`)
+    .join();
+  const releases = useAsync(
+    () => loadWatchlistReleases(watchlistItems, settings.region),
+    [watchlistKey, settings.region],
+  );
+  const episodes = useAsync(() => loadNewEpisodes(items), [showsKey]);
   const theaters = useAsync(() => loadFeedPage("theaters", 1), []);
   const trending = useAsync(() => loadFeedPage("trending", 1), []);
   const airing = useAsync(() => loadFeedPage("airing", 1), []);
@@ -174,24 +240,59 @@ export function HomePage() {
 
   const preview = (id: (typeof FEEDS)[number]["id"]) =>
     FEEDS.find((f) => f.id === id)!;
-  const hero = theaters.data?.results?.[0] || trending.data?.results?.[0];
-  const theaterRest = (theaters.data?.results ?? []).slice(
-    hero && theaters.data?.results?.[0]?.id === hero.id ? 1 : 0,
+  // Wait for the first library snapshot so the spotlight is chosen once.
+  const libraryPending = sync === "connecting" && !items.length;
+  const spotlightPending =
+    libraryPending ||
+    releases.loading ||
+    episodes.loading ||
+    (seed ? recs.loading : trending.loading);
+  const spotlight = spotlightPending
+    ? null
+    : pickSpotlight({
+        releases: releases.data ?? [],
+        episodes: episodes.data ?? [],
+        recommendations: seed ? (recs.data?.results ?? []) : [],
+        popular: trending.data?.results ?? [],
+        seed,
+        library: items,
+      });
+  const shown = (list: TmdbItem[]) =>
+    spotlight
+      ? list.filter(
+          (x) =>
+            !(
+              x.id === spotlight.item.id &&
+              (x.media_type || spotlight.media) === spotlight.media
+            ),
+        )
+      : list;
+  const releaseList = (releases.data ?? []).filter(
+    (r) =>
+      !(
+        spotlight?.reason === "release" &&
+        r.item.id === spotlight.item.id &&
+        r.item.type === spotlight.media
+      ),
   );
 
   return (
     <div className="rise space-y-2">
-      <WatchlistReleases />
-      {hero ? <Featured item={hero} /> : null}
+      {spotlight ? (
+        <Featured spotlight={spotlight} />
+      ) : spotlightPending ? (
+        <FeaturedPlaceholder />
+      ) : null}
+      <WatchlistReleases list={releaseList} />
       <Row
         title={preview("theaters").title}
-        items={theaterRest}
+        items={theaters.data?.results ?? []}
         type="movie"
         to="/feed/theaters"
       />
       <Row
         title={preview("trending").title}
-        items={trending.data?.results ?? []}
+        items={shown(trending.data?.results ?? [])}
         to="/feed/trending"
       />
       <Row
@@ -221,7 +322,7 @@ export function HomePage() {
       />
       <Row
         title={preview("recs").title}
-        items={recs.data?.results ?? []}
+        items={shown(recs.data?.results ?? [])}
         type={seed?.type as MediaType | undefined}
         to="/feed/recs"
       />

@@ -11,6 +11,7 @@ const env: Env = {
   TWITCH_CLIENT_SECRET: "client-secret",
   STEAM_API_KEY: "steam",
   OPENCRITIC_API_KEY: "rapid",
+  ITAD_API_KEY: "itad",
 };
 
 type Call = { url: string; init?: RequestInit };
@@ -79,7 +80,7 @@ describe("umbra-api", () => {
       services: {
         igdb: true,
         twitch: true,
-        itad: false,
+        itad: true,
         opencritic: true,
         steam: true,
       },
@@ -210,6 +211,112 @@ describe("umbra-api", () => {
     });
     expect(calls[0].url).toContain("id=f13cf6b4-57e6-4459-89df-6aec18cf0538");
     expect((await send("/gamepass/everything")).status).toBe(404);
+  });
+
+  describe("IsThereAnyDeal", () => {
+    const deal = (shop: string, amount: number, cut: number) => ({
+      shop: { id: 1, name: shop },
+      price: { amount, amountInt: amount * 100, currency: "USD" },
+      regular: { amount: 39.99, currency: "USD" },
+      cut,
+      voucher: null,
+      storeLow: { amount: 9.99, currency: "USD" },
+      drm: [{ id: 61, name: "Steam" }],
+      expiry: "2026-10-10T17:00:00+00:00",
+      url: `https://itad.link/${shop}`,
+    });
+
+    it("finds the game by Steam app and returns prices cheapest first", async () => {
+      const { send, calls } = setup(({ url }) => {
+        expect(url).toContain("key=itad");
+        if (url.includes("/games/lookup/v1"))
+          return Response.json({
+            found: true,
+            game: {
+              id: "018d937f-1",
+              slug: "the-witcher-3-wild-hunt",
+              title: "The Witcher 3",
+            },
+          });
+        return Response.json([
+          {
+            id: "018d937f-1",
+            historyLow: { all: { amount: 5.99, currency: "USD" } },
+            deals: [
+              deal("Steam", 9.99, 75),
+              deal("GOG", 7.99, 80),
+              { shop: { name: "Broken" } },
+            ],
+          },
+        ]);
+      });
+      const response = await send(
+        "/prices?steam=292030&title=Witcher&country=UA",
+      );
+      const body = await response.json();
+      expect(body).toMatchObject({
+        found: true,
+        url: "https://isthereanydeal.com/game/the-witcher-3-wild-hunt/info/",
+        historyLow: { amount: 5.99, currency: "USD" },
+      });
+      expect(body.deals.map((d: { shop: string }) => d.shop)).toEqual([
+        "GOG",
+        "Steam",
+      ]);
+      expect(body.deals[0]).toEqual({
+        shop: "GOG",
+        price: 7.99,
+        regular: 39.99,
+        cut: 80,
+        currency: "USD",
+        url: "https://itad.link/GOG",
+        voucher: null,
+        storeLow: 9.99,
+        drm: ["Steam"],
+        expiry: "2026-10-10T17:00:00+00:00",
+      });
+      expect(calls[0].url).toContain("/games/lookup/v1?appid=292030");
+      const prices = calls.find((c) => c.url.includes("/games/prices/v3"))!;
+      expect(prices.url).toContain("country=UA");
+      expect(prices.init!.body).toBe('["018d937f-1"]');
+    });
+
+    it("says not found and checks input", async () => {
+      const { send } = setup(() => Response.json({ found: false }));
+      expect(await (await send("/prices?title=Nothing")).json()).toEqual({
+        found: false,
+      });
+      expect((await send("/prices")).status).toBe(400);
+    });
+
+    it("lists current deals of games only", async () => {
+      const { send } = setup(() =>
+        Response.json({
+          list: [
+            {
+              title: "Hades",
+              slug: "hades",
+              type: "game",
+              assets: { banner400: "b.jpg" },
+              deal: deal("Steam", 4.99, 80),
+            },
+            {
+              title: "Soundtrack",
+              slug: "ost",
+              type: "dlc",
+              deal: deal("Steam", 1, 50),
+            },
+          ],
+        }),
+      );
+      const body = await (await send("/deals?country=bad")).json();
+      expect(body.list).toHaveLength(1);
+      expect(body.list[0]).toMatchObject({
+        title: "Hades",
+        image: "b.jpg",
+        deal: { cut: 80 },
+      });
+    });
   });
 
   describe("OpenCritic", () => {

@@ -12,6 +12,7 @@ import { useGameLibrary } from "../lib/gameLibrary";
 import { migrateGameLibrary } from "../lib/gameMigration";
 import {
   BestShelf,
+  DealsShelf,
   FeedShelves,
   GamePassShelves,
   Giveaways,
@@ -21,6 +22,7 @@ import {
   PLATFORM_GROUPS,
   companyGames,
   companyIdByName,
+  idByTitle,
   imageUrl,
   platformGroup,
   platformIds,
@@ -284,6 +286,7 @@ export function GamePlatformPage() {
       <h1 className="mb-8 mt-1 text-3xl tracking-tight">{platform.name}</h1>
       <FeedShelves platforms={[...platform.ids]} />
       <Giveaways groups={[platform.id]} />
+      {platform.id === "pc" ? <DealsShelf /> : null}
       {platform.id === "pc" || platform.id === "xbox" ? (
         <GamePassShelves />
       ) : null}
@@ -482,5 +485,22 @@ export function GameLibraryPage() {
         </div>
       )}
     </div>
+  );
+}
+
+/** Opens a game known only by title (e.g. from a store deal). */
+export function GameFindPage() {
+  const [params] = useSearchParams();
+  const title = params.get("title") || "";
+  const found = useAsync(() => idByTitle(title), [title]);
+  if (found.loading)
+    return (
+      <p role="status" className="text-sm text-mute">
+        Ищу «{title}»…
+      </p>
+    );
+  if (found.data) return <Navigate replace to={`/games/${found.data}`} />;
+  return (
+    <Navigate replace to={`/games/search?q=${encodeURIComponent(title)}`} />
   );
 }

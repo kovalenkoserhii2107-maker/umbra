@@ -23,6 +23,9 @@ const GamePlatformPage = lazy(() =>
 const StudioPage = lazy(() =>
   import("./pages/GameSection").then((m) => ({ default: m.StudioPage })),
 );
+const GameFindPage = lazy(() =>
+  import("./pages/GameSection").then((m) => ({ default: m.GameFindPage })),
+);
 const GameLibraryPage = lazy(() =>
   import("./pages/GameSection").then((m) => ({ default: m.GameLibraryPage })),
 );
@@ -119,6 +122,7 @@ export default function App() {
         <Route path="/games/platforms" element={<GamePlatformsPage />} />
         <Route path="/games/platforms/:id" element={<GamePlatformPage />} />
         <Route path="/games/library" element={<GameLibraryPage />} />
+        <Route path="/games/find" element={<GameFindPage />} />
         <Route path="/games/studio/:name" element={<StudioPage />} />
         <Route path="/games/:id" element={<GamePage />} />
         <Route path="/guide" element={<GuidePage />} />

@@ -13,6 +13,7 @@ import {
   ageLabels,
   gameLinks,
   hours,
+  money,
   multiplayerLabel,
   platformList,
   releaseRows,
@@ -122,6 +123,11 @@ describe("game facts", () => {
         ],
       }),
     ).toEqual(["PC", "PS5", "PS4", "XONE", "Switch"]);
+  });
+
+  it("formats prices in Russian style", () => {
+    expect(money(7.99, "USD").replace(/\s/g, " ")).toBe("7,99 $");
+    expect(money(399, "UAH").replace(/\s/g, " ")).toBe("399 ₴");
   });
 
   it("describes multiplayer and time to beat", () => {

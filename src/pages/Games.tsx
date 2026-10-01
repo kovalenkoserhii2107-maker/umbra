@@ -18,6 +18,7 @@ import {
 import { GameMark } from "../components/GameMark";
 import {
   BestShelf,
+  DealsShelf,
   FeedShelves,
   GamePassShelves,
   Giveaways,
@@ -34,6 +35,7 @@ import {
   ageRatings,
   gameDetails,
   gameTypeLabel,
+  groupsOf,
   imageUrl,
   inGamePass,
   platformIds,
@@ -47,11 +49,14 @@ import {
 } from "../lib/igdb";
 import { ageLabels, platformList, tierOf } from "../lib/gameFacts";
 import {
+  gamePrices,
   openCritic,
   steamApp,
   type OpenCritic,
+  type Prices,
   type SteamApp,
 } from "../lib/api";
+import { useAppState } from "../state";
 import { toggleMyPlatform, useMyPlatforms } from "../lib/myPlatforms";
 import { migrateGameLibrary } from "../lib/gameMigration";
 import { votesShort } from "../lib/titleFacts";
@@ -75,6 +80,7 @@ export function GamesPage() {
       </div>
       <FeedShelves platforms={ids} />
       <Giveaways groups={mine} />
+      {mine.includes("pc") ? <DealsShelf /> : null}
       {pass ? <GamePassShelves /> : null}
       <BestShelf platforms={ids} />
     </div>
@@ -179,6 +185,14 @@ export function GamePage() {
   ]);
   const ttb = useSide(game ? () => timeToBeat(game.id) : null, [game?.id]);
   const gamePass = useSide(game ? () => inGamePass(game) : null, [game?.id]);
+  const { settings } = useAppState();
+  const onPc = game
+    ? groupsOf(toSummary(game).platforms).includes("pc")
+    : false;
+  const prices = useSide<Prices>(
+    game && onPc ? () => gamePrices(steamId, game.name, settings.region) : null,
+    [game?.id, settings.region],
+  );
   useEffect(() => {
     migrateGameLibrary();
   }, []);
@@ -400,6 +414,7 @@ export function GamePage() {
         </>
       ) : null}
 
+      <GameLinks game={game} steamId={steamId} prices={prices} part="stores" />
       <Videos videos={videosOf(game)} />
       <Screens game={game} />
       <GameFacts
@@ -410,7 +425,7 @@ export function GamePage() {
         steam={steam ?? null}
       />
       <CriticReviews oc={oc} />
-      <GameLinks game={game} steamId={steamId} />
+      <GameLinks game={game} steamId={steamId} part="links" />
       <div className="mt-10">
         <Related
           title="Дополнения"

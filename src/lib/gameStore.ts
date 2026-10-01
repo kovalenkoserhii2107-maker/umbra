@@ -18,7 +18,7 @@ import {
   type SteamPlay,
 } from "./gameEntry";
 import { steamLibrary, type SteamProfile } from "./api";
-import { idsFromSteam, imageUrl, manyGames } from "./igdb";
+import { groupsOf, idsFromSteam, imageUrl, manyGames } from "./igdb";
 import { readStorage, writeStorage } from "./storage";
 
 export type SteamLink = {
@@ -35,15 +35,24 @@ type State = {
   ready: boolean;
   error: string | null;
   steam: SteamLink | null;
+  /** Steam import in progress, its last result or error. */
+  syncing: boolean;
+  syncReport: SyncReport | null;
+  syncError: string | null;
 };
 
-let state: State = {
-  uid: null,
+const empty = (uid: string | null): State => ({
+  uid,
   games: [],
   ready: false,
   error: null,
   steam: null,
-};
+  syncing: false,
+  syncReport: null,
+  syncError: null,
+});
+
+let state: State = empty(null);
 const listeners = new Set<() => void>();
 let stops: Array<() => void> = [];
 
@@ -62,7 +71,9 @@ function bind(uid: string | null) {
   if (state.uid === uid) return;
   stops.forEach((stop) => stop());
   stops = [];
-  state = { uid, games: [], ready: false, error: null, steam: null };
+  state = empty(uid);
+  lastSync = 0;
+  repaired = false;
   listeners.forEach((l) => l());
   if (!uid) return;
   stops.push(
@@ -86,7 +97,10 @@ function bind(uid: string | null) {
           ready: state.ready || !snap.metadata.fromCache,
           error: null,
         });
-        if (!snap.metadata.fromCache) void moveLocalGames(uid);
+        if (!snap.metadata.fromCache) {
+          void moveLocalGames(uid);
+          void repairEntries();
+        }
       },
       () => set({ error: "Не удалось загрузить коллекцию игр." }),
     ),
@@ -252,6 +266,96 @@ export async function syncSteam(steamId?: string): Promise<SyncReport> {
     updated: changed.length - added,
     missing: appIds.filter((id) => !ids.has(id)).length,
   };
+}
+
+const STEAM_ERRORS: Record<string, string> = {
+  steam_cancelled: "Вход через Steam отменён.",
+  steam_rejected: "Steam не подтвердил вход. Попробуй ещё раз.",
+  steam_invalid: "Ответ Steam не прошёл проверку. Попробуй ещё раз.",
+  steam_private:
+    "Профиль Steam закрыт. Открой профиль и игровую информацию в настройках приватности Steam.",
+};
+
+export function steamErrorText(e: unknown) {
+  const code = (e as { code?: string })?.code || "";
+  return (
+    STEAM_ERRORS[code] ||
+    (e instanceof Error ? e.message : "Не удалось связаться со Steam.")
+  );
+}
+
+let lastSync = 0;
+const SYNC_EVERY = 10 * 60_000;
+
+/**
+ * Brings Steam play time up to date. Called whenever the games section opens;
+ * runs at most once per ten minutes, or right away after linking.
+ */
+export async function refreshSteam(steamId?: string) {
+  if (state.syncing || !state.ready) return;
+  const link = steamId ?? state.steam?.steamId;
+  if (!link) return;
+  const synced = state.steam?.syncedAt ?? 0;
+  const now = Date.now();
+  if (!steamId && (now - synced < SYNC_EVERY || now - lastSync < SYNC_EVERY))
+    return;
+  lastSync = now;
+  set({ syncing: true, syncError: null });
+  try {
+    set({ syncing: false, syncReport: await syncSteam(steamId) });
+  } catch (e) {
+    set({ syncing: false, syncError: steamErrorText(e) });
+  }
+}
+
+/* ------------------------------------------------- missing covers */
+
+let repaired = false;
+
+/**
+ * Entries added before covers were kept, or moved from the device, get their
+ * cover, year and genre from IGDB; a game on exactly one of my platforms gets
+ * that platform. Runs once per session.
+ */
+async function repairEntries() {
+  if (repaired) return;
+  const broken = state.games.filter(
+    (g) => !g.cover || !g.year || (!g.platforms.length && !g.steam),
+  );
+  if (!broken.length) return;
+  repaired = true;
+  try {
+    const uid = owner();
+    const { readMyPlatforms } = await import("./myPlatforms");
+    const mine = readMyPlatforms();
+    const found = new Map(
+      (await manyGames(broken.map((g) => g.id))).map((g) => [g.id, g]),
+    );
+    const batch = writeBatch(firebaseDb);
+    let count = 0;
+    for (const entry of broken) {
+      const g = found.get(entry.id);
+      if (!g) continue;
+      const patch: Partial<GameEntry> = {};
+      if (!entry.cover && g.cover) patch.cover = imageUrl(g.cover, "cover_big");
+      if (!entry.year && g.year) patch.year = String(g.year);
+      if (!entry.genre && g.genres[0]) patch.genre = g.genres[0];
+      if (!entry.platforms.length) {
+        const groups = groupsOf(g.platforms);
+        const owned = groups.filter((x) => mine.includes(x));
+        const only =
+          owned.length === 1 ? owned : groups.length === 1 ? groups : [];
+        if (only.length) patch.platforms = only;
+      }
+      if (!Object.keys(patch).length) continue;
+      parseEntry({ ...entry, ...patch });
+      batch.update(ref(uid, entry.id), patch);
+      count++;
+    }
+    if (count) await batch.commit();
+  } catch {
+    repaired = false;
+  }
 }
 
 /* ------------------------------------------------ device → cloud move */

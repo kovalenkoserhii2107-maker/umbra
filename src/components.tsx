@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { Suspense, lazy, type ReactNode } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -21,6 +21,13 @@ import { InstallPrompt } from "./components/InstallPrompt";
 import { BrandLockup } from "./components/Brand";
 import { AccountMenu } from "./components/AccountMenu";
 import { FriendBadge, FriendsIndexProvider } from "./components/FriendsIndex";
+
+// Loaded with the games code, only inside the games section.
+const SteamAutoSync = lazy(() =>
+  import("./components/GameCollection").then((m) => ({
+    default: m.SteamAutoSync,
+  })),
+);
 
 export function Layout({
   children,
@@ -146,6 +153,11 @@ function SectionTabs() {
       {tabs.map((tab) => (
         <Tab key={tab.to} {...tab} />
       ))}
+      {games ? (
+        <Suspense fallback={null}>
+          <SteamAutoSync />
+        </Suspense>
+      ) : null}
     </div>
   );
 }

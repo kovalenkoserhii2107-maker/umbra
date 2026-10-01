@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Empty } from "../components";
 import { CARD } from "./TitleDetails";
 import { PlatformDots } from "./GameTile";
@@ -16,7 +16,8 @@ import {
 } from "../lib/gameEntry";
 import {
   linkSteam,
-  syncSteam,
+  refreshSteam,
+  steamErrorText,
   unlinkSteam,
   useGameCollection,
   type SyncReport,
@@ -47,43 +48,12 @@ function report(r: SyncReport) {
   return `${parts.length ? parts.join(", ") : "новых игр нет"}${r.missing ? `; ${r.missing} ${plural(r.missing, "игра", "игры", "игр")} из Steam не нашлось в IGDB` : ""}.`;
 }
 
-const STEAM_ERRORS: Record<string, string> = {
-  steam_cancelled: "Вход через Steam отменён.",
-  steam_rejected: "Steam не подтвердил вход. Попробуй ещё раз.",
-  steam_invalid: "Ответ Steam не прошёл проверку. Попробуй ещё раз.",
-  steam_private:
-    "Профиль Steam закрыт. Открой профиль и игровую информацию в настройках приватности Steam.",
-};
-
-const steamError = (e: unknown) => {
-  const code = (e as { code?: string })?.code || "";
-  return (
-    STEAM_ERRORS[code] ||
-    (e instanceof Error ? e.message : "Не удалось связаться со Steam.")
-  );
-};
-
-/** Connect Steam, see when it last synced, sync again or unlink. */
+/** Connect Steam and see how fresh the import is; it refreshes by itself. */
 export function SteamPanel() {
-  const { steam, ready } = useGameCollection();
+  const { steam, ready, syncing, syncReport, syncError } = useGameCollection();
   const [busy, setBusy] = useState("");
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const started = useRef(false);
-
-  async function sync(steamId?: string) {
-    setBusy("Загружаю библиотеку Steam…");
-    setError("");
-    try {
-      setMessage(`Steam: ${report(await syncSteam(steamId))}`);
-    } catch (e) {
-      setError(steamError(e));
-    } finally {
-      setBusy("");
-    }
-  }
-
-  const refreshed = useRef(false);
 
   // Finishes a sign-in that just came back from Steam.
   useEffect(() => {
@@ -91,7 +61,6 @@ export function SteamPanel() {
     started.current = true;
     const params = takeSteamReturn();
     if (!params) return;
-    refreshed.current = true;
     void (async () => {
       setBusy("Проверяю вход через Steam…");
       setError("");
@@ -99,22 +68,17 @@ export function SteamPanel() {
         const { steamId } = await verifySteam(params);
         const profile = await steamProfile(steamId);
         await linkSteam(profile);
-        await sync(steamId);
+        setBusy("");
+        await refreshSteam(steamId);
       } catch (e) {
-        setError(steamError(e));
+        setError(steamErrorText(e));
         setBusy("");
       }
     })();
   }, [ready]);
 
-  // Refreshes play time once per visit when the last sync is old.
-  useEffect(() => {
-    if (!ready || !steam || refreshed.current) return;
-    refreshed.current = true;
-    if (!steam.syncedAt || Date.now() - steam.syncedAt > 12 * 3600_000)
-      void sync();
-  }, [ready, steam]);
-
+  const status = busy || (syncing ? "Обновляю игры из Steam…" : "");
+  const problem = error || syncError;
   return (
     <div className={`${CARD} mb-6 p-4`}>
       {steam ? (
@@ -125,24 +89,18 @@ export function SteamPanel() {
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm">Steam · {steam.name}</p>
             <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-dim">
-              {steam.syncedAt
-                ? `обновлено ${ago(steam.syncedAt)}`
-                : "ещё не загружено"}
+              {syncing
+                ? "обновляется…"
+                : steam.syncedAt
+                  ? `обновлено ${ago(steam.syncedAt)}`
+                  : "ещё не загружено"}
             </p>
           </div>
           <button
             type="button"
-            disabled={!!busy}
-            onClick={() => void sync()}
-            className="rounded-full border border-hairline px-3 py-1.5 text-xs disabled:opacity-50"
-          >
-            Обновить
-          </button>
-          <button
-            type="button"
-            disabled={!!busy}
+            disabled={!!status}
             onClick={() =>
-              void unlinkSteam().catch((e) => setError(steamError(e)))
+              void unlinkSteam().catch((e) => setError(steamErrorText(e)))
             }
             className="text-xs text-dim"
           >
@@ -154,8 +112,8 @@ export function SteamPanel() {
           <p className="text-sm">Подключи Steam</p>
           <p className="mt-1 text-sm text-mute">
             Подтянем все игры с часами, недавние игры, список желаемого и
-            достижения. Профиль и игровая информация в Steam должны быть
-            открыты.
+            достижения, и будем обновлять их сами при каждом заходе в раздел.
+            Профиль и игровая информация в Steam должны быть открыты.
           </p>
           <a
             href={steamLoginUrl()}
@@ -166,21 +124,31 @@ export function SteamPanel() {
           </a>
         </div>
       )}
-      {busy ? (
+      {status ? (
         <p role="status" className="mt-3 text-sm text-mute">
-          {busy}
+          {status}
         </p>
       ) : null}
-      {message && !busy ? (
-        <p className="mt-3 text-sm text-ok">{message}</p>
+      {syncReport && !status && (syncReport.added || syncReport.missing) ? (
+        <p className="mt-3 text-sm text-ok">Steam: {report(syncReport)}</p>
       ) : null}
-      {error ? (
+      {problem ? (
         <p role="alert" className="mt-3 text-sm text-accent">
-          {error}
+          {problem}
         </p>
       ) : null}
     </div>
   );
+}
+
+/** Keeps Steam fresh: runs on every visit to the games section (at most every 10 min). */
+export function SteamAutoSync() {
+  const { ready, steam } = useGameCollection();
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if (ready && steam) void refreshSteam();
+  }, [ready, steam?.steamId, pathname]);
+  return null;
 }
 
 const PLATFORM_KEY = "umbra.gameLibraryPlatform";
@@ -222,7 +190,7 @@ function Row({ e }: { e: GameEntry }) {
             {[
               statusLabel(e.status),
               e.rating ? `${e.rating}/10` : "",
-              hours ? `${hours} ч` : "",
+              hours ? `${hours.toLocaleString("ru-RU")} ч` : "",
             ]
               .filter(Boolean)
               .join(" · ")}

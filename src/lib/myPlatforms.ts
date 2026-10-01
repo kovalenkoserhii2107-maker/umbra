@@ -20,6 +20,8 @@ function read(): PlatformGroupId[] {
 
 let snapshot = read();
 
+export const readMyPlatforms = () => snapshot;
+
 export function setMyPlatforms(next: PlatformGroupId[]) {
   const list = ALL.filter((id) => next.includes(id));
   snapshot = list.length ? list : ALL;

@@ -507,7 +507,7 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {
 }
 
 export function ErrorBox({ code }: { code: string }) {
-  if (code === "BAD_KEY") {
+  if (code === "BAD_KEY" || code === "NO_KEY") {
     return (
       <div className="rounded-2xl border border-hairline bg-card p-6 text-sm text-mute">
         Не удалось подключить каталог TMDB.

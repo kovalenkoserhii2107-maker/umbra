@@ -1,7 +1,6 @@
-import { readStorage } from "./storage";
 import { requestJson } from "./http";
 import {
-  DEFAULT_TMDB_KEY,
+  tmdbKey,
   type MediaType,
   type TmdbItem,
   type TmdbPage,
@@ -20,9 +19,7 @@ export type PersonHit = {
   popularity?: number;
 };
 
-function key() {
-  return readStorage("umbra.tmdbKey")?.trim() || DEFAULT_TMDB_KEY;
-}
+const key = tmdbKey;
 
 async function request<T>(
   path: string,

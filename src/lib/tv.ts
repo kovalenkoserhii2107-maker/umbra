@@ -1,6 +1,5 @@
-import { readStorage } from "./storage";
 import { requestJson } from "./http";
-import { DEFAULT_TMDB_KEY } from "./tmdb";
+import { tmdbKey } from "./tmdb";
 
 const BASE = "https://api.themoviedb.org/3";
 
@@ -34,9 +33,7 @@ export type EpisodeRef = {
   air_date?: string | null;
 };
 
-function key() {
-  return readStorage("umbra.tmdbKey")?.trim() || DEFAULT_TMDB_KEY;
-}
+const key = tmdbKey;
 
 async function request<T>(path: string) {
   const url = new URL(BASE + path);

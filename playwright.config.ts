@@ -9,7 +9,11 @@ export default defineConfig({
       command: "npm run dev -- --host 127.0.0.1 --port 5187 --strictPort",
       url: "http://127.0.0.1:5187/umbra/",
       reuseExistingServer: false,
-      env: { VITE_USE_EMULATORS: "true" },
+      // TMDB is mocked in the tests; any key lets the client send requests.
+      env: {
+        VITE_USE_EMULATORS: "true",
+        VITE_TMDB_KEY: process.env.VITE_TMDB_KEY || "e2e-test-key",
+      },
     },
     {
       command: "npm run preview -- --host 127.0.0.1 --port 4187",

@@ -87,3 +87,48 @@ export const verifySteam = (params: Record<string, string>) =>
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ params }),
   });
+
+export type OpenCritic =
+  | { found: false }
+  | {
+      found: true;
+      id: number;
+      name: string;
+      url: string;
+      score: number | null;
+      tier: string | null;
+      recommended: number | null;
+      reviews: number;
+      topReviews: Array<{
+        outlet: string;
+        author: string;
+        score: number | null;
+        verdict: string | null;
+        snippet: string;
+        url: string;
+        date: string;
+      }>;
+    };
+
+export const openCritic = (name: string, year: number | null) =>
+  call<OpenCritic>(
+    `/opencritic?name=${encodeURIComponent(name)}${year ? `&year=${year}` : ""}`,
+  );
+
+export type SteamApp = {
+  appId: number;
+  name: string;
+  about: string;
+  short: string;
+  headerImage: string;
+  metacritic: { score: number; url: string } | null;
+  recommendations: number | null;
+  achievements: number | null;
+  categories: string[];
+  requirements: { minimum: string; recommended: string };
+  reviews: { score: number; positive: number; total: number } | null;
+  players: number | null;
+};
+
+export const steamApp = (appId: number) =>
+  call<SteamApp>(`/steam/app/${appId}`);

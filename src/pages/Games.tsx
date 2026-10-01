@@ -1,183 +1,462 @@
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ErrorBox, useAsync } from "../components";
-import { GameRow } from "../components/GameCard";
-import { GamePoster } from "../components/GamePoster";
+import { useAsync } from "../components";
+import {
+  CARD,
+  Overview,
+  RatingsStrip,
+  Aside,
+  Videos,
+  type Tile,
+} from "../components/TitleDetails";
+import {
+  GameError,
+  GameShelf,
+  PlatformPicker,
+  releaseLabel,
+} from "../components/GameTile";
 import { GameMark } from "../components/GameMark";
 import { ShareButton } from "../components/ShareButton";
-import { GameScoreLine, GameScores } from "../components/GameScores";
-import { GameFacts, GameOffers } from "../components/GameDetails";
-import { gameDetails, gameYear } from "../lib/games";
-import { catalogGames, loadSteamCatalog } from "../lib/steamCatalog";
+import {
+  CriticReviews,
+  GameFacts,
+  GameLinks,
+  PcRequirements,
+  Screens,
+} from "../components/GameDetails";
+import {
+  ageRatings,
+  gameDetails,
+  gameTypeLabel,
+  imageUrl,
+  platformIds,
+  ru,
+  russianSupport,
+  seriesGames,
+  shelves,
+  steamAppId,
+  timeToBeat,
+  toSummary,
+  type GameSummary,
+  type RawGame,
+} from "../lib/igdb";
+import { ageLabels, platformList, tierOf } from "../lib/gameFacts";
+import {
+  openCritic,
+  steamApp,
+  type OpenCritic,
+  type SteamApp,
+} from "../lib/api";
+import { toggleMyPlatform, useMyPlatforms } from "../lib/myPlatforms";
+import { migrateGameLibrary } from "../lib/gameMigration";
+import { votesShort } from "../lib/titleFacts";
+import type { Video } from "../lib/tmdb";
+
+function Banner({ game }: { game: GameSummary }) {
+  return (
+    <Link
+      to={`/games/${game.id}`}
+      className={`${CARD} relative mb-10 flex items-end gap-4 overflow-hidden p-4 sm:p-6`}
+    >
+      {game.cover ? (
+        <img
+          src={imageUrl(game.cover, "cover_big")}
+          alt=""
+          className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-2xl"
+        />
+      ) : null}
+      <div className="absolute inset-0 bg-gradient-to-t from-card via-card/60 to-transparent" />
+      {game.cover ? (
+        <img
+          src={imageUrl(game.cover, "cover_big")}
+          alt=""
+          className="relative w-24 shrink-0 rounded-xl border border-hairline shadow-[0_12px_30px_rgba(0,0,0,0.6)] sm:w-32"
+        />
+      ) : null}
+      <div className="relative min-w-0 pb-1">
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
+          сейчас обсуждают
+        </p>
+        <p className="mt-1 text-2xl leading-tight tracking-tight sm:text-3xl">
+          {game.name}
+        </p>
+        <p className="mt-1 text-sm text-mute">
+          {[game.genres.slice(0, 2).join(", "), game.year]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+      </div>
+    </Link>
+  );
+}
 
 export function GamesPage() {
-  const catalog = useAsync(() => loadSteamCatalog(), []);
-  if (catalog.error && !catalog.data) return <ErrorBox code={catalog.error} />;
-  if (!catalog.data) return <p className="text-sm text-mute">Загрузка…</p>;
-
-  const popular = catalogGames(catalog.data, catalog.data.popular);
-  const playing = catalogGames(catalog.data, catalog.data.playing);
-  const upcoming = catalogGames(catalog.data, catalog.data.upcoming);
-  const top = catalogGames(catalog.data, catalog.data.top);
-  const lead = popular[0] || playing[0];
-
+  const mine = useMyPlatforms();
+  const ids = platformIds(mine);
+  const feed = useAsync(() => shelves(ids), [ids.join()]);
+  useEffect(() => {
+    migrateGameLibrary();
+  }, []);
+  const data = feed.data;
   return (
     <div className="rise">
-      {lead ? (
-        <Link
-          to={`/games/${lead.id}`}
-          className="relative mb-10 block overflow-hidden rounded-2xl border border-hairline bg-card"
-        >
-          <GamePoster
-            id={lead.id}
-            fallback={lead.thumbnail}
-            poster={lead.poster}
-            hero
-            className="aspect-video w-full object-cover sm:aspect-[21/9]"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
-              самое популярное
-            </p>
-            <p className="mt-1 max-w-[70%] text-2xl tracking-tight text-white sm:text-3xl">
-              {lead.title}
-            </p>
-          </div>
-          <GameScores
-            id={lead.id}
-            metacritic={lead.metacritic}
-            steam={lead.steam}
-          />
-        </Link>
+      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
+        игры
+      </p>
+      <h1 className="mt-1 text-3xl tracking-tight">Что поиграть</h1>
+      <div className="mb-8 mt-4">
+        <PlatformPicker value={mine} onToggle={toggleMyPlatform} />
+      </div>
+      {feed.error && !data ? <GameError code={feed.error} /> : null}
+      {feed.loading && !data ? (
+        <p role="status" className="text-sm text-mute">
+          Собираю игры для твоих платформ…
+        </p>
       ) : null}
-      <GameRow title="Самое популярное" items={popular} />
-      <GameRow title="Сейчас играют" items={playing.slice(0, 20)} />
-      <GameRow title="Скоро выходит" items={upcoming} />
-      <GameRow title="Топ 100" items={top} />
+      {data ? (
+        <>
+          {data.popular[0] ? <Banner game={data.popular[0]} /> : null}
+          <GameShelf title="Популярное сейчас" games={data.popular.slice(1)} />
+          <GameShelf title="Новинки" games={data.fresh} />
+          <GameShelf title="Скоро выйдут" games={data.soon} dated />
+          <GameShelf
+            title="Лучшие за год"
+            games={data.best}
+            aside={
+              <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-dim">
+                по критикам
+              </span>
+            }
+          />
+        </>
+      ) : null}
     </div>
+  );
+}
+
+/* ------------------------------------------------------------ game page */
+
+function metascoreColor(score: number) {
+  if (score >= 75) return "#66cc33";
+  if (score >= 50) return "#ffcc33";
+  return "#ff4d4d";
+}
+
+function videosOf(game: RawGame): Video[] {
+  return (game.videos ?? [])
+    .filter((v) => v.video_id)
+    .map((v) => ({
+      key: v.video_id!,
+      site: "YouTube",
+      name: v.name || "Видео",
+      type: /teaser/i.test(v.name || "")
+        ? "Teaser"
+        : /trailer/i.test(v.name || "")
+          ? "Trailer"
+          : "",
+      official: true,
+    }));
+}
+
+/** Loads a side source; undefined while loading, null when it has nothing. */
+function useSide<T>(load: (() => Promise<T>) | null, key: unknown[]) {
+  const [value, setValue] = useState<T | null | undefined>(undefined);
+  useEffect(() => {
+    let alive = true;
+    setValue(load ? undefined : null);
+    load?.()
+      .then((v) => alive && setValue(v ?? null))
+      .catch(() => alive && setValue(null));
+    return () => {
+      alive = false;
+    };
+  }, key);
+  return value;
+}
+
+function Related({ title, games }: { title: string; games?: RawGame[] }) {
+  const list = (games ?? []).filter((g) => g?.name).map(toSummary);
+  return <GameShelf title={title} games={list} />;
+}
+
+function Series({ game }: { game: RawGame }) {
+  const collection = game.collections?.[0];
+  const list = useAsync(
+    () =>
+      collection?.id
+        ? seriesGames(collection.id, game.id)
+        : Promise.resolve([]),
+    [collection?.id, game.id],
+  );
+  if (!collection || !list.data?.length) return null;
+  return (
+    <GameShelf
+      title={`Серия «${collection.name}»`}
+      games={list.data}
+      aside={<Aside>{list.data.length + 1} игр</Aside>}
+    />
   );
 }
 
 export function GamePage() {
   const { id = "" } = useParams();
   const gameId = Number(id);
-  const remote = useAsync(() => gameDetails(gameId), [gameId]);
-  const item = remote.data?.id === gameId ? remote.data : null;
-  if (!item && remote.loading)
+  const query = useAsync(() => gameDetails(gameId), [gameId]);
+  const game = query.data?.id === gameId ? query.data : null;
+  const year = game?.first_release_date
+    ? new Date(game.first_release_date * 1000).getUTCFullYear()
+    : null;
+  const steamId = game ? steamAppId(game) : null;
+  const steam = useSide<SteamApp>(
+    game && steamId ? () => steamApp(steamId) : null,
+    [game?.id, steamId],
+  );
+  const oc = useSide<OpenCritic>(
+    game ? () => openCritic(game.name, year) : null,
+    [game?.id],
+  );
+  const ages = useSide(game ? () => ageRatings(game.id) : null, [game?.id]);
+  const russian = useSide(game ? () => russianSupport(game.id) : null, [
+    game?.id,
+  ]);
+  const ttb = useSide(game ? () => timeToBeat(game.id) : null, [game?.id]);
+  useEffect(() => {
+    migrateGameLibrary();
+  }, []);
+
+  if (!game && query.loading)
     return (
       <p role="status" className="text-sm text-mute">
-        Загружаю игру…
+        Собираю карточку игры…
       </p>
     );
-  if (!item)
+  if (!game)
     return (
       <div className="space-y-4">
-        <ErrorBox code={remote.error || "HTTP_404"} />
-        <button
-          className="rounded-full border border-hairline px-4 py-2"
-          onClick={() => window.location.reload()}
-        >
-          Повторить загрузку
-        </button>
+        <GameError code={query.error || "HTTP_404"} />
         <Link className="block text-accent" to="/games/search">
           К поиску игр
         </Link>
       </div>
     );
+
+  const summary = toSummary(game);
+  const cover = imageUrl(game.cover?.image_id, "cover_big");
+  const backdrop =
+    game.artworks?.[0]?.image_id || game.screenshots?.[0]?.image_id;
+  const released = game.first_release_date ?? null;
+  const upcoming = released !== null && released * 1000 > Date.now();
+  const type = gameTypeLabel(game.game_type);
+  const ageList = ageLabels(ages ?? []);
+  const genres = [...(game.genres ?? []), ...(game.themes ?? [])]
+    .map((g) => ru(g.name))
+    .filter((g, i, all) => g && all.indexOf(g) === i);
+  const platforms = platformList(game);
+  const ocFound = oc?.found ? oc : null;
+  const steamPercent =
+    steam?.reviews && steam.reviews.total
+      ? Math.round((steam.reviews.positive / steam.reviews.total) * 100)
+      : null;
+
+  const tiles: Tile[] = [
+    {
+      label: "OpenCritic",
+      title: "OpenCritic — средняя оценка ведущих критиков",
+      value:
+        oc === undefined
+          ? undefined
+          : ocFound?.score != null
+            ? String(ocFound.score)
+            : null,
+      sub: ocFound
+        ? tierOf(ocFound.tier).label || `${ocFound.reviews} рец.`
+        : null,
+      color: tierOf(ocFound?.tier ?? null).color,
+      href: ocFound?.url,
+    },
+    {
+      label: "Metacritic",
+      title: "Metascore — сводная оценка критиков",
+      value:
+        steamId && steam === undefined
+          ? undefined
+          : steam?.metacritic
+            ? String(steam.metacritic.score)
+            : null,
+      sub: "критики",
+      color: metascoreColor(steam?.metacritic?.score ?? 0),
+      href: steam?.metacritic?.url,
+    },
+    {
+      label: "Steam",
+      title: "Доля положительных отзывов в Steam",
+      value:
+        steamId && steam === undefined
+          ? undefined
+          : steamPercent !== null
+            ? `${steamPercent}%`
+            : null,
+      sub: votesShort(steam?.reviews?.total),
+      color: steamPercent !== null && steamPercent < 70 ? "#c9a227" : "#66c0f4",
+      href: steamId
+        ? `https://store.steampowered.com/app/${steamId}/#app_reviews_hash`
+        : undefined,
+    },
+    summary.users !== null
+      ? {
+          label: "Игроки",
+          title: "Оценка игроков IGDB",
+          value: summary.users.toFixed(1),
+          sub: votesShort(game.rating_count),
+          color: "#9147ff",
+          href: `https://www.igdb.com/games/${game.slug || game.id}`,
+        }
+      : {
+          label: "Критики",
+          title: "Средняя оценка критиков по данным IGDB",
+          value:
+            summary.critics !== null && !ocFound?.score
+              ? String(summary.critics)
+              : null,
+          sub: votesShort(game.aggregated_rating_count),
+          color: "#9147ff",
+          href: `https://www.igdb.com/games/${game.slug || game.id}`,
+        },
+  ];
+
+  const about = steam?.about || steam?.short || "";
+  const english = !about && (game.summary || game.storyline);
+
   return (
-    <div className="rise">
-      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
-        {item.genre}
-      </p>
-      <div className="mt-1 flex items-start justify-between gap-3">
-        <h1 className="text-3xl tracking-tight">{item.title}</h1>
-        <ShareButton
-          title={item.title}
-          path={`/games/${item.id}`}
-          text={`«${item.title}»${gameYear(item) ? ` (${gameYear(item)})` : ""}. Смотри в Umbra:`}
-        />
-      </div>
-      <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
-        {item.platform}
-        {gameYear(item) ? ` · ${gameYear(item)}` : ""}
-      </p>
-      {item.developer ? (
-        <Link
-          to={`/games/studio/${encodeURIComponent(item.developer)}`}
-          className="mt-3 inline-flex rounded-full border border-accent/50 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-accent"
+    <article className="rise pb-8">
+      <header className={`${CARD} relative overflow-hidden rounded-3xl`}>
+        <div
+          className={`relative ${backdrop ? "h-52 sm:h-80" : cover ? "h-28 sm:h-36" : "h-16"}`}
         >
-          {item.developer}
-        </Link>
-      ) : null}
-      <GameScoreLine
-        id={item.id}
-        metacritic={item.metacritic}
-        steam={item.steam}
-      />
-      <GamePoster
-        hero
-        id={item.id}
-        fallback={item.thumbnail}
-        poster={item.poster}
-        className="mt-6 aspect-video w-full rounded-2xl border border-hairline object-cover"
-      />
-      <GameMark key={item.id} game={item} />
-      <GameFacts game={item} />
-      <section className="mt-8">
-        <h2 className="text-xl">Об игре</h2>
-        <p className="mt-3 max-w-3xl whitespace-pre-line text-sm leading-relaxed text-mute">
-          {item.description ||
-            item.short_description ||
-            "Описание пока недоступно."}
-        </p>
-      </section>
-      <section className="mt-8">
-        <h2 className="text-xl">Скриншоты</h2>
-        {item.screenshots?.length ? (
-          <div className="row-scroll mt-3 flex gap-3 overflow-x-auto pb-2">
-            {item.screenshots.map((shot, index) => (
-              <a
-                key={shot.id}
-                href={shot.full || shot.image}
-                target="_blank"
-                rel="noreferrer"
-                className="shrink-0"
-              >
-                <img
-                  src={shot.image}
-                  alt={`${item.title} — скриншот ${index + 1}`}
-                  className="aspect-video w-72 rounded-xl border border-hairline object-cover"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </a>
-            ))}
+          {backdrop ? (
+            <img
+              src={imageUrl(backdrop, "screenshot_huge")}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="h-full bg-canvas-soft" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-card via-card/50 to-transparent" />
+          <div className="absolute right-3 top-3">
+            <ShareButton
+              title={game.name}
+              path={`/games/${game.id}`}
+              text={`«${game.name}»${year ? ` (${year})` : ""}${ocFound?.score ? ` — OpenCritic ${ocFound.score}` : ""}. Смотри в Umbra:`}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md hover:bg-black/70"
+            />
           </div>
-        ) : (
-          <p className="mt-3 text-sm text-mute">Скриншоты пока недоступны.</p>
-        )}
-      </section>
-      <GameOffers game={item} />
-      {item.requirements ? (
-        <details className="mt-8 rounded-xl border border-hairline p-4">
-          <summary className="cursor-pointer">
-            Минимальные требования для PC
-          </summary>
-          <p className="mt-3 whitespace-pre-line text-sm text-mute">
-            {item.requirements}
-          </p>
-        </details>
+        </div>
+        <div
+          className={`relative flex items-end gap-4 px-4 sm:px-6 ${backdrop ? "-mt-20 sm:-mt-28" : cover ? "-mt-16 sm:-mt-20" : "-mt-4"}`}
+        >
+          {cover ? (
+            <img
+              src={cover}
+              alt=""
+              className="w-24 shrink-0 rounded-xl border border-hairline shadow-[0_12px_30px_rgba(0,0,0,0.6)] sm:w-36"
+            />
+          ) : null}
+          <div className="min-w-0 flex-1 pb-0.5">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
+              {type || "игра"}
+              {year ? ` · ${year}` : ""}
+            </p>
+            <h1 className="mt-1 text-2xl leading-tight tracking-tight sm:text-4xl">
+              {game.name}
+            </h1>
+            {game.parent_game?.name ? (
+              <Link
+                to={`/games/${game.parent_game.id}`}
+                className="mt-0.5 block truncate text-sm text-dim hover:text-ink"
+              >
+                к игре «{game.parent_game.name}»
+              </Link>
+            ) : null}
+          </div>
+        </div>
+        <div className="px-4 pb-5 pt-4 sm:px-6">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-2 text-sm text-mute">
+            {ageList[0] ? (
+              <span
+                title="Возрастной рейтинг"
+                className="rounded border border-mute/60 px-1.5 font-mono text-xs text-ink"
+              >
+                {ageList[0]}
+              </span>
+            ) : null}
+            {platforms.length ? <span>{platforms.join(" · ")}</span> : null}
+            {upcoming ? (
+              <span className="text-accent">
+                · выходит {releaseLabel(released)}
+              </span>
+            ) : null}
+          </div>
+          {genres.length ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {genres.map((g) => (
+                <span
+                  key={g}
+                  className="rounded-full border border-hairline px-2.5 py-1 text-xs text-mute"
+                >
+                  {g}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </header>
+
+      <RatingsStrip tiles={tiles} />
+
+      <GameMark
+        key={game.id}
+        game={{
+          id: game.id,
+          title: game.name,
+          thumbnail: imageUrl(game.cover?.image_id, "cover_big"),
+          year: year ? String(year) : "",
+          genre: genres[0] || "",
+        }}
+      />
+
+      {about ? <Overview text={about} /> : null}
+      {english ? (
+        <>
+          <Overview text={english} />
+          <p className="mt-1 text-xs text-dim">Описание IGDB · на английском</p>
+        </>
       ) : null}
-      <a
-        href={item.game_url}
-        target="_blank"
-        rel="noreferrer"
-        className="mt-6 inline-flex h-10 items-center rounded-full bg-accent px-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[#1a1008]"
-      >
-        {item.game_url.includes("store.steampowered.com/")
-          ? "Открыть Steam"
-          : "Страница в источнике"}
-      </a>
-    </div>
+
+      <Videos videos={videosOf(game)} />
+      <Screens game={game} />
+      <GameFacts
+        game={game}
+        ages={ageList}
+        russian={russian ?? null}
+        ttb={ttb ?? null}
+        steam={steam ?? null}
+      />
+      <CriticReviews oc={oc} />
+      <GameLinks game={game} steamId={steamId} />
+      <div className="mt-10">
+        <Related
+          title="Дополнения"
+          games={[...(game.expansions ?? []), ...(game.dlcs ?? [])]}
+        />
+        <Series game={game} />
+        <Related
+          title="Ремейки и ремастеры"
+          games={[...(game.remakes ?? []), ...(game.remasters ?? [])]}
+        />
+        <Related title="Похожие игры" games={game.similar_games} />
+      </div>
+      <PcRequirements steam={steam ?? null} />
+    </article>
   );
 }

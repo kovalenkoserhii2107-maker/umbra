@@ -1,57 +1,115 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { Empty, ErrorBox, useAsync } from "../components";
-import { GameCard, GameRow } from "../components/GameCard";
-import { useGameLibrary } from "../lib/gameLibrary";
-import { GAME_PLATFORMS, gamePlatform, platformGiveaways } from "../lib/games";
-import { catalogGames, loadSteamCatalog } from "../lib/steamCatalog";
-import { consoleGames, loadConsoleCatalog } from "../lib/consoleCatalog";
+import { useEffect, useState } from "react";
+import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
+import { Empty, useAsync } from "../components";
+import { CARD } from "../components/TitleDetails";
 import {
-  GAME_GENRES,
-  defaultGameFilters,
-  filterGames,
-  gamePool,
-  popularityRank,
-  type GameFilters,
-  type GamePlatformFilter,
-  type GameSort,
-} from "../lib/gameSearch";
-import { studioInfo, type StudioInfo } from "../lib/studioInfo";
+  GameError,
+  GameGrid,
+  GameShelf,
+  GameTile,
+  PlatformPicker,
+} from "../components/GameTile";
+import { useGameLibrary } from "../lib/gameLibrary";
+import { migrateGameLibrary } from "../lib/gameMigration";
+import { GIVEAWAY_PLATFORMS, platformGiveaways } from "../lib/games";
+import {
+  GENRE_FILTERS,
+  PLATFORM_GROUPS,
+  companyGames,
+  companyIdByName,
+  imageUrl,
+  platformGroup,
+  platformIds,
+  searchGames,
+  shelves,
+  type GameSummary,
+  type PlatformGroupId,
+  type SearchSort,
+} from "../lib/igdb";
+import { toggleMyPlatform, useMyPlatforms } from "../lib/myPlatforms";
 
-const GAME_YEARS = Array.from({ length: 36 }, (_, i) =>
-  String(new Date().getFullYear() - i),
+const YEARS = Array.from(
+  { length: 30 },
+  (_, i) => new Date().getFullYear() + 1 - i,
 );
-const GAME_SCORES = [0, 5, 6, 7, 8, 9];
+const CRITICS = [0, 70, 80, 90];
+
+function chip(active: boolean) {
+  return active
+    ? "shrink-0 rounded-full border border-ink bg-ink px-3 py-1 text-xs text-canvas"
+    : "shrink-0 rounded-full border border-hairline px-3 py-1 text-xs text-mute";
+}
+
+/** Waits for the user to stop typing before asking IGDB. */
+function useDebounced<T>(value: T, ms: number) {
+  const [current, setCurrent] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setCurrent(value), ms);
+    return () => clearTimeout(timer);
+  }, [value, ms]);
+  return current;
+}
 
 export function GameSearchPage() {
-  const [query, setQuery] = useState("");
-  const deferredQuery = useDeferredValue(query);
-  const [filters, setFilters] = useState<GameFilters>(defaultGameFilters);
-  const [limit, setLimit] = useState(40);
-  const steam = useAsync(() => loadSteamCatalog(), []);
-  const consoles = useAsync(() => loadConsoleCatalog(), []);
-  const pool = useMemo(
-    () => gamePool(steam.data, consoles.data),
-    [steam.data, consoles.data],
-  );
-  const rank = useMemo(
-    () => popularityRank(steam.data, consoles.data),
-    [steam.data, consoles.data],
-  );
-  const shown = useMemo(
-    () => filterGames(pool, deferredQuery, filters, rank),
-    [pool, deferredQuery, filters, rank],
-  );
+  const mine = useMyPlatforms();
+  const [params] = useSearchParams();
+  const [query, setQuery] = useState(params.get("q") || "");
+  const text = useDebounced(query.trim(), 350);
+  const [groups, setGroups] = useState<PlatformGroupId[]>(mine);
+  const [genre, setGenre] = useState<string | null>(null);
+  const [year, setYear] = useState<number | null>(null);
+  const [minCritics, setMinCritics] = useState(0);
+  const [sort, setSort] = useState<SearchSort>("relevance");
+  const [pages, setPages] = useState<GameSummary[][]>([]);
+  const [more, setMore] = useState(false);
+  const [state, setState] = useState<{ loading: boolean; error: string }>({
+    loading: true,
+    error: "",
+  });
+  const filters = {
+    platforms: platformIds(groups),
+    genre,
+    year,
+    minCritics,
+    sort: text ? sort : sort === "relevance" ? "popular" : sort,
+  } as const;
+  const key = JSON.stringify([text, filters]);
 
   useEffect(() => {
-    setLimit(40);
-  }, [query, filters]);
+    let alive = true;
+    setState({ loading: true, error: "" });
+    setPages([]);
+    searchGames(text, { ...filters }, 0)
+      .then((r) => {
+        if (!alive) return;
+        setPages([r.list]);
+        setMore(r.more);
+        setState({ loading: false, error: "" });
+      })
+      .catch(
+        (e: Error) => alive && setState({ loading: false, error: e.message }),
+      );
+    return () => {
+      alive = false;
+    };
+  }, [key]);
 
-  function chip(active: boolean) {
-    return active
-      ? "shrink-0 rounded-full border border-ink bg-ink px-3 py-1 text-xs text-canvas"
-      : "shrink-0 rounded-full border border-hairline px-3 py-1 text-xs text-mute";
+  function loadMore() {
+    const offset = pages.reduce((n, p) => n + p.length, 0);
+    setState({ loading: true, error: "" });
+    searchGames(text, { ...filters }, offset)
+      .then((r) => {
+        setPages((p) => [...p, r.list]);
+        setMore(r.more);
+        setState({ loading: false, error: "" });
+      })
+      .catch((e: Error) => setState({ loading: false, error: e.message }));
   }
+
+  const seen = new Set<number>();
+  const shown = pages
+    .flat()
+    .filter((g) => (seen.has(g.id) ? false : (seen.add(g.id), true)));
 
   return (
     <div className="rise">
@@ -62,387 +120,341 @@ export function GameSearchPage() {
       <input
         value={query}
         onChange={(event) => setQuery(event.target.value)}
-        placeholder="Название, жанр, студия"
+        placeholder="Название игры"
+        aria-label="Название игры"
         className="mt-6 w-full rounded-full border border-hairline bg-card px-4 py-3 text-sm outline-none placeholder:text-dim focus:border-accent/60"
       />
       <div className="mt-5 space-y-3">
+        <PlatformPicker
+          label="Платформы"
+          value={groups}
+          onToggle={(id) =>
+            setGroups((current) =>
+              current.includes(id)
+                ? current.filter((g) => g !== id)
+                : [...current, id],
+            )
+          }
+        />
         <div className="flex flex-wrap gap-2">
           {(
             [
-              ["all", "Всё"],
-              ["pc", "PC"],
-              ["playstation", "PlayStation"],
-              ["xbox", "Xbox"],
-              ["nintendo", "Switch"],
-            ] as Array<[GamePlatformFilter, string]>
+              ["relevance", text ? "По смыслу" : "Популярные"],
+              ...(text ? [["popular", "Популярные"]] : []),
+              ["rating", "Оценка критиков"],
+              ["new", "Новые"],
+            ] as Array<[SearchSort, string]>
           ).map(([id, label]) => (
             <button
               key={id}
-              className={chip(filters.platform === id)}
-              onClick={() =>
-                setFilters((current) => ({ ...current, platform: id }))
-              }
+              className={chip(sort === id)}
+              onClick={() => setSort(id)}
             >
               {label}
             </button>
           ))}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {(
-            [
-              ["relevance", "По смыслу"],
-              ["popular", "Популярные"],
-              ["rating", "Рейтинг"],
-              ["year", "Новизна"],
-            ] as Array<[GameSort, string]>
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              className={chip(filters.sort === id)}
-              onClick={() =>
-                setFilters((current) => ({ ...current, sort: id }))
-              }
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {GAME_SCORES.map((score) => (
+          {CRITICS.map((score) => (
             <button
               key={score}
-              className={chip(filters.minScore === score)}
-              onClick={() =>
-                setFilters((current) => ({ ...current, minScore: score }))
-              }
+              className={chip(minCritics === score)}
+              onClick={() => setMinCritics(score)}
             >
-              {score === 0 ? "Любой рейтинг" : `${score}+`}
+              {score ? `Критики ${score}+` : "Любая оценка"}
             </button>
           ))}
         </div>
         <div className="row-scroll flex gap-2 overflow-x-auto pb-1">
-          <button
-            className={chip(!filters.year)}
-            onClick={() => setFilters((current) => ({ ...current, year: "" }))}
-          >
-            Любой год
-          </button>
-          {GAME_YEARS.map((year) => (
-            <button
-              key={year}
-              className={chip(filters.year === year)}
-              onClick={() => setFilters((current) => ({ ...current, year }))}
-            >
-              {year}
-            </button>
-          ))}
-        </div>
-        <div className="row-scroll flex gap-2 overflow-x-auto pb-1">
-          <button
-            className={chip(!filters.genre)}
-            onClick={() =>
-              setFilters((current) => ({ ...current, genre: null }))
-            }
-          >
+          <button className={chip(!genre)} onClick={() => setGenre(null)}>
             Все жанры
           </button>
-          {GAME_GENRES.map((genre) => (
+          {GENRE_FILTERS.map((g) => (
             <button
-              key={genre.id}
-              className={chip(filters.genre === genre.id)}
-              onClick={() =>
-                setFilters((current) => ({ ...current, genre: genre.id }))
-              }
+              key={g.id}
+              className={chip(genre === g.id)}
+              onClick={() => setGenre(g.id)}
             >
-              {genre.label}
+              {g.label}
+            </button>
+          ))}
+        </div>
+        <div className="row-scroll flex gap-2 overflow-x-auto pb-1">
+          <button className={chip(!year)} onClick={() => setYear(null)}>
+            Любой год
+          </button>
+          {YEARS.map((y) => (
+            <button
+              key={y}
+              className={chip(year === y)}
+              onClick={() => setYear(y)}
+            >
+              {y}
             </button>
           ))}
         </div>
       </div>
-      {steam.error && !steam.data ? (
-        <div className="mt-6">
-          <ErrorBox code={steam.error} />
-        </div>
-      ) : null}
-      {!steam.data && !steam.error ? (
-        <p className="mt-6 text-sm text-mute">Ищу…</p>
-      ) : shown.length ? (
-        <div className="mt-6">
-          <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.16em] text-dim">
-            {shown.length} игр
+      <div className="mt-6">
+        {state.error && !shown.length ? <GameError code={state.error} /> : null}
+        {shown.length ? (
+          <>
+            <GameGrid games={shown} />
+            {more ? (
+              <div className="mt-8 flex justify-center">
+                <button
+                  onClick={loadMore}
+                  disabled={state.loading}
+                  className="rounded-full border border-hairline px-4 py-2 text-sm disabled:opacity-50"
+                >
+                  {state.loading ? "Загружаю…" : "Ещё результаты"}
+                </button>
+              </div>
+            ) : null}
+          </>
+        ) : state.loading ? (
+          <p role="status" className="text-sm text-mute">
+            Ищу…
           </p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {shown.slice(0, limit).map((game) => (
-              <GameCard key={game.id} game={game} layout="grid" />
-            ))}
-          </div>
-          {limit < shown.length ? (
-            <div className="mt-8 flex justify-center">
-              <button
-                onClick={() => setLimit((value) => value + 40)}
-                className="rounded-full border border-hairline px-4 py-2 text-sm"
-              >
-                Ещё результаты
-              </button>
-            </div>
-          ) : null}
-        </div>
-      ) : steam.data ? (
-        <Empty text="Ничего не подошло. Сбрось фильтры или измени запрос." />
-      ) : null}
+        ) : !state.error ? (
+          <Empty text="Ничего не нашлось. Измени запрос или сними часть фильтров." />
+        ) : null}
+      </div>
     </div>
   );
 }
 
 export function GamePlatformsPage() {
+  const mine = useMyPlatforms();
   return (
     <div className="rise">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
         платформы
       </p>
       <h1 className="mt-1 text-3xl tracking-tight">Где играть</h1>
+      <p className="mt-2 text-sm text-mute">
+        Отметь свои платформы: лента и поиск будут начинаться с них.
+      </p>
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
-        {GAME_PLATFORMS.map((platform) => (
-          <Link
-            key={platform.id}
-            to={`/games/platforms/${platform.id}`}
-            className="rounded-2xl border border-hairline bg-card p-5 transition hover:border-accent/40"
-          >
-            <div className="flex items-center justify-between">
-              <span className="font-mono text-[11px] tracking-[0.16em] text-dim">
-                {platform.short}
-              </span>
-              <span
-                className="h-2 w-2 rounded-full"
-                style={{ background: platform.tint }}
-              />
+        {PLATFORM_GROUPS.map((p) => {
+          const on = mine.includes(p.id);
+          return (
+            <div key={p.id} className={`${CARD} p-5`}>
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[11px] tracking-[0.16em] text-dim">
+                  {p.full}
+                </span>
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ background: p.tint }}
+                />
+              </div>
+              <Link
+                to={`/games/platforms/${p.id}`}
+                className="mt-6 block text-2xl tracking-tight hover:text-accent"
+              >
+                {p.name} →
+              </Link>
+              <button
+                type="button"
+                aria-pressed={on}
+                onClick={() => toggleMyPlatform(p.id)}
+                className={`mt-4 rounded-full border px-3 py-1 text-xs ${on ? "border-ink bg-ink text-canvas" : "border-hairline text-mute"}`}
+              >
+                {on ? "✓ Моя платформа" : "Добавить в мои"}
+              </button>
             </div>
-            <h2 className="mt-6 text-2xl tracking-tight">{platform.name}</h2>
-          </Link>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 }
 
+function Giveaways({ platform }: { platform: string }) {
+  const drops = useAsync(
+    () => platformGiveaways(GIVEAWAY_PLATFORMS[platform] ?? []),
+    [platform],
+  );
+  return (
+    <section className="mb-10">
+      <h2 className="mb-3 text-lg font-medium tracking-tight">
+        Сейчас раздают
+      </h2>
+      {drops.loading ? (
+        <p role="status" className="text-sm text-mute">
+          Проверяю раздачи…
+        </p>
+      ) : drops.error ? (
+        <p className="text-sm text-mute">
+          Не удалось проверить раздачи. Попробуй позже.
+        </p>
+      ) : drops.data?.length ? (
+        <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
+          {drops.data.map((item) => (
+            <a
+              key={item.id}
+              href={item.open_giveaway_url}
+              target="_blank"
+              rel="noreferrer"
+              className="block w-[68vw] shrink-0 sm:w-72"
+            >
+              <div className="overflow-hidden rounded-xl border border-hairline bg-card">
+                <img
+                  src={item.thumbnail || item.image}
+                  alt=""
+                  loading="lazy"
+                  className="aspect-video w-full object-cover"
+                />
+              </div>
+              <p className="mt-2 line-clamp-2 text-sm">{item.title}</p>
+              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
+                {item.type === "DLC" ? "дополнение" : "раздача"}
+                {item.end_date && item.end_date !== "N/A"
+                  ? ` · до ${item.end_date.slice(8, 10)}.${item.end_date.slice(5, 7)}`
+                  : ""}
+              </p>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-mute">Сейчас раздач нет.</p>
+      )}
+    </section>
+  );
+}
+
 export function GamePlatformPage() {
   const { id = "" } = useParams();
-  const platform = gamePlatform(id);
-  const catalog = useAsync(
-    () => (id === "pc" ? loadSteamCatalog() : Promise.resolve(null)),
+  const platform = platformGroup(id);
+  const feed = useAsync(
+    () => (platform ? shelves([...platform.ids]) : Promise.resolve(null)),
     [id],
   );
-  const consoles = useAsync(
-    () =>
-      id === "playstation" || id === "xbox" || id === "nintendo"
-        ? loadConsoleCatalog()
-        : Promise.resolve(null),
-    [id],
-  );
-  const drops = useAsync(
-    () =>
-      platform
-        ? platformGiveaways(
-            id === "pc"
-              ? ["steam", "pc"]
-              : id === "playstation"
-                ? ["ps4", "ps5"]
-                : id === "xbox"
-                  ? ["xbox-one", "xbox-series-xs"]
-                  : ["switch"],
-          )
-        : Promise.resolve([]),
-    [id, platform?.id],
-  );
-
   if (!platform)
     return <p className="text-sm text-mute">Платформа не найдена.</p>;
-
+  const data = feed.data;
   return (
     <div className="rise">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
-        {platform.short}
+        {platform.full}
       </p>
-      <h1 className="mt-1 mb-8 text-3xl tracking-tight">{platform.name}</h1>
-      {(id === "pc" ? catalog.loading : consoles.loading) ? (
+      <h1 className="mb-8 mt-1 text-3xl tracking-tight">{platform.name}</h1>
+      {feed.loading ? (
         <p role="status" className="mb-6 text-sm text-mute">
           Загружаю игры…
         </p>
       ) : null}
-      {(id === "pc" ? catalog.error : consoles.error) ? (
-        <ErrorBox code={(id === "pc" ? catalog.error : consoles.error)!} />
-      ) : null}
-      {id === "pc" && catalog.data ? (
+      {feed.error ? <GameError code={feed.error} /> : null}
+      {data ? (
         <>
-          <GameRow
-            title="Самое популярное"
-            items={catalogGames(catalog.data, catalog.data.popular)}
-          />
-          <GameRow
-            title="Скоро выходит"
-            items={catalogGames(catalog.data, catalog.data.upcoming)}
-          />
-          <GameRow
-            title="Топ 100"
-            items={catalogGames(catalog.data, catalog.data.top)}
-          />
+          <GameShelf title="Популярное сейчас" games={data.popular} />
+          <GameShelf title="Новинки" games={data.fresh} />
+          <GameShelf title="Скоро выйдут" games={data.soon} dated />
+          <GameShelf title="Лучшие за год" games={data.best} />
         </>
       ) : null}
-      {consoles.data &&
-      (id === "playstation" || id === "xbox" || id === "nintendo") ? (
-        <>
-          <GameRow
-            title="Самое популярное"
-            items={consoleGames(consoles.data, consoles.data[id].popular)}
-          />
-          <GameRow
-            title="Скоро выходит"
-            items={consoleGames(consoles.data, consoles.data[id].upcoming)}
-          />
-          <GameRow
-            title="Топ 100"
-            items={consoleGames(consoles.data, consoles.data[id].top)}
-          />
-        </>
-      ) : null}
-      <section className="mb-10">
-        <h2 className="mb-3 text-lg font-medium tracking-tight">
-          Сейчас раздают
-        </h2>
-        {drops.loading ? (
-          <p role="status" className="text-sm text-mute">
-            Проверяю раздачи…
-          </p>
-        ) : drops.error ? (
-          <p className="text-sm text-mute">
-            Не удалось проверить раздачи. Попробуй позже.
-          </p>
-        ) : drops.data?.length ? (
-          <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
-            {drops.data.map((item) => (
-              <a
-                key={item.id}
-                href={item.open_giveaway_url}
-                target="_blank"
-                rel="noreferrer"
-                className="block w-[68vw] shrink-0 sm:w-72"
-              >
-                <div className="overflow-hidden rounded-xl border border-hairline bg-card">
-                  <img
-                    src={item.thumbnail || item.image}
-                    alt=""
-                    className="aspect-video w-full object-cover"
-                  />
-                </div>
-                <p className="mt-2 line-clamp-2 text-sm">{item.title}</p>
-                <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
-                  раздача
-                </p>
-              </a>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-mute">Сейчас раздач нет.</p>
-        )}
-      </section>
+      <Giveaways platform={platform.id} />
     </div>
   );
 }
 
 export function StudioPage() {
   const { name = "" } = useParams();
-  const studio = name;
-  const catalog = useAsync(() => loadSteamCatalog(), []);
-  const games = catalog.data
-    ? catalogGames(
-        catalog.data,
-        catalog.data.studios?.[studio] ||
-          Object.values(catalog.data.games)
-            .filter((game) => game.developer === studio)
-            .sort(
-              (a, b) =>
-                Number(b.release_date || 0) - Number(a.release_date || 0),
-            )
-            .map((game) => game.id),
-      )
-    : [];
-  const [about, setAbout] = useState<StudioInfo | null>(null);
-  useEffect(() => {
-    let alive = true;
-    setAbout(null);
-    studioInfo(studio).then((info) => {
-      if (alive) setAbout(info);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [studio]);
-  const groups: { year: string; items: typeof games }[] = [];
-  let seenYear = false;
-  for (const game of games) {
-    const year = game.release_date || (seenYear ? "Без даты" : "Скоро");
-    if (game.release_date) seenYear = true;
-    const last = groups.at(-1);
-    if (!last || last.year !== year) groups.push({ year, items: [game] });
-    else last.items.push(game);
+  const numeric = /^\d+$/.test(name);
+  // Old links carried the studio name; they are looked up once.
+  const byName = useAsync(
+    () => (numeric ? Promise.resolve(null) : companyIdByName(name)),
+    [name],
+  );
+  const studio = useAsync(
+    () => (numeric ? companyGames(Number(name)) : Promise.resolve(null)),
+    [name],
+  );
+  if (!numeric) {
+    if (byName.data)
+      return <Navigate replace to={`/games/studio/${byName.data}`} />;
+    if (byName.loading)
+      return (
+        <p role="status" className="text-sm text-mute">
+          Ищу студию…
+        </p>
+      );
+    return <GameError code={byName.error || "HTTP_404"} />;
   }
-
+  if (studio.error) return <GameError code={studio.error} />;
+  const data = studio.data;
+  if (!data)
+    return (
+      <p role="status" className="text-sm text-mute">
+        Собираю игры студии…
+      </p>
+    );
+  const groups: Array<{ label: string; games: GameSummary[] }> = [];
+  for (const game of data.games) {
+    const label = game.year
+      ? game.released! * 1000 > Date.now()
+        ? "Скоро"
+        : String(game.year)
+      : "Без даты";
+    const last = groups.at(-1);
+    if (last?.label === label) last.games.push(game);
+    else groups.push({ label, games: [game] });
+  }
   return (
     <div className="rise">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
         студия
       </p>
-      <h1 className="mt-1 text-3xl tracking-tight">{studio}</h1>
+      <div className="mt-1 flex items-center gap-4">
+        {data.logo ? (
+          <img
+            src={imageUrl(data.logo, "logo_med")}
+            alt=""
+            className="h-14 w-14 shrink-0 rounded-xl bg-white/90 object-contain p-1"
+          />
+        ) : null}
+        <h1 className="text-3xl tracking-tight">{data.name}</h1>
+      </div>
       <p className="mt-2 text-sm text-mute">
-        {games.length
-          ? `${games.length} игр, от новых к ранним`
-          : "Собираю список…"}
+        {[
+          data.founded ? `основана в ${data.founded}` : "",
+          data.games.length ? `${data.games.length} игр` : "",
+        ]
+          .filter(Boolean)
+          .join(" · ")}
       </p>
-      {about ? (
-        <div className="mt-5 flex gap-4 rounded-2xl border border-hairline bg-card p-4">
-          {about.image ? (
-            <img
-              src={about.image}
-              alt=""
-              className="h-16 w-16 shrink-0 rounded-xl bg-canvas object-contain"
-            />
-          ) : null}
-          <div className="min-w-0">
-            {about.description ? (
-              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">
-                {about.description}
-              </p>
-            ) : null}
-            <p className="mt-2 text-sm leading-relaxed text-mute">
-              {about.extract}
-            </p>
-            {about.url ? (
-              <a
-                href={about.url}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-2 inline-block font-mono text-[11px] uppercase tracking-[0.14em] text-dim"
-              >
-                Подробнее
-              </a>
-            ) : null}
-          </div>
-        </div>
+      {data.description ? (
+        <p
+          lang="en"
+          className="mt-4 line-clamp-6 max-w-3xl text-sm leading-6 text-mute"
+        >
+          {data.description}
+        </p>
       ) : null}
-      {catalog.error && !catalog.data ? (
-        <ErrorBox code={catalog.error} />
+      {data.website ? (
+        <a
+          href={data.website}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-block font-mono text-[11px] uppercase tracking-[0.14em] text-accent"
+        >
+          Сайт студии ↗
+        </a>
       ) : null}
-      {!catalog.loading && !games.length ? (
-        <Empty text="У этой студии пока нет игр в каталоге." />
+      {!data.games.length ? (
+        <Empty text="У студии пока нет игр в IGDB." />
       ) : null}
       {groups.map((group) => (
-        <section key={group.year} className="mt-8">
+        <section key={group.label} className="mt-8">
           <h2 className="mb-3 font-mono text-[11px] uppercase tracking-[0.16em] text-dim">
-            {group.year}
+            {group.label}
           </h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {group.items.map((game) => (
-              <GameCard key={game.id} game={game} layout="grid" />
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {group.games.map((game) => (
+              <GameTile
+                key={game.id}
+                game={game}
+                layout="grid"
+                note={data.developed.has(game.id) ? undefined : "издатель"}
+              />
             ))}
           </div>
         </section>
@@ -454,6 +466,9 @@ export function StudioPage() {
 export function GameLibraryPage() {
   const items = useGameLibrary();
   const [filter, setFilter] = useState<"all" | "played" | "want">("all");
+  useEffect(() => {
+    migrateGameLibrary();
+  }, []);
   const list = items.filter((item) =>
     filter === "all" ? true : item.status === filter,
   );
@@ -468,7 +483,7 @@ export function GameLibraryPage() {
       <p className="mt-2 text-sm text-mute">
         {played} пройдено · {items.length - played} в «Хочу поиграть»
       </p>
-      <div className="mt-6 mb-6 flex flex-wrap gap-2">
+      <div className="mb-6 mt-6 flex flex-wrap gap-2">
         {(
           [
             ["all", "Все"],
@@ -496,18 +511,23 @@ export function GameLibraryPage() {
         <div className="space-y-2">
           {list.map((item) => (
             <Link
-              key={item.id}
-              to={`/games/${item.id}`}
+              key={`${item.source ?? "old"}-${item.id}`}
+              to={
+                item.source === "igdb"
+                  ? `/games/${item.id}`
+                  : `/games/search?q=${encodeURIComponent(item.title)}`
+              }
               className="flex gap-3 rounded-xl border border-hairline bg-card p-2 hover:border-accent/40"
             >
               {item.thumbnail ? (
                 <img
                   src={item.thumbnail}
                   alt=""
-                  className="h-16 w-28 rounded-lg object-cover"
+                  loading="lazy"
+                  className="h-20 w-15 shrink-0 rounded-lg object-cover"
                 />
               ) : (
-                <div className="h-16 w-28 rounded-lg bg-canvas-soft" />
+                <div className="h-20 w-15 shrink-0 rounded-lg bg-canvas-soft" />
               )}
               <div className="min-w-0 py-1">
                 <p className="truncate">{item.title}</p>

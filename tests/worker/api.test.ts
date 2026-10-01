@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { handle } from "../../worker/src/index";
 import { resetTokenForTests } from "../../worker/src/twitch";
+import { htmlToText } from "../../worker/src/steamStore";
 import type { CacheLike, Deps, Env } from "../../worker/src/env";
 
 const SITE = "https://kovalenkoserhii2107-maker.github.io";
@@ -9,6 +10,7 @@ const env: Env = {
   TWITCH_CLIENT_ID: "client-id",
   TWITCH_CLIENT_SECRET: "client-secret",
   STEAM_API_KEY: "steam",
+  OPENCRITIC_API_KEY: "rapid",
 };
 
 type Call = { url: string; init?: RequestInit };
@@ -78,7 +80,7 @@ describe("umbra-api", () => {
         igdb: true,
         twitch: true,
         itad: false,
-        opencritic: false,
+        opencritic: true,
         steam: true,
       },
     });
@@ -189,6 +191,180 @@ describe("umbra-api", () => {
         (c) => c.url === "https://api.twitch.tv/helix/games/top?first=5",
       ),
     ).toBe(true);
+  });
+
+  describe("OpenCritic", () => {
+    const reviews = [
+      {
+        score: 90,
+        npScore: 90,
+        snippet: "A triumph.",
+        externalUrl: "https://ign.example/review",
+        publishedDate: "2023-03-23T00:00:00.000Z",
+        Outlet: { name: "IGN" },
+        Authors: [{ name: "Tom" }],
+      },
+      {
+        score: 4,
+        snippet: "Recommended without doubt.",
+        externalUrl: "https://outlet.example/r",
+        Outlet: { name: "Outlet" },
+        ScoreFormat: {
+          isSelect: true,
+          options: [{ label: "Must play", val: 4 }],
+        },
+      },
+    ];
+    const respond = ({ url, init }: Call) => {
+      expect((init!.headers as Record<string, string>)["X-RapidAPI-Key"]).toBe(
+        "rapid",
+      );
+      if (url.includes("/game/search"))
+        return Response.json([
+          { id: 1, name: "Resident Evil 4", dist: 0 },
+          { id: 2, name: "Resident Evil 4", dist: 0 },
+          { id: 3, name: "Resident Evil Village", dist: 0.4 },
+        ]);
+      if (url.endsWith("/game/1"))
+        return Response.json({
+          id: 1,
+          name: "Resident Evil 4",
+          firstReleaseDate: "2005-01-11",
+          topCriticScore: 96,
+        });
+      if (url.endsWith("/game/2"))
+        return Response.json({
+          id: 2,
+          name: "Resident Evil 4",
+          firstReleaseDate: "2023-03-24T00:00:00.000Z",
+          topCriticScore: 92.4,
+          tier: "Mighty",
+          percentRecommended: 97.2,
+          numReviews: 250,
+        });
+      if (url.includes("/reviews/game/2")) return Response.json(reviews);
+      return new Response("", { status: 404 });
+    };
+
+    it("picks the release from the right year and keeps answers", async () => {
+      const { send, calls } = setup(respond);
+      const response = await send(
+        "/opencritic?name=Resident%20Evil%204&year=2023",
+      );
+      const body = await response.json();
+      expect(body).toMatchObject({
+        found: true,
+        id: 2,
+        score: 92,
+        tier: "Mighty",
+        recommended: 97,
+        reviews: 250,
+        url: "https://opencritic.com/game/2/resident-evil-4",
+      });
+      expect(body.topReviews).toEqual([
+        {
+          outlet: "IGN",
+          author: "Tom",
+          score: 90,
+          verdict: null,
+          snippet: "A triumph.",
+          url: "https://ign.example/review",
+          date: "2023-03-23",
+        },
+        expect.objectContaining({ outlet: "Outlet", verdict: "Must play" }),
+      ]);
+      const used = calls.length;
+      const again = await send(
+        "/opencritic?name=resident%20evil%204&year=2023",
+      );
+      expect(again.headers.get("X-Cache")).toBe("HIT");
+      expect(calls).toHaveLength(used);
+    });
+
+    it("says not found instead of borrowing a far match", async () => {
+      const { send } = setup(respond);
+      const body = await (
+        await send("/opencritic?name=Resident%20Evil%204&year=2015")
+      ).json();
+      expect(body).toEqual({ found: false });
+    });
+
+    it("explains a missing key and a missing name", async () => {
+      const { send } = setup(respond, {
+        env: { ...env, OPENCRITIC_API_KEY: "" },
+      });
+      const response = await send("/opencritic?name=Portal");
+      expect(response.status).toBe(503);
+      expect((await send("/opencritic?name=")).status).toBe(400);
+    });
+  });
+
+  describe("Steam store", () => {
+    it("joins the store page, reviews and players of an app", async () => {
+      const { send, calls } = setup(({ url }) => {
+        if (url.includes("appdetails"))
+          return Response.json({
+            "620": {
+              success: true,
+              data: {
+                name: "Portal 2",
+                about_the_game:
+                  "<p>Сиквел &laquo;Portal&raquo;.</p><ul><li>Кооператив</li></ul>",
+                short_description: "Головоломка",
+                header_image: "https://cdn.example/620.jpg",
+                metacritic: {
+                  score: 95,
+                  url: "https://www.metacritic.com/game/portal-2",
+                },
+                recommendations: { total: 300000 },
+                achievements: { total: 51 },
+                categories: [{ description: "Для одного игрока" }],
+                pc_requirements: {
+                  minimum: "<strong>ОС:</strong> Windows 7<br>",
+                },
+              },
+            },
+          });
+        if (url.includes("appreviews"))
+          return Response.json({
+            query_summary: {
+              review_score: 9,
+              total_positive: 98,
+              total_reviews: 100,
+            },
+          });
+        return Response.json({ response: { player_count: 4321, result: 1 } });
+      });
+      const response = await send("/steam/app/620");
+      expect(await response.json()).toEqual({
+        appId: 620,
+        name: "Portal 2",
+        about: "Сиквел «Portal».\n• Кооператив",
+        short: "Головоломка",
+        headerImage: "https://cdn.example/620.jpg",
+        metacritic: {
+          score: 95,
+          url: "https://www.metacritic.com/game/portal-2",
+        },
+        recommendations: 300000,
+        achievements: 51,
+        categories: ["Для одного игрока"],
+        requirements: { minimum: "ОС: Windows 7", recommended: "" },
+        reviews: { score: 9, positive: 98, total: 100 },
+        players: 4321,
+      });
+      expect(calls[0].url).toContain("appids=620&l=russian");
+    });
+
+    it("answers 404 for an unknown app and rejects bad ids", async () => {
+      const { send } = setup(() => Response.json({ "1": { success: false } }));
+      expect((await send("/steam/app/1")).status).toBe(404);
+      expect((await send("/steam/app/abc")).status).toBe(404);
+    });
+
+    it("turns store HTML into text", () => {
+      expect(htmlToText("a<br/>b&amp;c&#169;<b>d</b>")).toBe("a\nb&c©d");
+    });
   });
 
   describe("Steam sign-in", () => {

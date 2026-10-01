@@ -9,7 +9,9 @@ import {
   sha256,
 } from "./http";
 import { IGDB_ENDPOINTS, igdbQuery } from "./igdb";
+import { openCritic } from "./opencritic";
 import { verifySteamLogin } from "./steam";
+import { steamApp } from "./steamStore";
 import { topGames } from "./twitch";
 
 function origins(env: Env) {
@@ -73,6 +75,43 @@ async function route(
     return new Response(body, {
       headers: {
         "Content-Type": "application/json; charset=utf-8",
+        "X-Cache": hit ? "HIT" : "MISS",
+      },
+    });
+  }
+
+  if (path === "/opencritic" && request.method === "GET") {
+    const name = (url.searchParams.get("name") || "").trim();
+    if (!name || name.length > 200)
+      throw new ApiError(400, "bad_name", "Game name is required");
+    const year = Number(url.searchParams.get("year")) || null;
+    // 200 requests a day on the free plan, so answers are kept for 3 days.
+    const key = `opencritic/${await sha256(name.toLowerCase())}/${year ?? ""}`;
+    const { body, hit } = await cached(deps, key, 259200, async () =>
+      JSON.stringify(await openCritic(deps, name, year)),
+    );
+    return new Response(body, {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "public, max-age=3600",
+        "X-Cache": hit ? "HIT" : "MISS",
+      },
+    });
+  }
+
+  const app = path.match(/^\/steam\/app\/(\d{1,10})$/);
+  if (app && request.method === "GET") {
+    const appId = Number(app[1]);
+    const { body, hit } = await cached(
+      deps,
+      `steam/app/${appId}`,
+      21600,
+      async () => JSON.stringify(await steamApp(deps, appId)),
+    );
+    return new Response(body, {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "public, max-age=1800",
         "X-Cache": hit ? "HIT" : "MISS",
       },
     });

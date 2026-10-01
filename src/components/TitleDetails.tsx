@@ -76,6 +76,92 @@ export function AsideLink({
 
 export const CARD = "rounded-2xl border border-hairline bg-card";
 
+export type Tile = {
+  label: string;
+  title: string;
+  /** undefined while the source is still loading. */
+  value: string | null | undefined;
+  sub?: string | null;
+  color: string;
+  href?: string;
+};
+
+/** One row of equal tiles; a source without a score is left out. */
+export function RatingsStrip({ tiles }: { tiles: Tile[] }) {
+  const shown = tiles.filter((t) => t.value !== null);
+  if (!shown.length) return null;
+  return (
+    <div className="mt-4 flex gap-2">
+      {shown.map((t) => {
+        const body = (
+          <>
+            <span className="truncate text-[11px] font-medium text-mute">
+              {t.label}
+            </span>
+            {t.value === undefined ? (
+              <span className="mt-1.5 block h-6 w-10 animate-pulse rounded bg-hairline" />
+            ) : (
+              <span
+                className="mt-1 font-mono text-xl font-bold leading-6"
+                style={{ color: t.color }}
+              >
+                {t.value}
+              </span>
+            )}
+            <span className="mt-0.5 h-4 truncate font-mono text-[10px] text-dim">
+              {t.value ? t.sub || "" : ""}
+            </span>
+          </>
+        );
+        const className = `${CARD} flex min-w-0 flex-1 flex-col px-2.5 py-2.5 sm:px-3`;
+        return t.href ? (
+          <a
+            key={t.label}
+            href={t.href}
+            target="_blank"
+            rel="noreferrer"
+            title={t.title}
+            aria-label={`${t.title}: ${t.value ?? "загружается"}`}
+            className={`${className} hover:border-accent`}
+          >
+            {body}
+          </a>
+        ) : (
+          <div key={t.label} title={t.title} className={className}>
+            {body}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Long descriptions fold to five lines. */
+export function Overview({ text }: { text?: string }) {
+  const [open, setOpen] = useState(false);
+  if (!text) return null;
+  const long = text.length > 320;
+  return (
+    <div className="mt-8 max-w-3xl">
+      <p
+        className={`text-[15px] leading-7 text-ink/90 ${long && !open ? "line-clamp-5" : ""}`}
+      >
+        {text}
+      </p>
+      {long ? (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="mt-1 text-sm text-accent"
+        >
+          {open ? "Свернуть" : "Читать полностью"}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+
 export function AwardsLine({ omdb }: { omdb: OmdbScores | null }) {
   const text = awardsLabel(omdb?.awards);
   if (!text) return null;
@@ -232,7 +318,7 @@ export function Gallery({ item }: { item: TitleDetails }) {
   );
 }
 
-function Fact({ label, children }: { label: string; children: ReactNode }) {
+export function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="border-b border-hairline py-2.5 last:border-b-0 sm:grid sm:grid-cols-[11rem_1fr] sm:gap-4">
       <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-dim sm:pt-0.5">

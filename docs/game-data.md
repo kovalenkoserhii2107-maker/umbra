@@ -1,57 +1,42 @@
-# Game catalog and detail data
+# Game data
 
-The app serves same-origin JSON on GitHub Pages. Opening a game fetches only
-`catalog/details/{id}.json`, never FreeToGame with a Steam/console ID. A Steam
-AppID is accepted only when the provider response's `steam_appid` matches.
-Console IDs remain stable; they are never used to guess Steam image URLs.
+Games come from [IGDB](https://api-docs.igdb.com/) through the API worker
+(`worker/`), which holds the Twitch keys IGDB needs. There are no game files in
+the repository any more: the static Steam and console catalogs and the
+Metacritic page scraping were removed.
 
-`npm run dev` and `npm run build` generate `public/catalog/` from the checked-in
-catalogs and `data/game-details/`. Generated files are ignored by Git and need
-no credentials. The lightweight shelf/search indexes omit full descriptions,
-screenshots, offers and system requirements. Game catalogs and detailed files are not precached:
-only opened catalogs and visited games enter an 80-entry, one-day runtime cache. Missing entries do
-not poison the HTTP cache, so revisiting a page can retry after network failure.
+## Sources on a game page
 
-## Refresh
+| What                                                                                                                | Source                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Name, cover, art, screenshots, videos, platforms, release dates, genres, modes, studios, series, DLC, similar games | IGDB `games`                                                                            |
+| Age ratings (PEGI, ESRB…)                                                                                           | IGDB `games.age_ratings`, asked separately                                              |
+| Russian interface, subtitles, voice                                                                                 | IGDB `language_supports`                                                                |
+| Time to beat                                                                                                        | IGDB `game_time_to_beats`                                                               |
+| OpenCritic score, tier, reviews                                                                                     | worker `/opencritic` (RapidAPI)                                                         |
+| Russian description, Metascore, Steam reviews, achievements, players, PC requirements                               | worker `/steam/app/:id`, when IGDB knows the Steam app                                  |
+| Store links                                                                                                         | IGDB websites; PlayStation Store, Microsoft Store and eShop fall back to a store search |
 
-Run `npm run data:refresh` to refresh existing Steam catalog IDs using Steam
-Store, Steam review summaries, Steam current-player counts and CheapShark.
-The script identifies itself, limits concurrency, applies timeouts, honours
-Retry-After, and stops requesting a rate-limited comparison provider for the
-rest of the run. Other providers can continue. Successful snapshots are written
-individually so interruption is recoverable. Recently refreshed files are skipped
-for 24 hours. `GAME_DATA_LIMIT=20 npm run data:refresh` is useful for a small run;
-`GAME_DATA_FORCE=1 npm run data:refresh` explicitly refreshes recent snapshots.
-Review the data diff, run tests/build, and deploy through the normal Pages workflow.
-Refresh is explicit, not an unconfigured automatic background service.
+Every side source loads on its own; a source that fails or has no data is
+simply not shown. Queries ask only for long-stable IGDB fields in the main
+request, so a change in a newer field cannot break the whole page.
 
-Steam offers are collected for country UA with the provider's actual currency.
-CheapShark offers are US/USD and always link through its required deal redirect.
-Offer timestamps travel with each price; a failed comparison request preserves
-previous offers with their original timestamps. Missing price does not mean free.
-Steam prices and availability may differ by account and country at checkout.
+## Platforms
 
-Steam percentage uses all reviews (`purchase_type=all`), including key activations,
-with its review count. The detail page states this methodology: it may differ
-from the storefront score, which only counts eligible Steam purchases.
-Metacritic is a separate critic score. Missing scores stay missing. Current
-Steam player count is a timestamped snapshot, not the maximum number of players
-in a session. Supported modes are shown separately; unknown session limits are
-not inferred. Console-only games do not get fictional Steam scores or PC prices.
+The four groups are PC (6), PlayStation 5 and 4 (167, 48), Xbox Series and One
+(169, 49) and Nintendo Switch 2 and Switch (508, 130). "Мои платформы" is kept
+in `localStorage` (`umbra.gamePlatforms`); the feed and search start from it.
 
-Console games may reuse Steam details only when exactly one catalog title matches
-(normalizing punctuation/trademarks). Their own description, platform and
-Metacritic score remain authoritative. Reused modes, screenshots and offers are
-explicitly labelled as PC data; this does not claim console feature/price parity.
-Console-only screenshots/prices and exact session limits require another verified
-provider and currently show an explicit unavailable state.
+## Caching
 
-References: https://partner.steamgames.com/doc/store/getreviews and
-https://apidocs.cheapshark.com/ .
+Feed queries use the start of the current UTC day as "now", so the same query
+text repeats for a whole day and is served from the worker's edge cache. The
+client also reuses identical IGDB answers for 10 minutes, and the service
+worker caches IGDB images for two weeks.
 
-## Known separate limitation
+## Library entries from the old catalog
 
-The existing game shelf (`gameLibrary.ts`) is still device-local, unlike the
-cloud-backed movie shelf. These catalog changes do not migrate its ownership
-or promise multi-device game synchronization. Do not automatically upload that
-legacy device store into whichever account happens to sign in.
+Entries saved before the move have Steam app ids (PC) or nine-digit Metacritic
+ids (consoles). On the games pages they are matched once per session: Steam ids
+through IGDB `external_games`, the others by title. Matched entries get the
+IGDB id and `source: "igdb"`; the rest keep linking to a search by title.

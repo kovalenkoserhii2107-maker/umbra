@@ -5,7 +5,15 @@ import {
   useGameLibrary,
   type GameShelfItem,
 } from "../lib/gameLibrary";
-import { gameYear, type Game } from "../lib/games";
+
+/** What the library keeps about a game. */
+export type MarkedGame = {
+  id: number;
+  title: string;
+  thumbnail: string;
+  year: string;
+  genre: string;
+};
 
 function StarIcon() {
   return (
@@ -18,9 +26,11 @@ function StarIcon() {
   );
 }
 
-export function GameMark({ game }: { game: Game }) {
+export function GameMark({ game }: { game: MarkedGame }) {
   const items = useGameLibrary();
-  const mine = items.find((item) => item.id === game.id);
+  const mine = items.find(
+    (item) => item.id === game.id && item.source === "igdb",
+  );
   const [error, setError] = useState("");
   const [panel, setPanel] = useState(false);
   const [stars, setStars] = useState(mine?.rating ?? 0);
@@ -31,11 +41,8 @@ export function GameMark({ game }: { game: Game }) {
   function entry(patch: Pick<GameShelfItem, "status" | "rating" | "note">) {
     try {
       saveGame({
-        id: game.id,
-        title: game.title,
-        thumbnail: game.thumbnail,
-        year: gameYear(game),
-        genre: game.genre,
+        ...game,
+        source: "igdb",
         updatedAt: Date.now(),
         ...patch,
       });

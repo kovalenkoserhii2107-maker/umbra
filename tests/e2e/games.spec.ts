@@ -758,6 +758,24 @@ test("Steam sign-in imports the library, wishlist, play time and achievements", 
     fullPage: true,
   });
 
+  // Games stats come from the same collection.
+  await page.goto("#/stats?tab=games");
+  await expect(page.getByRole("tab", { name: "Игры" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(page.getByText("часов в играх")).toBeVisible();
+  await expect(page.getByText("131", { exact: true })).toBeVisible();
+  const platforms = page.locator("section", {
+    has: page.getByRole("heading", { name: "По платформам" }),
+  });
+  await platforms.getByRole("button", { name: /ПК/ }).click();
+  await expect(platforms.getByRole("link", { name: /Portal 2/ })).toBeVisible();
+  await page.screenshot({
+    path: ".ui-evidence/stats-games-mobile.png",
+    fullPage: true,
+  });
+
   await page.goto("#/games/1942");
   const mine = page.locator("section", {
     has: page.getByRole("heading", { name: "Мой Steam" }),

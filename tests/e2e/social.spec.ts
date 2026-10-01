@@ -427,9 +427,19 @@ test("series tracking, collection filters, stats and sharing", async ({
   await expect(page.getByText("Test Show")).toBeVisible();
 
   await page.goto("#/stats");
-  await expect(page.getByRole("heading", { name: "Статистика" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Статистика и итоги" }),
+  ).toBeVisible();
   await expect(page.getByText("≈2")).toBeVisible();
-  await expect(page.getByText("Драма")).toBeVisible();
+  // A row opens the titles behind its number.
+  const genres = page.locator("section", {
+    has: page.getByRole("heading", { name: "Любимые жанры" }),
+  });
+  const drama = genres.getByRole("button", { name: /Драма/ });
+  await expect(drama).toHaveAttribute("aria-expanded", "false");
+  await drama.click();
+  await expect(drama).toHaveAttribute("aria-expanded", "true");
+  await expect(genres.locator('a[href^="#/title/"]').first()).toBeVisible();
 });
 
 test("title card shows everything TMDB and OMDb return", async ({

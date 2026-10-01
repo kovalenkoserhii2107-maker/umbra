@@ -1,5 +1,11 @@
 import type { LibraryItem } from "./library";
-import { tmdb, type MovieReleases, type ShowAirDates } from "./tmdb";
+import { plural } from "./format";
+import {
+  tmdb,
+  type MovieReleases,
+  type ShowAirDates,
+  type TmdbItem,
+} from "./tmdb";
 
 /** Show watchlist titles that come out within a week or came out within a week. */
 export const DAYS_AHEAD = 7;
@@ -14,6 +20,8 @@ export type Release = {
   date: string;
   kind: "movie" | "series" | "season";
   season?: number;
+  /** TMDB details used for the date; carry the backdrop for the home spotlight. */
+  details?: TmdbItem;
 };
 
 export function localIso(date: Date) {
@@ -31,6 +39,17 @@ function dayNumber(iso: string) {
 /** Calendar days from `today` to `date`; negative for past dates. */
 export function daysUntil(date: string, today: string) {
   return Math.round(dayNumber(date) - dayNumber(today));
+}
+
+/** "сегодня", "завтра", "через 3 дня", "вчера", "5 дней назад". */
+export function relativeDay(date: string, today: string) {
+  const days = daysUntil(date, today);
+  if (days === 0) return "сегодня";
+  if (days === 1) return "завтра";
+  if (days === -1) return "вчера";
+  const n = Math.abs(days);
+  const span = `${n} ${plural(n, "день", "дня", "дней")}`;
+  return days > 0 ? `через ${span}` : `${span} назад`;
 }
 
 export function inReleaseWindow(
@@ -91,16 +110,15 @@ export async function loadWatchlistReleases(
     candidates.map(async (item): Promise<Release | null> => {
       try {
         if (item.type === "movie") {
-          const date = movieReleaseDate(
-            await tmdb.movieReleases(item.id),
-            region,
-          );
+          const details = await tmdb.movieReleases(item.id);
+          const date = movieReleaseDate(details, region);
           return date && inReleaseWindow(date, today)
-            ? { item, date, kind: "movie" }
+            ? { item, date, kind: "movie", details }
             : null;
         }
-        const hit = showRelease(await tmdb.showAirDates(item.id), today);
-        return hit ? { item, ...hit } : null;
+        const details = await tmdb.showAirDates(item.id);
+        const hit = showRelease(details, today);
+        return hit ? { item, ...hit, details } : null;
       } catch {
         return null;
       }

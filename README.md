@@ -167,6 +167,7 @@ E2E-тесты подменяют ответы TMDB и подставляют т
 - `GET /twitch/top-games?first=20` — что смотрят на Twitch, кэш 10 минут.
 - `GET /opencritic?name=&year=` — оценка OpenCritic, уровень и самые читаемые рецензии; ответ хранится 3 дня (бесплатный план — 200 запросов в сутки).
 - `GET /steam/app/:appId` — страница игры в Steam на русском, Metascore, сводка отзывов, достижения, требования и число играющих сейчас; кэш 6 часов.
+- `GET /gamepass/:list` — Microsoft Store ids из каталога Xbox Game Pass (`recent`, `coming`, `leaving`, `console`, `pc`); кэш 6 часов.
 - `POST /steam/verify` — проверка входа через Steam (OpenID `check_authentication`), возвращает SteamID.
 - Отвечает только сайтам из `ALLOWED_ORIGINS` (`worker/wrangler.toml`); остальным — 403.
 

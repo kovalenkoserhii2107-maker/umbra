@@ -78,6 +78,8 @@ const witcher = {
   ],
 };
 
+const daysAgo = (days: number) => Math.floor(Date.now() / 1000) - days * 86400;
+
 const summary = (id: number, name: string, extra = {}) => ({
   id,
   name,
@@ -122,18 +124,33 @@ async function mockApi(
       const endpoint = igdb[1];
       if (endpoint === "multiquery")
         return reply([
+          { name: "visits", result: [{ game_id: 301 }, { game_id: 119133 }] },
+          { name: "want", result: [{ game_id: 1020 }, { game_id: 119133 }] },
+          { name: "playing", result: [{ game_id: 119133 }] },
+          { name: "peak", result: [] },
           {
-            name: "popular",
-            result: [{ game_id: 1942 }, { game_id: 119133 }],
-          },
-          { name: "fresh", result: [summary(300, "Fresh Game")] },
-          {
-            name: "soon",
+            name: "fresh",
             result: [
-              summary(400, "Soon Game", { first_release_date: 1893456000 }),
+              summary(300, "Quiet Release", {
+                first_release_date: daysAgo(10),
+              }),
+              summary(301, "Hit Release", { first_release_date: daysAgo(20) }),
+            ],
+          },
+          {
+            name: "upcoming",
+            result: [
+              summary(400, "Soon Game", { first_release_date: daysAgo(-20) }),
             ],
           },
           { name: "best", result: [summary(500, "Best Game")] },
+        ]);
+      if (endpoint === "popularity_types")
+        return reply([
+          { id: 1, name: "Visits" },
+          { id: 2, name: "Want to Play" },
+          { id: 3, name: "Playing" },
+          { id: 5, name: "24hr Peak Players" },
         ]);
       if (endpoint === "language_supports")
         return reply([
@@ -154,6 +171,8 @@ async function mockApi(
         return reply([
           { hastily: 180000, normally: 360000, completely: 612000, count: 300 },
         ]);
+      if (endpoint === "external_games" && body.includes("9NBLGGH4R315"))
+        return reply([{ game: 777, uid: "9NBLGGH4R315" }]);
       if (endpoint === "external_games")
         return reply([
           {
@@ -196,15 +215,36 @@ async function mockApi(
             ]);
           return reply([]);
         }
-        if (body.includes("where id = (1942,119133)"))
+        if (body.includes("where id = (777)"))
+          return reply([summary(777, "Halo Infinite")]);
+        if (body.includes("where id = (") && body.includes("119133"))
           return reply([
-            summary(119133, "Elden Ring"),
-            summary(1942, "The Witcher 3: Wild Hunt"),
+            summary(119133, "Elden Ring", { first_release_date: daysAgo(900) }),
+            // GTA VI is known only from "Want to Play", not from the date query.
+            summary(1020, "Grand Theft Auto VI", {
+              first_release_date: daysAgo(-49),
+              hypes: 9000,
+            }),
           ]);
         return reply([summary(600, "Browse Game")]);
       }
       return reply([]);
     }
+    if (url.pathname === "/twitch/top-games")
+      return reply({
+        data: [
+          { id: "1", name: "Just Chatting", box_art_url: "", igdb_id: "" },
+          { id: "2", name: "Elden Ring", box_art_url: "", igdb_id: "119133" },
+        ],
+      });
+    const pass = url.pathname.match(/^\/gamepass\/(\w+)$/);
+    if (pass)
+      return reply({
+        list: pass[1],
+        ids: ["recent", "console", "pc"].includes(pass[1])
+          ? ["9NBLGGH4R315"]
+          : [],
+      });
     if (url.pathname === "/opencritic")
       return reply({
         found: true,
@@ -318,14 +358,59 @@ test("game card gathers ratings, Russian description and facts from every source
   });
 });
 
+test("feed puts popular new releases first and finds awaited games like GTA VI", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const seen = await mockApi(page);
+  await signIn(page);
+  await page.goto("#/games");
+  const hero = (label: string) =>
+    page.getByRole("link").filter({ hasText: label });
+  await expect(hero("главная новинка")).toContainText("Hit Release");
+  await expect(hero("самая ожидаемая")).toContainText("Grand Theft Auto VI");
+  await expect(hero("больше всех играют")).toContainText("Elden Ring");
+  for (const title of [
+    "Популярные новинки",
+    "Сейчас популярно",
+    "Самые ожидаемые",
+    "Скоро выйдут",
+    "Недавно в Game Pass",
+    "Лучшие за год",
+  ])
+    await expect(page.getByRole("heading", { name: title })).toBeVisible();
+  const fresh = page.locator("section", {
+    has: page.getByRole("heading", { name: "Популярные новинки" }),
+  });
+  await expect(fresh.getByRole("link").first()).toContainText("Hit Release");
+  const awaited = page.locator("section", {
+    has: page.getByRole("heading", { name: "Самые ожидаемые" }),
+  });
+  await expect(awaited.getByRole("link").first()).toContainText(
+    "Grand Theft Auto VI",
+  );
+  await expect(
+    page
+      .locator("section", {
+        has: page.getByRole("heading", { name: "Недавно в Game Pass" }),
+      })
+      .getByText("Halo Infinite"),
+  ).toBeVisible();
+  // The app does not zoom on phones.
+  expect(
+    await page.locator('meta[name="viewport"]').getAttribute("content"),
+  ).toContain("user-scalable=no");
+  const feed = seen.igdb.find((q) => q.endpoint === "multiquery")!.body;
+  expect(feed).toContain("popularity_type = 2");
+  expect(feed).toContain("first_release_date = null");
+  await page.screenshot({ path: ".ui-evidence/game-feed-mobile.png" });
+});
+
 test("feed follows my platforms and remembers them", async ({ page }) => {
   const seen = await mockApi(page);
   await signIn(page);
   await page.goto("#/games");
-  await expect(page.getByText("Elden Ring").first()).toBeVisible();
-  await expect(page.getByText("сейчас обсуждают")).toBeVisible();
-  for (const title of ["Новинки", "Скоро выйдут", "Лучшие за год"])
-    await expect(page.getByRole("heading", { name: title })).toBeVisible();
+  await expect(page.getByText("Hit Release").first()).toBeVisible();
   const picker = page.getByRole("group", { name: "Мои платформы" });
   await picker.getByRole("button", { name: "Xbox" }).click();
   await picker.getByRole("button", { name: "Switch" }).click();

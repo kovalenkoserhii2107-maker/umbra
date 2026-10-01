@@ -193,6 +193,25 @@ describe("umbra-api", () => {
     ).toBe(true);
   });
 
+  it("returns Game Pass store ids and refuses unknown lists", async () => {
+    const { send, calls } = setup(() =>
+      Response.json([
+        { siglId: "f13cf6b4", title: "Recently added" },
+        { id: "9NBLGGH4R315" },
+        { id: "9PDV8FKWP3B4" },
+        { id: "9NBLGGH4R315" },
+        { id: "bad id" },
+      ]),
+    );
+    const response = await send("/gamepass/recent");
+    expect(await response.json()).toEqual({
+      list: "recent",
+      ids: ["9NBLGGH4R315", "9PDV8FKWP3B4"],
+    });
+    expect(calls[0].url).toContain("id=f13cf6b4-57e6-4459-89df-6aec18cf0538");
+    expect((await send("/gamepass/everything")).status).toBe(404);
+  });
+
   describe("OpenCritic", () => {
     const reviews = [
       {

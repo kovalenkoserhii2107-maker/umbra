@@ -132,3 +132,7 @@ export type SteamApp = {
 
 export const steamApp = (appId: number) =>
   call<SteamApp>(`/steam/app/${appId}`);
+
+/** Microsoft Store ids of a Game Pass list. */
+export const gamePass = (list: string) =>
+  call<{ list: string; ids: string[] }>(`/gamepass/${list}`);

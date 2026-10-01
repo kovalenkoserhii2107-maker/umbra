@@ -9,6 +9,7 @@ import {
   sha256,
 } from "./http";
 import { IGDB_ENDPOINTS, igdbQuery } from "./igdb";
+import { gamePassList } from "./gamepass";
 import { openCritic } from "./opencritic";
 import { verifySteamLogin } from "./steam";
 import { steamApp } from "./steamStore";
@@ -75,6 +76,23 @@ async function route(
     return new Response(body, {
       headers: {
         "Content-Type": "application/json; charset=utf-8",
+        "X-Cache": hit ? "HIT" : "MISS",
+      },
+    });
+  }
+
+  const pass = path.match(/^\/gamepass\/([a-z]+)$/);
+  if (pass && request.method === "GET") {
+    const { body, hit } = await cached(
+      deps,
+      `gamepass/${pass[1]}`,
+      21600,
+      async () => JSON.stringify(await gamePassList(deps, pass[1])),
+    );
+    return new Response(body, {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "public, max-age=3600",
         "X-Cache": hit ? "HIT" : "MISS",
       },
     });

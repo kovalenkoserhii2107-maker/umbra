@@ -24,6 +24,13 @@ body,
   color: var(--color-ink);
 }
 
+html {
+  /* No double-tap zoom; pinch is blocked in lib/zoom.ts. */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;

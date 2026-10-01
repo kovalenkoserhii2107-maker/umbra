@@ -5,13 +5,17 @@ import { CARD } from "../components/TitleDetails";
 import {
   GameError,
   GameGrid,
-  GameShelf,
   GameTile,
   PlatformPicker,
 } from "../components/GameTile";
 import { useGameLibrary } from "../lib/gameLibrary";
 import { migrateGameLibrary } from "../lib/gameMigration";
-import { GIVEAWAY_PLATFORMS, platformGiveaways } from "../lib/games";
+import {
+  BestShelf,
+  FeedShelves,
+  GamePassShelves,
+  Giveaways,
+} from "../components/GameFeed";
 import {
   GENRE_FILTERS,
   PLATFORM_GROUPS,
@@ -21,7 +25,6 @@ import {
   platformGroup,
   platformIds,
   searchGames,
-  shelves,
   type GameSummary,
   type PlatformGroupId,
   type SearchSort,
@@ -268,90 +271,23 @@ export function GamePlatformsPage() {
   );
 }
 
-function Giveaways({ platform }: { platform: string }) {
-  const drops = useAsync(
-    () => platformGiveaways(GIVEAWAY_PLATFORMS[platform] ?? []),
-    [platform],
-  );
-  return (
-    <section className="mb-10">
-      <h2 className="mb-3 text-lg font-medium tracking-tight">
-        Сейчас раздают
-      </h2>
-      {drops.loading ? (
-        <p role="status" className="text-sm text-mute">
-          Проверяю раздачи…
-        </p>
-      ) : drops.error ? (
-        <p className="text-sm text-mute">
-          Не удалось проверить раздачи. Попробуй позже.
-        </p>
-      ) : drops.data?.length ? (
-        <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
-          {drops.data.map((item) => (
-            <a
-              key={item.id}
-              href={item.open_giveaway_url}
-              target="_blank"
-              rel="noreferrer"
-              className="block w-[68vw] shrink-0 sm:w-72"
-            >
-              <div className="overflow-hidden rounded-xl border border-hairline bg-card">
-                <img
-                  src={item.thumbnail || item.image}
-                  alt=""
-                  loading="lazy"
-                  className="aspect-video w-full object-cover"
-                />
-              </div>
-              <p className="mt-2 line-clamp-2 text-sm">{item.title}</p>
-              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
-                {item.type === "DLC" ? "дополнение" : "раздача"}
-                {item.end_date && item.end_date !== "N/A"
-                  ? ` · до ${item.end_date.slice(8, 10)}.${item.end_date.slice(5, 7)}`
-                  : ""}
-              </p>
-            </a>
-          ))}
-        </div>
-      ) : (
-        <p className="text-sm text-mute">Сейчас раздач нет.</p>
-      )}
-    </section>
-  );
-}
-
 export function GamePlatformPage() {
   const { id = "" } = useParams();
   const platform = platformGroup(id);
-  const feed = useAsync(
-    () => (platform ? shelves([...platform.ids]) : Promise.resolve(null)),
-    [id],
-  );
   if (!platform)
     return <p className="text-sm text-mute">Платформа не найдена.</p>;
-  const data = feed.data;
   return (
     <div className="rise">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
         {platform.full}
       </p>
       <h1 className="mb-8 mt-1 text-3xl tracking-tight">{platform.name}</h1>
-      {feed.loading ? (
-        <p role="status" className="mb-6 text-sm text-mute">
-          Загружаю игры…
-        </p>
+      <FeedShelves platforms={[...platform.ids]} />
+      <Giveaways groups={[platform.id]} />
+      {platform.id === "pc" || platform.id === "xbox" ? (
+        <GamePassShelves />
       ) : null}
-      {feed.error ? <GameError code={feed.error} /> : null}
-      {data ? (
-        <>
-          <GameShelf title="Популярное сейчас" games={data.popular} />
-          <GameShelf title="Новинки" games={data.fresh} />
-          <GameShelf title="Скоро выйдут" games={data.soon} dated />
-          <GameShelf title="Лучшие за год" games={data.best} />
-        </>
-      ) : null}
-      <Giveaways platform={platform.id} />
+      <BestShelf platforms={[...platform.ids]} />
     </div>
   );
 }

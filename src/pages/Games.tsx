@@ -3,6 +3,7 @@ import { ErrorBox, useAsync } from "../components";
 import { GameRow } from "../components/GameCard";
 import { GamePoster } from "../components/GamePoster";
 import { GameMark } from "../components/GameMark";
+import { ShareButton } from "../components/ShareButton";
 import { GameScoreLine, GameScores } from "../components/GameScores";
 import { GameFacts, GameOffers } from "../components/GameDetails";
 import { gameDetails, gameYear } from "../lib/games";
@@ -88,7 +89,14 @@ export function GamePage() {
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
         {item.genre}
       </p>
-      <h1 className="mt-1 text-3xl tracking-tight">{item.title}</h1>
+      <div className="mt-1 flex items-start justify-between gap-3">
+        <h1 className="text-3xl tracking-tight">{item.title}</h1>
+        <ShareButton
+          title={item.title}
+          path={`/games/${item.id}`}
+          text={`«${item.title}»${gameYear(item) ? ` (${gameYear(item)})` : ""}. Смотри в Umbra:`}
+        />
+      </div>
       <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
         {item.platform}
         {gameYear(item) ? ` · ${gameYear(item)}` : ""}

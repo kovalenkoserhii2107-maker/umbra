@@ -22,6 +22,7 @@ import {
   type LibraryPatch,
 } from "./lib/library";
 import { readStorage, writeStorage } from "./lib/storage";
+import { usePublishProfile, useShareWithFriends } from "./lib/friends";
 export type { LibraryItem, Status } from "./lib/library";
 export type Settings = {
   tmdbKey: string;
@@ -78,6 +79,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     <SessionState
       key={auth.account?.sub || auth.status}
       uid={auth.account?.sub || null}
+      name={auth.account?.name || ""}
+      picture={auth.account?.picture || ""}
     >
       {children}
     </SessionState>
@@ -85,9 +88,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 }
 function SessionState({
   uid,
+  name,
+  picture,
   children,
 }: {
   uid: string | null;
+  name: string;
+  picture: string;
   children: ReactNode;
 }) {
   const [settings, setSettings] = useState(loadSettings);
@@ -158,6 +165,8 @@ function SessionState({
       window.removeEventListener("offline", status);
     };
   }, [uid, attempt]);
+  usePublishProfile(uid, name, picture);
+  useShareWithFriends(uid, items);
   function owner() {
     if (!uid || cloudUid() !== uid)
       throw new Error("Войди в аккаунт, чтобы сохранить фильм.");

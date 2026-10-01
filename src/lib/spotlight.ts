@@ -2,6 +2,7 @@ import type { LibraryItem } from "./library";
 import { daysUntil, localIso, relativeDay, type Release } from "./releases";
 import { tmdb, type AirDate, type MediaType, type TmdbItem } from "./tmdb";
 import { dayMonthLabel } from "./format";
+import { isWatched, progressOf } from "./tracking";
 
 /** A new episode counts as news from 3 days before today to 1 day after. */
 export const EPISODE_DAYS_BEHIND = 3;
@@ -136,7 +137,11 @@ export function pickSpotlight({
       } ${dayMonthLabel(release.date)} · ${relativeDay(release.date, today)}`,
     };
   }
-  const episode = episodes[0];
+  // Skip episodes already marked as watched since the list was loaded.
+  const episode = episodes.find((e) => {
+    const current = library.find((x) => x.type === "tv" && x.id === e.item.id);
+    return !isWatched(progressOf(current), e);
+  });
   if (episode) {
     const premiere = episode.episode === 1;
     return {

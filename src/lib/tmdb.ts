@@ -127,6 +127,8 @@ export type AirDate = {
 export type ShowAirDates = TmdbItem & {
   next_episode_to_air?: AirDate | null;
   last_episode_to_air?: AirDate | null;
+  seasons?: Array<{ season_number: number; episode_count: number }>;
+  status?: string;
 };
 
 function keyFromStore() {
@@ -404,6 +406,9 @@ export const tmdb = {
       { append_to_response: "release_dates" },
       6 * 3600_000,
     ),
+  /** Plain details without appends, cached for hours. */
+  basic: (type: MediaType, id: number) =>
+    request<TitleDetails & ShowAirDates>(`/${type}/${id}`, {}, 6 * 3600_000),
   showAirDates: (id: number) =>
     request<ShowAirDates>(`/tv/${id}`, {}, 6 * 3600_000),
   externalIds: (type: MediaType, id: number) =>

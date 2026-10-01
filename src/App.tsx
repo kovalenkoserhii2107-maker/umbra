@@ -59,6 +59,18 @@ const CabinetPage = lazy(() =>
 const SettingsPage = lazy(() =>
   import("./pages/Settings").then((m) => ({ default: m.SettingsPage })),
 );
+const StatsPage = lazy(() =>
+  import("./pages/Stats").then((m) => ({ default: m.StatsPage })),
+);
+const FriendsPage = lazy(() =>
+  import("./pages/Friends").then((m) => ({ default: m.FriendsPage })),
+);
+const FriendPage = lazy(() =>
+  import("./pages/Friends").then((m) => ({ default: m.FriendPage })),
+);
+const InvitePage = lazy(() =>
+  import("./pages/Friends").then((m) => ({ default: m.InvitePage })),
+);
 const TitlePage = lazy(() =>
   import("./pages/Title").then((m) => ({ default: m.TitlePage })),
 );
@@ -98,6 +110,10 @@ export default function App() {
         <Route path="/platforms" element={<PlatformsPage />} />
         <Route path="/platforms/:slug" element={<PlatformPage />} />
         <Route path="/library" element={<LibraryPage />} />
+        <Route path="/stats" element={<StatsPage />} />
+        <Route path="/friends" element={<FriendsPage />} />
+        <Route path="/friends/invite/:uid" element={<InvitePage />} />
+        <Route path="/friends/:uid" element={<FriendPage />} />
         <Route path="/games" element={<GamesPage />} />
         <Route path="/games/search" element={<GameSearchPage />} />
         <Route path="/games/platforms" element={<GamePlatformsPage />} />

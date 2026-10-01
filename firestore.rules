@@ -19,6 +19,45 @@ service cloud.firestore {
         && (!('season' in d) || (d.season is int && d.season >= 0))
         && (!('episode' in d) || (d.episode is int && d.episode >= 0));
     }
+    function validPerson(d) {
+      return d.name is string && d.name.size() <= 100
+        && d.picture is string && d.picture.size() <= 2048;
+    }
+    // A friend's copy of a library entry: no notes, numeric timestamps only.
+    function validShared(d, key) {
+      return d.keys().hasAll(['id', 'type', 'title', 'poster', 'year', 'status', 'rating', 'updatedAt'])
+        && d.keys().hasOnly(['id', 'type', 'title', 'poster', 'year', 'status', 'rating', 'updatedAt', 'season', 'episode'])
+        && d.id is int && d.id > 0 && d.id <= 9007199254740991
+        && d.type in ['movie', 'tv'] && key == d.type + '-' + string(d.id)
+        && d.title is string && d.title.size() <= 500
+        && d.poster is string && d.poster.size() <= 2048
+        && (d.poster == '' || d.poster.matches('https://image[.]tmdb[.]org/.*'))
+        && d.year is string && d.year.size() <= 10
+        && d.status in ['watchlist', 'watching', 'watched', 'dropped']
+        && (d.rating == null || (d.rating is number && d.rating >= 1 && d.rating <= 10))
+        && d.updatedAt is number
+        && (!('season' in d) || (d.season is int && d.season >= 0))
+        && (!('episode' in d) || (d.episode is int && d.episode >= 0));
+    }
+    // The owner has added the reader as a friend.
+    function sharesWith(owner) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(owner)/friends/$(request.auth.uid));
+    }
+    // Public name card for invite links; readable by ID only, never listed.
+    match /profiles/{uid} {
+      allow get: if request.auth != null;
+      allow create, update: if owns(uid)
+        && request.resource.data.keys().hasOnly(['name', 'picture', 'updatedAt'])
+        && validPerson(request.resource.data)
+        && request.resource.data.updatedAt is timestamp;
+      allow delete: if owns(uid);
+      match /ratings/{key} {
+        allow read: if owns(uid) || sharesWith(uid);
+        allow create, update: if owns(uid) && validShared(request.resource.data, key);
+        allow delete: if owns(uid);
+      }
+    }
     match /users/{uid} {
       allow read: if owns(uid);
       allow create, update: if owns(uid)
@@ -31,6 +70,23 @@ service cloud.firestore {
       match /library/{key} {
         allow read, delete: if owns(uid);
         allow create, update: if owns(uid) && validItem(request.resource.data, key);
+      }
+      // People the owner shares ratings with.
+      match /friends/{friend} {
+        allow read, delete: if owns(uid);
+        allow create, update: if owns(uid) && friend != uid
+          && request.resource.data.keys().hasOnly(['name', 'picture', 'since'])
+          && validPerson(request.resource.data)
+          && request.resource.data.since is timestamp;
+      }
+      // Friend requests: anyone signed in may ask once in their own name.
+      match /requests/{from} {
+        allow read: if owns(uid);
+        allow delete: if owns(uid) || owns(from);
+        allow create: if owns(from) && from != uid
+          && request.resource.data.keys().hasOnly(['name', 'picture', 'createdAt'])
+          && validPerson(request.resource.data)
+          && request.resource.data.createdAt is timestamp;
       }
     }
   }

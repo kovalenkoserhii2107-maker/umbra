@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ErrorBox, PlatformChip, PosterCard, useAsync } from "../components";
 import { CollectionMark } from "../components/CollectionMark";
+import { ShareButton } from "../components/ShareButton";
+import { useAuth } from "../lib/auth";
+import { loadFriendsOn, useFriendList } from "../lib/friends";
+import { Avatar, sharedStatus } from "./Friends";
 import { Seasons } from "../components/Seasons";
 import {
   backdropUrl,
@@ -22,6 +26,7 @@ import { dateLabel, runtimeLabel, yearOf } from "../lib/format";
 import { PLATFORMS } from "../lib/providers";
 import { byCatalogRank } from "../lib/rank";
 import { useAppState } from "../state";
+import { progressOf, type Episode } from "../lib/tracking";
 import type { EpisodeRef, SeasonInfo } from "../lib/tv";
 
 const PRODUCER_JOBS = new Set(["Producer", "Executive Producer"]);
@@ -222,10 +227,58 @@ function CriticReviews({
   );
 }
 
+function FriendsOnTitle({ media, id }: { media: MediaType; id: number }) {
+  const { account } = useAuth();
+  const friends = useFriendList(account?.sub || null);
+  const key = (friends.list ?? []).map((p) => p.uid).join();
+  const rows = useAsync(
+    () => loadFriendsOn(friends.list ?? [], media, id),
+    [key, media, id],
+  );
+  const list = rows.data ?? [];
+  if (!list.length) return null;
+  const rated = list.filter((r) => r.rating.rating !== null);
+  const average = rated.length
+    ? rated.reduce((s, r) => s + r.rating.rating!, 0) / rated.length
+    : null;
+  return (
+    <section className="mt-8">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-lg tracking-tight">Оценки друзей</h2>
+        {average !== null ? (
+          <p className="font-mono text-xs text-mute">
+            средняя {average.toFixed(1)}
+          </p>
+        ) : null}
+      </div>
+      <div className="mt-3 space-y-2">
+        {list.map(({ friend, rating }) => (
+          <Link
+            key={friend.uid}
+            to={`/friends/${friend.uid}`}
+            className="flex items-center gap-3 rounded-2xl border border-hairline bg-card p-3"
+          >
+            <Avatar person={friend} size={32} />
+            <span className="min-w-0 flex-1 truncate text-sm">
+              {friend.name}
+            </span>
+            <span
+              className={`font-mono text-sm ${rating.rating ? "font-bold text-accent" : "text-mute"}`}
+            >
+              {sharedStatus(rating)}
+            </span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function TitlePage() {
   const { type = "movie", id = "" } = useParams();
   const media = (type === "tv" ? "tv" : "movie") as MediaType;
-  const { settings } = useAppState();
+  const { settings, get, update, upsert } = useAppState();
+  const mine = get(media, Number(id));
   const query = useAsync(() => tmdb.details(media, Number(id)), [media, id]);
   const [imdb, setImdb] = useState<string | null | undefined>(undefined);
   const [critics, setCritics] = useState<CriticScores | null>(null);
@@ -289,6 +342,25 @@ export function TitlePage() {
   const flatrate = region?.flatrate ?? [];
   const knownIds = new Set(PLATFORMS.map((p) => p.id));
   const imdbId = item.external_ids?.imdb_id || "";
+  function markEpisode(ep: Episode) {
+    if (mine) {
+      // Marking episodes means the show is being watched, unless it is finished.
+      const status = mine.status === "watched" ? "watched" : "watching";
+      update(media, item.id, { ...ep, status });
+      return;
+    }
+    upsert({
+      id: item.id,
+      type: media,
+      title,
+      poster: posterUrl(item.poster_path, "w185"),
+      year,
+      status: "watching",
+      rating: null,
+      note: "",
+      ...ep,
+    });
+  }
   const tmdbScore =
     item.vote_count && item.vote_average ? item.vote_average.toFixed(1) : null;
 
@@ -311,7 +383,14 @@ export function TitlePage() {
               ? ` · ${media === "tv" ? "премьера" : "выход"} ${releasedOn}`
               : ""}
           </p>
-          <h1 className="mt-1 text-2xl tracking-tight sm:text-4xl">{title}</h1>
+          <div className="mt-1 flex items-start justify-between gap-3">
+            <h1 className="text-2xl tracking-tight sm:text-4xl">{title}</h1>
+            <ShareButton
+              title={title}
+              path={`/title/${media}/${item.id}`}
+              text={`«${title}»${year ? ` (${year})` : ""}${imdb ? ` — IMDb ${imdb}` : ""}. Смотри в Umbra:`}
+            />
+          </div>
           {item.tagline ? (
             <p className="mt-1 text-sm text-mute">{item.tagline}</p>
           ) : null}
@@ -386,15 +465,6 @@ export function TitlePage() {
         />
       ) : null}
 
-      {media === "tv" ? (
-        <Seasons
-          tvId={item.id}
-          seasons={item.seasons}
-          nextEpisode={item.next_episode_to_air}
-          lastEpisode={item.last_episode_to_air}
-        />
-      ) : null}
-
       <CollectionMark
         media={media}
         id={Number(id)}
@@ -402,6 +472,21 @@ export function TitlePage() {
         poster={posterUrl(item.poster_path, "w185")}
         year={year}
       />
+
+      <FriendsOnTitle media={media} id={item.id} />
+
+      {media === "tv" ? (
+        <Seasons
+          // Remount once the show is tracked so it opens on the next episode.
+          key={mine ? "tracked" : "new"}
+          tvId={item.id}
+          seasons={item.seasons}
+          nextEpisode={item.next_episode_to_air}
+          lastEpisode={item.last_episode_to_air}
+          progress={progressOf(mine)}
+          onMark={markEpisode}
+        />
+      ) : null}
 
       <section className="mt-8">
         <h2 className="text-lg tracking-tight">
@@ -470,12 +555,12 @@ export function TitlePage() {
             {byCatalogRank(item.similar.results)
               .slice(0, 12)
               .map((s) => (
-              <PosterCard
-                key={s.id}
-                item={s}
-                type={kindOf({ ...s, media_type: media })}
-              />
-            ))}
+                <PosterCard
+                  key={s.id}
+                  item={s}
+                  type={kindOf({ ...s, media_type: media })}
+                />
+              ))}
           </div>
         </section>
       ) : null}

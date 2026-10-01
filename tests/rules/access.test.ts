@@ -90,3 +90,69 @@ it("does not recreate a deleted record when a stale device edits a field", async
   await assertFails(updateDoc(ref, { note: "stale" }));
   expect((await getDoc(ref)).exists()).toBe(false);
 });
+const shared = {
+  id: 1,
+  type: "movie",
+  title: "Film",
+  poster: "",
+  year: "2026",
+  status: "watched",
+  rating: 8,
+  updatedAt: 1,
+};
+const person = (name: string) => ({
+  name,
+  picture: "",
+  since: serverTimestamp(),
+});
+it("shows a friend's ratings only after the owner adds them, and never notes", async () => {
+  const a = env.authenticatedContext("A").firestore();
+  const b = env.authenticatedContext("B").firestore();
+  await assertSucceeds(
+    setDoc(doc(a, "profiles/A"), {
+      name: "Anna",
+      picture: "",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertSucceeds(getDoc(doc(b, "profiles/A")));
+  await assertFails(getDocs(collection(b, "profiles")));
+  await assertSucceeds(setDoc(doc(a, "profiles/A/ratings/movie-1"), shared));
+  await assertFails(
+    setDoc(doc(a, "profiles/A/ratings/movie-1"), { ...shared, note: "secret" }),
+  );
+  await assertFails(setDoc(doc(b, "profiles/A/ratings/movie-1"), shared));
+  await assertFails(getDoc(doc(b, "profiles/A/ratings/movie-1")));
+  await assertFails(setDoc(doc(b, "users/A/friends/B"), person("Boris")));
+  await assertSucceeds(setDoc(doc(a, "users/A/friends/B"), person("Boris")));
+  await assertSucceeds(getDoc(doc(b, "profiles/A/ratings/movie-1")));
+  await assertSucceeds(getDocs(collection(b, "profiles/A/ratings")));
+  await assertFails(getDocs(collection(b, "users/A/friends")));
+  await assertSucceeds(deleteDoc(doc(a, "users/A/friends/B")));
+  await assertFails(getDoc(doc(b, "profiles/A/ratings/movie-1")));
+  await assertFails(
+    getDoc(
+      doc(
+        env.unauthenticatedContext().firestore(),
+        "profiles/A/ratings/movie-1",
+      ),
+    ),
+  );
+});
+it("lets people send friend requests only in their own name", async () => {
+  const a = env.authenticatedContext("A").firestore();
+  const b = env.authenticatedContext("B").firestore();
+  const c = env.authenticatedContext("C").firestore();
+  const request = { name: "Boris", picture: "", createdAt: serverTimestamp() };
+  await assertSucceeds(setDoc(doc(b, "users/A/requests/B"), request));
+  await assertFails(setDoc(doc(c, "users/A/requests/B"), request));
+  await assertFails(setDoc(doc(b, "users/B/requests/B"), request));
+  await assertFails(
+    setDoc(doc(b, "users/A/requests/B"), { ...request, role: "admin" }),
+  );
+  await assertFails(getDoc(doc(b, "users/A/requests/B")));
+  await assertSucceeds(getDocs(collection(a, "users/A/requests")));
+  await assertFails(getDocs(collection(c, "users/A/requests")));
+  await assertSucceeds(deleteDoc(doc(a, "users/A/requests/B")));
+  await assertFails(setDoc(doc(a, "users/A/friends/A"), person("Me")));
+});

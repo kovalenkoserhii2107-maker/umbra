@@ -13,6 +13,8 @@ export default defineConfig({
       env: {
         VITE_USE_EMULATORS: "true",
         VITE_TMDB_KEY: process.env.VITE_TMDB_KEY || "e2e-test-key",
+        // Calls to the game API worker are mocked in the tests.
+        VITE_API_URL: process.env.VITE_API_URL || "https://umbra-api.test",
       },
     },
     {

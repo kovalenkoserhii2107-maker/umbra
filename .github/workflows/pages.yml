@@ -30,6 +30,7 @@ jobs:
           # Public by design (they ship in the client), so repository variables.
           VITE_OMDB_KEY: ${{ vars.OMDB_KEY }}
           VITE_TMDB_KEY: ${{ vars.TMDB_KEY }}
+          VITE_API_URL: ${{ vars.API_URL }}
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - uses: actions/upload-pages-artifact@v3

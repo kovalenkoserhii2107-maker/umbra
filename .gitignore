@@ -26,3 +26,7 @@ test-results/
 
 public/catalog/
 data/game-details/*.tmp
+
+# Local worker secrets
+.dev.vars
+.wrangler/

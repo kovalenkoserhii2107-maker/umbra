@@ -1,0 +1,60 @@
+name: Deploy API worker
+on:
+  push:
+    branches: [main]
+    paths:
+      - "worker/**"
+      - "tests/worker/**"
+      - ".github/workflows/worker.yml"
+  pull_request:
+    paths:
+      - "worker/**"
+      - "tests/worker/**"
+      - ".github/workflows/worker.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: worker-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx tsc -p worker/tsconfig.json
+      - run: npx vitest run tests/worker
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          # Real secrets: they stay in Cloudflare and never reach the site.
+          secrets: |
+            TWITCH_CLIENT_ID
+            TWITCH_CLIENT_SECRET
+            ITAD_API_KEY
+            OPENCRITIC_API_KEY
+            STEAM_API_KEY
+        env:
+          TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}
+          TWITCH_CLIENT_SECRET: ${{ secrets.TWITCH_CLIENT_SECRET }}
+          ITAD_API_KEY: ${{ secrets.ITAD_API_KEY }}
+          OPENCRITIC_API_KEY: ${{ secrets.OPENCRITIC_API_KEY }}
+          STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+      - name: Show the worker address
+        run: |
+          echo "Worker: ${{ steps.deploy.outputs.deployment-url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Put this address into the API_URL repository variable." >> "$GITHUB_STEP_SUMMARY"

@@ -6,6 +6,7 @@ import { useAppState } from "../state";
 import { APP_VERSION } from "../version";
 import { forgetDismissal, openInstallHelp } from "../lib/install";
 import { hasBuildOmdbKey, ownOmdbKey, setOmdbKey } from "../lib/omdb";
+import { ApiStatus } from "../components/ApiStatus";
 
 export function SettingsPage() {
   const { settings, setSettings, exportJson, importJson, items } =
@@ -105,6 +106,8 @@ export function SettingsPage() {
           сборка {APP_VERSION}
         </p>
       </div>
+
+      <ApiStatus />
 
       <section className="rounded-2xl border border-hairline bg-card p-5">
         <h2 className="text-lg">Обновление</h2>

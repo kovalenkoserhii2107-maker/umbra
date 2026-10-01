@@ -1,69 +1,45 @@
-import { readStorage, writeStorage } from "../lib/storage";
 import { useEffect, useState } from "react";
+import {
+  isIos,
+  isStandalone,
+  promptInstall,
+  rememberDismissal,
+  shouldAutoOpen,
+  useCanInstall,
+} from "../lib/install";
 
-const DISMISS_KEY = "umbra.installDismissed";
-
-type BeforeInstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-};
-
-function isStandalone() {
-  return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    Boolean((navigator as Navigator & { standalone?: boolean }).standalone)
-  );
-}
-
-function isIos() {
-  const ua = navigator.userAgent;
-  return (
-    /iPhone|iPad|iPod/i.test(ua) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
-  );
-}
-
+/** Mounted only after sign-in, so a new person sees it right after joining. */
 export function InstallPrompt() {
-  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(
-    null,
-  );
+  const canInstall = useCanInstall();
   const [open, setOpen] = useState(false);
+  const [asked, setAsked] = useState(false);
 
   useEffect(() => {
-    if (isStandalone()) return;
     const help = () => setOpen(true);
     window.addEventListener("umbra:install-help", help);
-
-    const onPrompt = (event: Event) => {
-      event.preventDefault();
-      setDeferred(event as BeforeInstallPromptEvent);
-      setOpen(true);
-    };
-    window.addEventListener("beforeinstallprompt", onPrompt);
-
-    const timer = window.setTimeout(() => {
-      if (isStandalone() || readStorage(DISMISS_KEY) === "1") return;
-      if (isIos()) setOpen(true);
-    }, 600);
-
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onPrompt);
-      window.removeEventListener("umbra:install-help", help);
-      window.clearTimeout(timer);
-    };
+    return () => window.removeEventListener("umbra:install-help", help);
   }, []);
 
+  useEffect(() => {
+    // Chrome may offer installation before sign-in; the event is kept for here.
+    if (!asked && (canInstall || isIos()) && shouldAutoOpen()) {
+      const timer = window.setTimeout(() => {
+        setAsked(true);
+        setOpen(true);
+      }, 600);
+      return () => window.clearTimeout(timer);
+    }
+  }, [canInstall, asked]);
+
   function dismiss() {
-    writeStorage(DISMISS_KEY, "1");
+    rememberDismissal();
     setOpen(false);
   }
 
   async function install() {
-    if (deferred) {
-      await deferred.prompt();
-      const choice = await deferred.userChoice;
-      if (choice.outcome === "accepted") dismiss();
-    }
+    // Declining Chrome's dialog counts as "Позже".
+    if ((await promptInstall()) === "dismissed") rememberDismissal();
+    setOpen(false);
   }
 
   if (!open || isStandalone()) return null;
@@ -92,8 +68,9 @@ export function InstallPrompt() {
               </ol>
             ) : (
               <p className="mt-1 text-xs text-mute">
-                Если браузер поддерживает установку, выбери «Установить
-                приложение» в его меню.
+                {canInstall
+                  ? "Umbra откроется как приложение — без адресной строки, с иконкой на главном экране."
+                  : "Открой меню браузера (⋮) и выбери «Установить приложение» или «Добавить на главный экран»."}
               </p>
             )}
           </div>
@@ -105,7 +82,7 @@ export function InstallPrompt() {
           >
             Позже
           </button>
-          {ios || !deferred ? null : (
+          {ios || !canInstall ? null : (
             <button
               onClick={install}
               className="rounded-full bg-ink px-3 py-1.5 text-xs text-canvas"

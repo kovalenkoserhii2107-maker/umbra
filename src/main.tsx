@@ -6,8 +6,10 @@ import "./index.css";
 import App from "./App.tsx";
 import { AppStateProvider } from "./state.tsx";
 import { listenAuth } from "./lib/auth";
+import { listenInstall } from "./lib/install";
 
 listenAuth();
+listenInstall();
 
 class Boundary extends Component<
   { children: ReactNode },

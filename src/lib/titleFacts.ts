@@ -1,6 +1,7 @@
 import { dateLabel, plural } from "./format";
 import type {
   MediaType,
+  PersonRef,
   TitleDetails,
   Video,
   WatchGroup,
@@ -117,6 +118,15 @@ export function votesLabel(n?: number | null) {
     return `${(n / 1e6).toLocaleString("ru-RU", { maximumFractionDigits: 1 })} млн голосов`;
   if (n >= 1e3) return `${Math.round(n / 1e3)} тыс. голосов`;
   return `${n} ${word}`;
+}
+
+/** Compact count for rating tiles: "828 тыс.", "1,2 млн", "639". */
+export function votesShort(n?: number | null) {
+  if (!n) return null;
+  if (n >= 1e6)
+    return `${(n / 1e6).toLocaleString("ru-RU", { maximumFractionDigits: 1 })} млн`;
+  if (n >= 1e3) return `${Math.round(n / 1e3)} тыс.`;
+  return String(n);
 }
 
 const AWARD_NAMES: Array<[RegExp, string]> = [
@@ -266,4 +276,39 @@ export function extraCrew(item: TitleDetails) {
     );
     return { role, people };
   }).filter((row) => row.people.length);
+}
+
+const MAIN_CREW: Array<[string, string[]]> = [
+  ["Режиссёр", ["Director"]],
+  [
+    "Сценарий",
+    [
+      "Screenplay",
+      "Writer",
+      "Story",
+      "Teleplay",
+      "Series Composition",
+      "Novel",
+    ],
+  ],
+  ["Продюсеры", ["Producer"]],
+];
+
+/** Director, creators, writers, producers, then composer, camera and the rest. */
+export function crewRows(item: TitleDetails) {
+  const crew = item.credits?.crew ?? [];
+  const pick = (jobs: string[]) => {
+    const seen = new Set<number>();
+    return crew.filter(
+      (c) => c.job && jobs.includes(c.job) && !seen.has(c.id) && seen.add(c.id),
+    );
+  };
+  const rows: Array<{ role: string; people: PersonRef[] }> = [];
+  for (const [role, jobs] of MAIN_CREW) {
+    if (role === "Сценарий" && item.created_by?.length)
+      rows.push({ role: "Создатели", people: item.created_by });
+    const people = pick(jobs);
+    if (people.length) rows.push({ role, people });
+  }
+  return [...rows, ...extraCrew(item)];
 }

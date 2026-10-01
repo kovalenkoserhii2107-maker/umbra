@@ -342,9 +342,10 @@ test("series tracking, collection filters, stats and sharing", async ({
   await page.getByRole("button", { name: "Отмена" }).click();
   await page.setViewportSize({ width: 1280, height: 720 });
 
-  await expect(
-    page.getByText("Rotten Tomatoes", { exact: true }).first(),
-  ).toBeVisible();
+  // No OMDb key yet: no Tomatometer tile, only the link in «Рецензии».
+  await expect(page.getByRole("link", { name: /Rotten Tomatoes/ })).toHaveCount(
+    1,
+  );
   await page.goto("#/settings");
   await page.getByLabel("Ключ OMDb").fill("demo-key");
   await page.getByRole("button", { name: "Сохранить", exact: true }).click();
@@ -353,7 +354,12 @@ test("series tracking, collection filters, stats and sharing", async ({
   ).toBeVisible();
   await page.goto("#/title/tv/202");
   await expect(page.getByText("93%").first()).toBeVisible();
-  await expect(page.getByText("Metascore")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /^Metascore.*: 79$/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /^Rotten Tomatoes.*: 93%$/ }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Смотрю", exact: true }).click();
   await page.getByRole("checkbox", { name: "S1E2 просмотрена" }).click();
@@ -407,7 +413,7 @@ test("title card shows everything TMDB and OMDb return", async ({
     page.getByText("Guardians of the Galaxy Vol. 2").first(),
   ).toBeVisible();
   await expect(page.getByText("16+", { exact: true })).toBeVisible();
-  await expect(page.getByText("828 тыс. голосов")).toBeVisible();
+  await expect(page.getByText("828 тыс.", { exact: true })).toBeVisible();
   await expect(page.getByText("93%").first()).toBeVisible();
   await expect(
     page.getByText("«Оскар»: 1 номинация · всего 15 наград и 62 номинации"),

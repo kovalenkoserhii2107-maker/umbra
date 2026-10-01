@@ -188,7 +188,7 @@ async function route(
       part === "profile"
         ? { ttl: 3600, run: () => steamProfile(deps, steamId) }
         : part === "library"
-          ? { ttl: 900, run: () => steamLibrary(deps, steamId) }
+          ? { ttl: 600, run: () => steamLibrary(deps, steamId) }
           : app
             ? {
                 ttl: 1800,

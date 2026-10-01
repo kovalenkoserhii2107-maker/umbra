@@ -225,6 +225,14 @@ async function mockApi(
             ]);
           return reply([]);
         }
+        if (/where id = \(1942\)/.test(body))
+          return reply([
+            {
+              ...summary(1942, "The Witcher 3: Wild Hunt"),
+              cover: cover("co1wyy"),
+              platforms: [6, 48, 130],
+            },
+          ]);
         if (/where id = \([\d,]*\b72\b/.test(body))
           return reply([
             summary(1942, "The Witcher 3: Wild Hunt"),
@@ -588,6 +596,10 @@ test("collection lives in the cloud: marks sync across tabs and old device entri
       other.evaluate(() => localStorage.getItem("umbra.gamesLibrary")),
     )
     .toBeNull();
+  // The old entry had no cover; it is filled in from IGDB.
+  await expect(
+    other.locator('a[href="#/games/1942"] img[src*="co1wyy"]'),
+  ).toBeVisible();
 
   await page.goto("#/games/1942");
   await expect(
@@ -722,6 +734,8 @@ test("Steam sign-in imports the library, wishlist, play time and achievements", 
   await expect(
     page.getByRole("heading", { name: "Недавно играл" }),
   ).toBeVisible();
+  // Steam refreshes by itself; there is no button for it.
+  await expect(page.getByRole("button", { name: "Обновить" })).toHaveCount(0);
   await expect(
     page.getByRole("link", { name: /Cyberpunk 2077/ }),
   ).toContainText("Хочу поиграть");

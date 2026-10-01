@@ -74,6 +74,25 @@ describe("OMDb scores", () => {
         "https://www.rottentomatoes.com/m/shawshank_redemption",
     });
   });
+  it("reads a real OMDb response without the tomatoes flag", () => {
+    // Shape of an actual response for tt3896198 (Guardians of the Galaxy Vol. 2).
+    expect(
+      parseOmdb({
+        Title: "Guardians of the Galaxy: Vol. 2",
+        Ratings: [
+          { Source: "Internet Movie Database", Value: "7.6/10" },
+          { Source: "Rotten Tomatoes", Value: "85%" },
+          { Source: "Metacritic", Value: "67/100" },
+        ],
+        Metascore: "67",
+        imdbRating: "7.6",
+        imdbID: "tt3896198",
+        Type: "movie",
+        BoxOffice: "$389,813,101",
+        Response: "True",
+      }),
+    ).toEqual({ tomatometer: 85, metascore: 67, rottenTomatoesUrl: null });
+  });
   it("treats N/A, errors and foreign links as missing", () => {
     expect(
       parseOmdb({

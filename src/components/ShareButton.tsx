@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 /** Absolute link to a screen of this app, e.g. "/title/movie/1". */
 export function appUrl(path: string) {
@@ -91,7 +92,13 @@ export function ShareSheet({
       if (event.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    // Keep the page underneath still while the sheet is open.
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = overflow;
+    };
   }, [onClose]);
 
   async function copy() {
@@ -114,7 +121,9 @@ export function ShareSheet({
 
   const tile =
     "flex flex-col items-center gap-1.5 rounded-2xl p-2 text-[11px] text-mute hover:bg-white/5";
-  return (
+  // Render into <body>: animated page containers (.rise uses transform) would
+  // otherwise become the box that `fixed` positions against.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <button
         type="button"
@@ -193,7 +202,8 @@ export function ShareSheet({
           Отмена
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

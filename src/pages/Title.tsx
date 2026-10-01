@@ -10,6 +10,7 @@ import {
   Franchise,
   Gallery,
   LinksRow,
+  PersonCard,
   Reviews,
   Section,
   Videos,
@@ -18,7 +19,7 @@ import {
 import { fetchOmdbInfo, type OmdbScores } from "../lib/omdb";
 import {
   certification,
-  crewRows,
+  crewCards,
   showTypeLabel,
   sortedVideos,
   statusLabel,
@@ -37,7 +38,6 @@ import {
   titleOf,
   tmdb,
   type MediaType,
-  type PersonRef,
   type TitleDetails,
   type TmdbItem,
 } from "../lib/tmdb";
@@ -195,27 +195,6 @@ function Overview({ text }: { text?: string }) {
         </button>
       ) : null}
     </div>
-  );
-}
-
-function PersonCard({ person, role }: { person: PersonRef; role: string }) {
-  return (
-    <Link to={`/person/${person.id}`} className="w-28 shrink-0">
-      {person.profile_path ? (
-        <img
-          src={posterUrl(person.profile_path, "w185")}
-          alt=""
-          loading="lazy"
-          className="aspect-[2/3] w-full rounded-xl border border-hairline object-cover"
-        />
-      ) : (
-        <div className="flex aspect-[2/3] items-center justify-center rounded-xl border border-hairline bg-card text-2xl text-dim">
-          {person.name.slice(0, 1)}
-        </div>
-      )}
-      <p className="mt-1.5 line-clamp-2 text-sm leading-snug">{person.name}</p>
-      <p className="line-clamp-1 font-mono text-[10px] text-dim">{role}</p>
-    </Link>
   );
 }
 
@@ -543,7 +522,7 @@ export function TitlePage() {
           </div>
         </Section>
       ) : null}
-      <Crew rows={crewRows(item)} />
+      <Crew cards={crewCards(item)} />
       <Details
         item={item}
         media={media}

@@ -312,3 +312,33 @@ export function crewRows(item: TitleDetails) {
   }
   return [...rows, ...extraCrew(item)];
 }
+
+const ROLE_NAMES: Record<string, string> = {
+  Режиссёр: "режиссёр",
+  Создатели: "создатель",
+  Сценарий: "сценарий",
+  Продюсеры: "продюсер",
+  Композитор: "композитор",
+  Оператор: "оператор",
+  Монтаж: "монтаж",
+  "Художник-постановщик": "художник-постановщик",
+};
+
+/**
+ * Crew as one row of people: each person once, with every role they had,
+ * in the order director, creators, writers, producers, then the rest.
+ */
+export function crewCards(item: TitleDetails) {
+  const cards = new Map<number, { person: PersonRef; roles: string[] }>();
+  for (const row of crewRows(item)) {
+    const limit = row.role === "Продюсеры" ? 4 : 6;
+    for (const person of row.people.slice(0, limit)) {
+      const role = ROLE_NAMES[row.role] || row.role.toLowerCase();
+      const card = cards.get(person.id);
+      if (card) {
+        if (!card.roles.includes(role)) card.roles.push(role);
+      } else cards.set(person.id, { person, roles: [role] });
+    }
+  }
+  return [...cards.values()];
+}

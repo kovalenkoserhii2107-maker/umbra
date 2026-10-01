@@ -141,10 +141,8 @@ test("an anonymous visitor sees only the sign-in screen until registration", asy
   await expect(
     page.getByRole("heading", { name: "Test Film", exact: true }),
   ).toBeVisible();
-  await expect(page.getByText("TMDB", { exact: true })).toBeVisible();
-  await expect(
-    page.getByText("Rotten Tomatoes", { exact: true }),
-  ).toBeVisible();
+  // Without scores the ratings row stays hidden; the TMDB link is always there.
+  await expect(page.getByRole("link", { name: "TMDB ↗" })).toBeVisible();
 });
 test("Android install offer caught on the sign-in screen appears after registration", async ({
   page,

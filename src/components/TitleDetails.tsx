@@ -25,6 +25,7 @@ import {
 import type { OmdbScores } from "../lib/omdb";
 import { dateLabel } from "../lib/format";
 
+/** Every block on the title page uses this heading and spacing. */
 export function Section({
   title,
   aside,
@@ -35,9 +36,9 @@ export function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="mt-8">
+    <section className="mt-10">
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <h2 className="text-lg tracking-tight">{title}</h2>
+        <h2 className="text-xl font-medium tracking-tight">{title}</h2>
         {aside}
       </div>
       {children}
@@ -45,16 +46,48 @@ export function Section({
   );
 }
 
+/** Small mono note on the right of a section heading. */
+export function Aside({ children }: { children: ReactNode }) {
+  return (
+    <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.12em] text-dim">
+      {children}
+    </span>
+  );
+}
+
+export function AsideLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="shrink-0 font-mono text-[11px] uppercase tracking-[0.12em] text-accent"
+    >
+      {children}
+    </a>
+  );
+}
+
+export const CARD = "rounded-2xl border border-hairline bg-card";
+
 export function AwardsLine({ omdb }: { omdb: OmdbScores | null }) {
   const text = awardsLabel(omdb?.awards);
   if (!text) return null;
   return (
-    <p className="mt-4 flex max-w-3xl items-start gap-2 text-sm text-ink/90">
-      <span aria-hidden="true" className="text-[#f5c518]">
+    <p
+      className={`${CARD} mt-4 flex max-w-3xl items-start gap-3 px-4 py-3 text-sm`}
+    >
+      <span aria-hidden="true" className="text-base leading-5 text-[#f5c518]">
         ★
       </span>
       <span>
-        <span className="text-mute">Награды: </span>
+        <span className="text-mute">Награды · </span>
         {text}
       </span>
     </p>
@@ -76,14 +109,7 @@ export function WatchOptions({
       title={`Где смотреть · ${regionCode}`}
       aside={
         region?.link ? (
-          <a
-            href={region.link}
-            target="_blank"
-            rel="noreferrer"
-            className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent"
-          >
-            Все варианты ↗
-          </a>
+          <AsideLink href={region.link}>Все варианты ↗</AsideLink>
         ) : null
       }
     >
@@ -129,34 +155,6 @@ export function WatchOptions({
   );
 }
 
-export function ReleaseDates({
-  item,
-  region,
-}: {
-  item: TitleDetails;
-  region: string;
-}) {
-  const rows = regionalDates(item, region);
-  if (!rows.length) return null;
-  return (
-    <Section title={`Даты выхода · ${region}`}>
-      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {rows.map((r) => (
-          <div
-            key={r.label}
-            className="rounded-2xl border border-hairline bg-card px-3 py-2.5"
-          >
-            <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
-              {r.label}
-            </dt>
-            <dd className="mt-0.5 text-sm">{r.date}</dd>
-          </div>
-        ))}
-      </dl>
-    </Section>
-  );
-}
-
 export function Videos({ videos }: { videos: Video[] }) {
   const [current, setCurrent] = useState(0);
   if (!videos.length) return null;
@@ -164,13 +162,7 @@ export function Videos({ videos }: { videos: Video[] }) {
   return (
     <Section
       title={VIDEO_TYPES[shown.type] || "Видео"}
-      aside={
-        videos.length > 1 ? (
-          <span className="font-mono text-[11px] text-dim">
-            {videos.length} видео
-          </span>
-        ) : null
-      }
+      aside={videos.length > 1 ? <Aside>{videos.length} видео</Aside> : null}
     >
       <div className="overflow-hidden rounded-2xl border border-hairline">
         <iframe
@@ -251,43 +243,50 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-export function Facts({
+export function Details({
   item,
   media,
   omdb,
-  title,
+  region,
 }: {
   item: TitleDetails;
   media: MediaType;
   omdb: OmdbScores | null;
-  title: string;
+  region: string;
 }) {
-  const original = item.original_title || item.original_name;
   const countries = [
-    ...new Set([
-      ...(item.production_countries ?? []).map(
-        (c) => countryName(c.iso_3166_1) || c.name,
-      ),
-      ...(item.production_countries?.length
-        ? []
-        : (item.origin_country ?? [])
-      ).map((c) => countryName(c) || c),
-    ]),
+    ...new Set(
+      (item.production_countries?.length
+        ? item.production_countries.map(
+            (c) => countryName(c.iso_3166_1) || c.name,
+          )
+        : (item.origin_country ?? []).map((c) => countryName(c) || c)
+      ).filter(Boolean),
+    ),
   ];
   const languages = (item.spoken_languages ?? [])
     .map((l) => languageName(l.iso_639_1) || l.name)
     .filter(Boolean);
   const rows: Array<[string, ReactNode]> = [];
-  if (original && original !== title)
-    rows.push(["Оригинальное название", original]);
+  // Dates first: they answer "when can I watch it".
+  if (media === "movie")
+    for (const d of regionalDates(item, region))
+      rows.push([`${d.label} · ${region}`, d.date]);
+  if (media === "tv" && item.first_air_date)
+    rows.push(["Первый эпизод", dateLabel(item.first_air_date)]);
+  const lastAir = (item as { last_air_date?: string }).last_air_date;
+  if (media === "tv" && lastAir && item.status !== "Returning Series")
+    rows.push(["Последний эпизод", dateLabel(lastAir)]);
+  if (media === "tv" && item.networks?.length)
+    rows.push(["Канал", item.networks.map((n) => n.name).join(", ")]);
+  if (countries.length)
+    rows.push([
+      countries.length > 1 ? "Страны" : "Страна",
+      countries.join(", "),
+    ]);
   const lang = languageName(item.original_language);
   if (lang) rows.push(["Язык оригинала", lang]);
   if (languages.length > 1) rows.push(["Языки", languages.join(", ")]);
-  if (countries.length) rows.push(["Страна", countries.join(", ")]);
-  if (media === "tv" && item.networks?.length)
-    rows.push(["Канал", item.networks.map((n) => n.name).join(", ")]);
-  if (media === "tv" && item.created_by?.length)
-    rows.push(["Создатели", <People key="created" people={item.created_by} />]);
   if (item.production_companies?.length)
     rows.push([
       "Студии",
@@ -303,16 +302,11 @@ export function Facts({
   const us = money(omdb?.boxOffice);
   if (us) rows.push(["Сборы в США", us]);
   if (omdb?.rated && omdb.rated !== "Not Rated" && omdb.rated !== "Unrated")
-    rows.push(["Рейтинг MPA (США)", omdb.rated]);
-  if (media === "tv" && item.first_air_date)
-    rows.push(["Первый эпизод", dateLabel(item.first_air_date)]);
-  const lastAir = (item as { last_air_date?: string }).last_air_date;
-  if (media === "tv" && lastAir && item.status !== "Returning Series")
-    rows.push(["Последний эпизод", dateLabel(lastAir)]);
+    rows.push(["Рейтинг MPA", omdb.rated]);
   if (!rows.length) return null;
   return (
-    <Section title={media === "tv" ? "О сериале" : "О фильме"}>
-      <dl className="rounded-2xl border border-hairline bg-card px-4">
+    <Section title="Подробности">
+      <dl className={`${CARD} px-4`}>
         {rows.map(([label, value]) => (
           <Fact key={label} label={label}>
             {value}
@@ -341,20 +335,22 @@ function People({ people }: { people: PersonRef[] }) {
   );
 }
 
-export function CrewList({
+export function Crew({
   rows,
 }: {
   rows: Array<{ role: string; people: PersonRef[] }>;
 }) {
   if (!rows.length) return null;
   return (
-    <dl className="mt-4 rounded-2xl border border-hairline bg-card px-4">
-      {rows.map((row) => (
-        <Fact key={row.role} label={row.role}>
-          <People people={row.people.slice(0, 4)} />
-        </Fact>
-      ))}
-    </dl>
+    <Section title="Съёмочная группа">
+      <dl className={`${CARD} px-4`}>
+        {rows.map((row) => (
+          <Fact key={row.role} label={row.role}>
+            <People people={row.people.slice(0, 4)} />
+          </Fact>
+        ))}
+      </dl>
+    </Section>
   );
 }
 
@@ -379,11 +375,7 @@ export function Franchise({
   return (
     <Section
       title={collection.data?.name || ref.name}
-      aside={
-        <span className="font-mono text-[11px] text-dim">
-          {parts.length + 1} в серии
-        </span>
-      }
+      aside={<Aside>{parts.length + 1} в серии</Aside>}
     >
       <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
         {parts.map((p) => (
@@ -414,7 +406,7 @@ function ReviewCard({
   const long = review.content.length > 420;
   const rating = review.author_details?.rating;
   return (
-    <article className="rounded-2xl border border-hairline bg-card p-4">
+    <article className={`${CARD} p-4`}>
       <div className="flex items-baseline justify-between gap-3">
         <p className="truncate text-sm">{review.author}</p>
         <p className="shrink-0 font-mono text-[11px] text-dim">
@@ -453,24 +445,61 @@ function ReviewCard({
   );
 }
 
-export function Reviews({ media, id }: { media: MediaType; id: number }) {
+export function Reviews({
+  media,
+  id,
+  imdbId,
+  rottenTomatoesUrl,
+}: {
+  media: MediaType;
+  id: number;
+  imdbId: string;
+  rottenTomatoesUrl: string;
+}) {
   const reviews = useAsync(() => tmdb.reviews(media, id), [media, id]);
   const list = reviews.data?.results ?? [];
-  if (!list.length) return null;
+  if (!list.length && !imdbId) return null;
+  const chip =
+    "inline-flex items-center gap-1.5 rounded-full border border-hairline px-3 py-1.5 text-xs text-ink hover:border-accent";
   return (
     <Section
-      title="Рецензии зрителей TMDB"
+      title="Рецензии"
       aside={
-        <span className="font-mono text-[11px] text-dim">
-          {reviews.data!.total_results} · на английском
-        </span>
+        list.length ? (
+          <Aside>{reviews.data!.total_results} на TMDB</Aside>
+        ) : null
       }
     >
-      <div className="space-y-3">
-        {list.slice(0, 3).map((r) => (
-          <ReviewCard key={r.id} review={r} />
-        ))}
-      </div>
+      {imdbId ? (
+        <div className="mb-3 flex flex-wrap gap-2">
+          <a
+            href={`https://www.imdb.com/title/${imdbId}/criticreviews/`}
+            target="_blank"
+            rel="noreferrer"
+            className={chip}
+          >
+            Критики на IMDb <span className="text-accent">↗</span>
+          </a>
+          <a
+            href={rottenTomatoesUrl}
+            target="_blank"
+            rel="noreferrer"
+            className={chip}
+          >
+            Rotten Tomatoes <span className="text-accent">↗</span>
+          </a>
+        </div>
+      ) : null}
+      {list.length ? (
+        <>
+          <p className="mb-2 text-xs text-dim">Зрители TMDB · на английском</p>
+          <div className="space-y-3">
+            {list.slice(0, 3).map((r) => (
+              <ReviewCard key={r.id} review={r} />
+            ))}
+          </div>
+        </>
+      ) : null}
     </Section>
   );
 }

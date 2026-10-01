@@ -146,7 +146,15 @@ test("series tracking, collection filters, stats and sharing", async ({
     "href",
     /t\.me\/share\/url\?url=.*title%2Ftv%2F202/,
   );
+  // The sheet sits on the visible screen, not at the bottom of a long page.
+  await page.setViewportSize({ width: 390, height: 500 });
+  const sheet = await page
+    .getByRole("dialog", { name: "Поделиться" })
+    .boundingBox();
+  expect(sheet!.y).toBeGreaterThanOrEqual(0);
+  expect(sheet!.y + sheet!.height).toBeLessThanOrEqual(501);
   await page.getByRole("button", { name: "Отмена" }).click();
+  await page.setViewportSize({ width: 1280, height: 720 });
 
   await page.getByRole("button", { name: "Смотрю", exact: true }).click();
   await page.getByRole("checkbox", { name: "S1E2 просмотрена" }).click();

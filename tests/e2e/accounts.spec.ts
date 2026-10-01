@@ -18,7 +18,7 @@ async function catalog(context: BrowserContext) {
     }),
   );
   await context.route(
-    /https:\/\/(api.agregarr.org|imdb-top250.mmdju.workers.dev)\//,
+    /https:\/\/(api.agregarr.org|imdb-top250.mmdju.workers.dev|query.wikidata.org)\//,
     (route) => route.fulfill({ json: [] }),
   );
   await context.route("https://fonts.googleapis.com/**", (route) =>
@@ -112,6 +112,39 @@ test("two devices synchronize notes, ratings and deletions; a second account see
   await expect(a.getByText("Test Film", { exact: true })).toBeVisible();
   await device1.close();
   await device2.close();
+});
+test("an anonymous visitor sees only the sign-in screen until registration", async ({
+  page,
+  context,
+}) => {
+  await catalog(context);
+  await page.goto("#/");
+  await expect(
+    page.getByRole("heading", { name: "Вход в Umbra" }),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/#\/login\?next=%2F$/);
+  await expect(page.getByRole("link", { name: "Коллекция" })).toHaveCount(0);
+  await page.goto("#/title/movie/101");
+  await expect(page).toHaveURL(/#\/login\?next=%2Ftitle%2Fmovie%2F101$/);
+  await page
+    .getByRole("button", { name: "Нет аккаунта — зарегистрироваться" })
+    .click();
+  await page.getByLabel("Имя", { exact: true }).fill("Tester");
+  await page
+    .getByLabel("Email", { exact: true })
+    .fill(`c-${Date.now()}@example.com`);
+  await page.getByLabel("Пароль", { exact: true }).fill("test-password-123");
+  await page
+    .getByRole("button", { name: "Создать аккаунт", exact: true })
+    .click();
+  await expect(page).toHaveURL(/#\/title\/movie\/101$/);
+  await expect(
+    page.getByRole("heading", { name: "Test Film", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("TMDB", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Rotten Tomatoes", { exact: true }),
+  ).toBeVisible();
 });
 test("cached legacy profile cannot unlock the cabinet or import a previous user library", async ({
   page,

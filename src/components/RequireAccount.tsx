@@ -5,7 +5,14 @@ export function RequireAccount({ children }: { children: ReactNode }) {
   const auth = useAuth();
   const location = useLocation();
   if (auth.status === "initializing")
-    return <p role="status">Восстанавливаю вход…</p>;
+    return (
+      <p
+        role="status"
+        className="flex min-h-dvh items-center justify-center bg-canvas text-sm text-mute"
+      >
+        Восстанавливаю вход…
+      </p>
+    );
   if (!auth.account)
     return (
       <Navigate

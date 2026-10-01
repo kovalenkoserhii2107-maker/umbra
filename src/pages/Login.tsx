@@ -15,8 +15,9 @@ export function LoginPage() {
       <BrandLockup size="lg" />
       <h1 className="mt-8 text-3xl">Вход в Umbra</h1>
       <p className="mt-3 text-sm text-mute">
-        Твои фильмы, оценки и заметки — на телефоне и компьютере. На всех
-        устройствах входи в один аккаунт.
+        Войди или зарегистрируйся, чтобы открыть каталог фильмов, сериалов и
+        игр. Оценки и заметки синхронизируются между устройствами одного
+        аккаунта.
       </p>
       {auth.error ? (
         <p role="alert" className="mt-3 text-accent">

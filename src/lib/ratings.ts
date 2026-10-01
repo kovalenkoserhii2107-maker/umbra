@@ -116,3 +116,90 @@ export async function ensureImdbRating(
     inflight.delete(key);
   }
 }
+
+// Rotten Tomatoes and Metacritic have no public browser APIs; Wikidata keeps
+// their published scores keyed by IMDb ID and answers cross-origin requests.
+const WIKIDATA = "http://www.wikidata.org/entity/";
+const ROTTEN_TOMATOES = "Q105584";
+const TOMATOMETER = "Q108403393";
+const METACRITIC = "Q150248";
+
+export type CriticScores = {
+  /** Tomatometer, percent of positive critic reviews. */
+  tomatometer: number | null;
+  /** Rotten Tomatoes path such as "m/the_shawshank_redemption". */
+  rottenTomatoesId: string | null;
+  /** Metascore 0–100, the critic score IMDb shows on its critic reviews. */
+  metascore: number | null;
+};
+
+type SparqlValue = { value: string };
+type SparqlRow = Partial<
+  Record<"rt" | "by" | "score" | "method" | "date", SparqlValue>
+>;
+
+function latest<T>(rows: Array<{ value: T; date: string }>): T | null {
+  if (!rows.length) return null;
+  return [...rows].sort((a, b) => b.date.localeCompare(a.date))[0].value;
+}
+
+export function parseCriticScores(json: unknown): CriticScores {
+  const rows =
+    (json as { results?: { bindings?: SparqlRow[] } })?.results?.bindings ?? [];
+  const tomatometer: Array<{ value: number; date: string }> = [];
+  const metascore: Array<{ value: number; date: string }> = [];
+  let rottenTomatoesId: string | null = null;
+  for (const row of rows) {
+    const rt = row.rt?.value;
+    if (rt && /^(m|tv)\/[\w-]+(\/[\w-]+)*$/.test(rt)) rottenTomatoesId = rt;
+    const by = row.by?.value.replace(WIKIDATA, "");
+    const raw = row.score?.value.trim() ?? "";
+    const method = row.method?.value.replace(WIKIDATA, "");
+    const date = row.date?.value ?? "";
+    if (by === ROTTEN_TOMATOES) {
+      // Other determination methods are audience scores or average ratings.
+      const match = raw.match(/^(\d{1,3})\s*%$/);
+      if (match && (!method || method === TOMATOMETER)) {
+        const value = Number(match[1]);
+        if (value <= 100) tomatometer.push({ value, date });
+      }
+    } else if (by === METACRITIC) {
+      // Metascores are published out of 100; "/10" values are user scores.
+      const match = raw.match(/^(\d{1,3})(?:\s*\/\s*100)?$/);
+      if (match) {
+        const value = Number(match[1]);
+        if (value <= 100) metascore.push({ value, date });
+      }
+    }
+  }
+  return {
+    tomatometer: latest(tomatometer),
+    rottenTomatoesId,
+    metascore: latest(metascore),
+  };
+}
+
+export async function fetchCriticScores(
+  imdbId?: string | null,
+): Promise<CriticScores> {
+  const empty = { tomatometer: null, rottenTomatoesId: null, metascore: null };
+  if (!imdbId || !/^tt\d+$/.test(imdbId)) return empty;
+  const query = `SELECT ?rt ?by ?score ?method ?date WHERE {
+  ?item wdt:P345 "${imdbId}" .
+  OPTIONAL { ?item wdt:P1258 ?rt }
+  OPTIONAL {
+    ?item p:P444 ?st .
+    ?st ps:P444 ?score ; pq:P447 ?by .
+    FILTER(?by IN (wd:${ROTTEN_TOMATOES}, wd:${METACRITIC}))
+    FILTER NOT EXISTS { ?st wikibase:rank wikibase:DeprecatedRank }
+    OPTIONAL { ?st pq:P459 ?method }
+    OPTIONAL { ?st pq:P585 ?date }
+  }
+}`;
+  const url = `https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(query)}`;
+  try {
+    return parseCriticScores(await requestJson<unknown>(url, 6 * 3600_000));
+  } catch {
+    return empty;
+  }
+}

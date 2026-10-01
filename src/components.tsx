@@ -21,7 +21,13 @@ import { InstallPrompt } from "./components/InstallPrompt";
 import { BrandLockup } from "./components/Brand";
 import { AccountMenu } from "./components/AccountMenu";
 
-export function Layout({ children }: { children: ReactNode }) {
+export function Layout({
+  children,
+  bare = false,
+}: {
+  children: ReactNode;
+  bare?: boolean;
+}) {
   const location = useLocation();
   const scrollY = useRef(new Map<string, number>());
   useEffect(() => {
@@ -32,6 +38,18 @@ export function Layout({ children }: { children: ReactNode }) {
     };
   }, [location.key]);
 
+  if (bare)
+    return (
+      <div
+        className="min-h-dvh bg-canvas text-ink"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
+        <main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-6 sm:px-6">
+          {children}
+        </main>
+        <UpdatePrompt />
+      </div>
+    );
   return (
     <div className="min-h-dvh bg-canvas text-ink">
       <Header />
@@ -293,10 +311,12 @@ export function RatingBadge({ type, id }: { type: MediaType; id: number }) {
       ref={root}
       className="absolute bottom-1.5 right-1.5 rounded-md bg-black/75 px-1.5 py-0.5 leading-none backdrop-blur-sm"
     >
-      <p className="font-mono text-[8px] uppercase tracking-[0.14em] text-[#f5c518]/80">
-        IMDb
+      <p
+        className="font-mono text-sm font-bold text-[#f5c518]"
+        aria-label={`IMDb ${score}`}
+      >
+        {score}
       </p>
-      <p className="font-mono text-sm font-bold text-[#f5c518]">{score}</p>
     </div>
   );
 }

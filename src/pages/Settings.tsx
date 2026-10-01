@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useAuth } from "../lib/auth";
-import { readStorage, writeStorage } from "../lib/storage";
+import { readStorage } from "../lib/storage";
 import { PLATFORMS, REGIONS } from "../lib/providers";
 import { useAppState } from "../state";
 import { APP_VERSION } from "../version";
+import { forgetDismissal, openInstallHelp } from "../lib/install";
 
 export function SettingsPage() {
   const { settings, setSettings, exportJson, importJson, items } =
@@ -65,8 +66,8 @@ export function SettingsPage() {
     downloadText(exportJson(), "umbra-library.json");
   }
   function showInstallAgain() {
-    writeStorage("umbra.installDismissed", null);
-    window.dispatchEvent(new Event("umbra:install-help"));
+    forgetDismissal();
+    openInstallHelp();
   }
   async function checkUpdate() {
     setMessage("Проверяю обновления…");

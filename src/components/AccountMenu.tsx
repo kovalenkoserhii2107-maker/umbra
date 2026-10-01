@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authError, signOutAccount, useAuth } from "../lib/auth";
+import {
+  openInstallHelp,
+  promptInstall,
+  useCanInstall,
+  useInstalled,
+} from "../lib/install";
 
 export function AccountMenu() {
   const [open, setOpen] = useState(false);
@@ -8,6 +14,8 @@ export function AccountMenu() {
   const [error, setError] = useState("");
   const root = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const canInstall = useCanInstall();
+  const installed = useInstalled();
 
   useEffect(() => {
     if (!open) return;
@@ -123,6 +131,18 @@ export function AccountMenu() {
               </Link>
             </>
           ) : null}
+          {installed ? null : (
+            <button
+              type="button"
+              onClick={async () => {
+                setOpen(false);
+                if (!canInstall || !(await promptInstall())) openInstallHelp();
+              }}
+              className="block w-full px-4 py-3 text-left text-sm hover:bg-white/5"
+            >
+              Установить приложение
+            </button>
+          )}
           <Link
             to="/settings"
             onClick={() => setOpen(false)}

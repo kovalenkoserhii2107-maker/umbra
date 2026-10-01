@@ -146,6 +146,54 @@ test("an anonymous visitor sees only the sign-in screen until registration", asy
     page.getByText("Rotten Tomatoes", { exact: true }),
   ).toBeVisible();
 });
+test("Android install offer caught on the sign-in screen appears after registration", async ({
+  page,
+  context,
+}) => {
+  await catalog(context);
+  await page.goto("#/login");
+  await expect(
+    page.getByRole("heading", { name: "Вход в Umbra" }),
+  ).toBeVisible();
+  // Chrome fires this once, usually while a new person is still signing in.
+  const offer = () =>
+    page.evaluate(() => {
+      const event = new Event("beforeinstallprompt", { cancelable: true });
+      Object.assign(event, {
+        prompt: async () => {
+          (window as unknown as { prompted: number }).prompted =
+            ((window as unknown as { prompted?: number }).prompted || 0) + 1;
+        },
+        userChoice: Promise.resolve({ outcome: "dismissed" }),
+      });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    });
+  expect(await offer()).toBe(true);
+  await expect(page.getByText("Установить Umbra")).toHaveCount(0);
+  await register(page, `i-${Date.now()}@example.com`);
+  await expect(page.getByText("Установить Umbra")).toBeVisible();
+  await page.getByRole("button", { name: "Установить", exact: true }).click();
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { prompted: number }).prompted,
+    ),
+  ).toBe(1);
+  await expect(page.getByText("Установить Umbra")).toHaveCount(0);
+  // Declining Chrome's dialog counts as «Позже»: no automatic prompt next time.
+  await page.reload();
+  await offer();
+  await page.waitForTimeout(1000);
+  await expect(page.getByText("Установить Umbra")).toHaveCount(0);
+  // The menu still installs on demand.
+  await page.getByRole("button", { name: "Меню" }).click();
+  await page.getByRole("button", { name: "Установить приложение" }).click();
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { prompted: number }).prompted,
+    ),
+  ).toBe(1);
+});
 test("cached legacy profile cannot unlock the cabinet or import a previous user library", async ({
   page,
   context,

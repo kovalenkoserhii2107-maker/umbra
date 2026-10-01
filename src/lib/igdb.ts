@@ -1,4 +1,4 @@
-import { igdb } from "./api";
+import { gamePass, igdb, twitchTopGames } from "./api";
 
 /**
  * Games come from IGDB through the API worker. Queries ask only for fields
@@ -73,10 +73,11 @@ export type GameSummary = {
   critics: number | null;
   users: number | null;
   type: number | null;
+  hypes: number | null;
 };
 
 export const SUMMARY_FIELDS =
-  "name,cover.image_id,first_release_date,platforms,genres.name,aggregated_rating,aggregated_rating_count,rating,rating_count,game_type";
+  "name,cover.image_id,first_release_date,platforms,genres.name,aggregated_rating,aggregated_rating_count,rating,rating_count,game_type,hypes";
 
 /** Main games, expansions, standalone add-ons, remakes, remasters, ports. */
 export const PLAYABLE = "game_type = (0,2,4,8,9,10,11) & version_parent = null";
@@ -264,6 +265,7 @@ export function toSummary(raw: RawGame): GameSummary {
         ? Math.round(raw.rating) / 10
         : null,
     type: raw.game_type ?? null,
+    hypes: raw.hypes ?? null,
   };
 }
 
@@ -296,42 +298,223 @@ export async function gamesByIds(ids: number[], extra = "") {
 }
 
 export type Shelves = {
-  popular: GameSummary[];
+  /** Popular new releases of the last four months. */
   fresh: GameSummary[];
+  popular: GameSummary[];
+  /** Most awaited, in order of anticipation. */
+  awaited: GameSummary[];
+  /** Release calendar of the coming weeks. */
   soon: GameSummary[];
   best: GameSummary[];
 };
 
-/** The four shelves of the feed for the given platforms. */
-export async function shelves(platforms: number[]): Promise<Shelves> {
+type PopularityKinds = {
+  visits: number;
+  want: number;
+  playing: number;
+  peak: number;
+};
+
+let kinds: Promise<PopularityKinds> | null = null;
+
+/** IGDB popularity types are looked up by name; ids are only a fallback. */
+function popularityKinds() {
+  kinds ??= igdb<Array<{ id: number; name?: string }>>(
+    "popularity_types",
+    "fields name; limit 100;",
+  )
+    .then((rows) => {
+      const find = (re: RegExp, fallback: number) =>
+        rows.find((r) => re.test(r.name || ""))?.id ?? fallback;
+      return {
+        visits: find(/^visits$/i, 1),
+        want: find(/want to play/i, 2),
+        playing: find(/^playing$/i, 3),
+        peak: find(/peak players/i, 5),
+      };
+    })
+    .catch(() => {
+      kinds = null;
+      return { visits: 1, want: 2, playing: 3, peak: 5 };
+    });
+  return kinds;
+}
+
+/**
+ * Reciprocal rank fusion: a game high in several popularity lists beats one
+ * that tops a single list.
+ */
+export function fuse(lists: number[][], k = 20) {
+  const score = new Map<number, number>();
+  for (const list of lists)
+    list.forEach((id, i) => score.set(id, (score.get(id) ?? 0) + 1 / (k + i)));
+  return score;
+}
+
+const byScore =
+  (score: Map<number, number>) => (a: GameSummary, b: GameSummary) =>
+    (score.get(b.id) ?? 0) - (score.get(a.id) ?? 0) ||
+    (b.hypes ?? 0) - (a.hypes ?? 0);
+
+const unique = (list: GameSummary[]) => {
+  const seen = new Set<number>();
+  return list.filter((g) => (seen.has(g.id) ? false : (seen.add(g.id), true)));
+};
+
+const feeds = new Map<string, { until: number; value: Promise<Shelves> }>();
+
+/** Feed shelves for the given platforms; one build is shared for 10 minutes. */
+export function shelves(platforms: number[]): Promise<Shelves> {
+  const key = platforms.join();
+  const hit = feeds.get(key);
+  if (hit && hit.until > Date.now()) return hit.value;
+  const value = buildShelves(platforms);
+  feeds.set(key, { until: Date.now() + 600_000, value });
+  value.catch(() => feeds.delete(key));
+  return value;
+}
+
+async function buildShelves(platforms: number[]): Promise<Shelves> {
   const on = platforms.length ? ` & platforms = (${platforms.join(",")})` : "";
   const now = today();
-  const results = await igdb<Array<{ name: string; result: RawGame[] }>>(
+  const [kind, twitch] = await Promise.all([
+    popularityKinds(),
+    twitchTopGames(100)
+      .then((r) =>
+        r.data
+          .map((g) => Number(g.igdb_id))
+          .filter((id) => Number.isSafeInteger(id) && id > 0),
+      )
+      .catch(() => [] as number[]),
+  ]);
+  const primitives = (name: string, type: number, limit: number) =>
+    `query popularity_primitives "${name}" { fields game_id; where popularity_type = ${type}; sort value desc; limit ${limit}; };`;
+  const results = await igdb<Array<{ name: string; result: unknown[] }>>(
     "multiquery",
     [
-      `query popularity_primitives "popular" { fields game_id,value; where popularity_type = 1; sort value desc; limit 200; };`,
-      `query games "fresh" { fields ${SUMMARY_FIELDS}; where ${PLAYABLE}${on} & first_release_date >= ${now - 60 * DAY} & first_release_date < ${now + DAY}; sort hypes desc; limit 30; };`,
-      `query games "soon" { fields ${SUMMARY_FIELDS}; where ${PLAYABLE}${on} & first_release_date >= ${now + DAY}; sort hypes desc; limit 30; };`,
-      `query games "best" { fields ${SUMMARY_FIELDS}; where ${PLAYABLE}${on} & first_release_date >= ${now - 365 * DAY} & aggregated_rating_count >= 8; sort aggregated_rating desc; limit 30; };`,
+      primitives("visits", kind.visits, 300),
+      primitives("want", kind.want, 300),
+      primitives("playing", kind.playing, 300),
+      primitives("peak", kind.peak, 200),
+      `query games "fresh" { fields ${SUMMARY_FIELDS}; where ${PLAYABLE}${on} & first_release_date >= ${now - 120 * DAY} & first_release_date < ${now + DAY}; sort hypes desc; limit 150; };`,
+      `query games "upcoming" { fields ${SUMMARY_FIELDS}; where ${PLAYABLE}${on} & (first_release_date >= ${now + DAY} | first_release_date = null) & hypes > 0; sort hypes desc; limit 100; };`,
+      `query games "best" { fields ${SUMMARY_FIELDS}; where ${PLAYABLE}${on} & first_release_date >= ${now - 365 * DAY} & aggregated_rating_count >= 8; sort aggregated_rating desc; limit 40; };`,
     ].join("\n"),
   );
   const part = (name: string) =>
-    (results.find((r) => r.name === name)?.result ?? []) as RawGame[];
-  const popularIds = (part("popular") as unknown as Array<{ game_id?: number }>)
-    .map((p) => p.game_id)
-    .filter((id): id is number => typeof id === "number");
-  const popular = await gamesByIds(
-    [...new Set(popularIds)],
-    `${on} & ${PLAYABLE}`,
-  ).catch(() => []);
-  return {
-    popular: popular.slice(0, 30),
-    fresh: part("fresh").map(toSummary),
-    soon: part("soon")
-      .map(toSummary)
-      .sort((a, b) => (a.released ?? 0) - (b.released ?? 0)),
-    best: part("best").map(toSummary),
+    results.find((r) => r.name === name)?.result ?? [];
+  const ids = (name: string) =>
+    (part(name) as Array<{ game_id?: number }>)
+      .map((p) => p.game_id)
+      .filter((id): id is number => typeof id === "number");
+  const games = (name: string) => (part(name) as RawGame[]).map(toSummary);
+  const lists = {
+    visits: ids("visits"),
+    want: ids("want"),
+    playing: ids("playing"),
+    peak: ids("peak"),
   };
+  const fresh = games("fresh");
+  const upcoming = games("upcoming");
+
+  // Games the popularity lists name but the date queries missed.
+  const named = [
+    ...new Set([
+      ...twitch.slice(0, 80),
+      ...lists.playing.slice(0, 100),
+      ...lists.want.slice(0, 120),
+      ...lists.visits.slice(0, 100),
+      ...lists.peak.slice(0, 60),
+    ]),
+  ].slice(0, 420);
+  const extra = await gamesByIds(named, `${on} & ${PLAYABLE}`).catch(
+    () => [] as GameSummary[],
+  );
+  const nowMs = Date.now();
+  const released = (g: GameSummary) =>
+    g.released !== null && g.released * 1000 <= nowMs;
+  const recent = (g: GameSummary) =>
+    released(g) && g.released! >= now - 120 * DAY;
+  const ahead = (g: GameSummary) => !released(g);
+
+  const hot = fuse([twitch, lists.playing, lists.peak, lists.visits]);
+  const popular = extra.filter(released).sort(byScore(hot));
+
+  const freshScore = fuse([
+    fresh.map((g) => g.id),
+    lists.visits,
+    lists.playing,
+    lists.want,
+    twitch,
+    lists.peak,
+  ]);
+  const freshList = unique([...fresh, ...extra.filter(recent)]).sort(
+    byScore(freshScore),
+  );
+
+  const awaitedScore = fuse([
+    upcoming.map((g) => g.id),
+    lists.want,
+    lists.visits,
+  ]);
+  const awaited = unique([...upcoming, ...extra.filter(ahead)]).sort(
+    byScore(awaitedScore),
+  );
+  const soon = awaited
+    .filter((g) => g.released !== null && g.released < now + 60 * DAY)
+    .sort((a, b) => a.released! - b.released!);
+
+  return {
+    fresh: freshList.slice(0, 40),
+    popular: popular.slice(0, 30),
+    awaited: awaited.slice(0, 30),
+    soon: soon.slice(0, 30),
+    best: games("best"),
+  };
+}
+
+/* ------------------------------------------------------------ Game Pass */
+
+export type GamePassList = "recent" | "coming" | "leaving" | "console" | "pc";
+
+/** Microsoft Store ids → IGDB game ids, in the order given. */
+async function idsFromStore(storeIds: string[]) {
+  const map = new Map<string, number>();
+  for (let i = 0; i < storeIds.length; i += 150) {
+    const chunk = storeIds.slice(i, i + 150);
+    const rows = await igdb<Array<{ game?: number; uid?: string }>>(
+      "external_games",
+      `fields game,uid; where uid = (${chunk.map((id) => `"${id}"`).join(",")}); limit 500;`,
+    );
+    for (const r of rows) if (r.game && r.uid) map.set(r.uid, r.game);
+  }
+  return storeIds
+    .map((id) => map.get(id))
+    .filter((id): id is number => typeof id === "number");
+}
+
+export async function gamePassGames(list: GamePassList) {
+  const { ids } = await gamePass(list);
+  const gameIds = [...new Set(await idsFromStore(ids.slice(0, 150)))];
+  return gamesByIds(gameIds, ` & ${PLAYABLE}`);
+}
+
+let passAll: Promise<Set<string>> | null = null;
+
+/** Whether a game is in Game Pass now, by its Microsoft Store ids. */
+export async function inGamePass(game: RawGame) {
+  const uids = (game.external_games ?? [])
+    .map((e) => e.uid || "")
+    .filter((uid) => /^[0-9A-Z]{12}$/.test(uid));
+  if (!uids.length) return false;
+  passAll ??= Promise.all([gamePass("console"), gamePass("pc")])
+    .then(([a, b]) => new Set([...a.ids, ...b.ids]))
+    .catch((error) => {
+      passAll = null;
+      throw error;
+    });
+  const all = await passAll;
+  return uids.some((uid) => all.has(uid));
 }
 
 export type SearchSort = "relevance" | "popular" | "rating" | "new";

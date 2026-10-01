@@ -7,9 +7,11 @@ import App from "./App.tsx";
 import { AppStateProvider } from "./state.tsx";
 import { listenAuth } from "./lib/auth";
 import { listenInstall } from "./lib/install";
+import { blockZoom } from "./lib/zoom";
 
 listenAuth();
 listenInstall();
+blockZoom();
 
 class Boundary extends Component<
   { children: ReactNode },

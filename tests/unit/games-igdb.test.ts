@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import {
   clean,
+  fuse,
   groupsOf,
   platformIds,
   steamAppId,
@@ -62,12 +63,25 @@ describe("IGDB data", () => {
       critics: 92,
       users: 8.8,
       type: 8,
+      hypes: null,
     });
   });
 
   it("maps platforms to the four groups and back", () => {
     expect(groupsOf([167, 6, 3])).toEqual(["pc", "playstation"]);
     expect(platformIds(["xbox", "nintendo"])).toEqual([169, 49, 508, 130]);
+  });
+
+  it("ranks games high in several popularity lists first", () => {
+    const score = fuse([
+      [1, 2, 3],
+      [3, 2],
+      [3, 9],
+    ]);
+    const order = [1, 2, 3, 9].sort(
+      (a, b) => (score.get(b) ?? 0) - (score.get(a) ?? 0),
+    );
+    expect(order).toEqual([3, 2, 1, 9]);
   });
 
   it("keeps quotes out of IGDB strings and pins queries to the day", () => {

@@ -16,6 +16,12 @@ import {
   releaseLabel,
 } from "../components/GameTile";
 import { GameMark } from "../components/GameMark";
+import {
+  BestShelf,
+  FeedShelves,
+  GamePassShelves,
+  Giveaways,
+} from "../components/GameFeed";
 import { ShareButton } from "../components/ShareButton";
 import {
   CriticReviews,
@@ -29,15 +35,14 @@ import {
   gameDetails,
   gameTypeLabel,
   imageUrl,
+  inGamePass,
   platformIds,
   ru,
   russianSupport,
   seriesGames,
-  shelves,
   steamAppId,
   timeToBeat,
   toSummary,
-  type GameSummary,
   type RawGame,
 } from "../lib/igdb";
 import { ageLabels, platformList, tierOf } from "../lib/gameFacts";
@@ -52,52 +57,13 @@ import { migrateGameLibrary } from "../lib/gameMigration";
 import { votesShort } from "../lib/titleFacts";
 import type { Video } from "../lib/tmdb";
 
-function Banner({ game }: { game: GameSummary }) {
-  return (
-    <Link
-      to={`/games/${game.id}`}
-      className={`${CARD} relative mb-10 flex items-end gap-4 overflow-hidden p-4 sm:p-6`}
-    >
-      {game.cover ? (
-        <img
-          src={imageUrl(game.cover, "cover_big")}
-          alt=""
-          className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-2xl"
-        />
-      ) : null}
-      <div className="absolute inset-0 bg-gradient-to-t from-card via-card/60 to-transparent" />
-      {game.cover ? (
-        <img
-          src={imageUrl(game.cover, "cover_big")}
-          alt=""
-          className="relative w-24 shrink-0 rounded-xl border border-hairline shadow-[0_12px_30px_rgba(0,0,0,0.6)] sm:w-32"
-        />
-      ) : null}
-      <div className="relative min-w-0 pb-1">
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
-          сейчас обсуждают
-        </p>
-        <p className="mt-1 text-2xl leading-tight tracking-tight sm:text-3xl">
-          {game.name}
-        </p>
-        <p className="mt-1 text-sm text-mute">
-          {[game.genres.slice(0, 2).join(", "), game.year]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
-      </div>
-    </Link>
-  );
-}
-
 export function GamesPage() {
   const mine = useMyPlatforms();
   const ids = platformIds(mine);
-  const feed = useAsync(() => shelves(ids), [ids.join()]);
   useEffect(() => {
     migrateGameLibrary();
   }, []);
-  const data = feed.data;
+  const pass = mine.includes("pc") || mine.includes("xbox");
   return (
     <div className="rise">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
@@ -107,29 +73,10 @@ export function GamesPage() {
       <div className="mb-8 mt-4">
         <PlatformPicker value={mine} onToggle={toggleMyPlatform} />
       </div>
-      {feed.error && !data ? <GameError code={feed.error} /> : null}
-      {feed.loading && !data ? (
-        <p role="status" className="text-sm text-mute">
-          Собираю игры для твоих платформ…
-        </p>
-      ) : null}
-      {data ? (
-        <>
-          {data.popular[0] ? <Banner game={data.popular[0]} /> : null}
-          <GameShelf title="Популярное сейчас" games={data.popular.slice(1)} />
-          <GameShelf title="Новинки" games={data.fresh} />
-          <GameShelf title="Скоро выйдут" games={data.soon} dated />
-          <GameShelf
-            title="Лучшие за год"
-            games={data.best}
-            aside={
-              <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-dim">
-                по критикам
-              </span>
-            }
-          />
-        </>
-      ) : null}
+      <FeedShelves platforms={ids} />
+      <Giveaways groups={mine} />
+      {pass ? <GamePassShelves /> : null}
+      <BestShelf platforms={ids} />
     </div>
   );
 }
@@ -231,6 +178,7 @@ export function GamePage() {
     game?.id,
   ]);
   const ttb = useSide(game ? () => timeToBeat(game.id) : null, [game?.id]);
+  const gamePass = useSide(game ? () => inGamePass(game) : null, [game?.id]);
   useEffect(() => {
     migrateGameLibrary();
   }, []);
@@ -402,6 +350,14 @@ export function GamePage() {
               </span>
             ) : null}
             {platforms.length ? <span>{platforms.join(" · ")}</span> : null}
+            {gamePass ? (
+              <span
+                title="Игра сейчас в каталоге Xbox Game Pass"
+                className="rounded border border-[#107c10] px-1.5 font-mono text-xs text-[#5fd35f]"
+              >
+                Game Pass
+              </span>
+            ) : null}
             {upcoming ? (
               <span className="text-accent">
                 · выходит {releaseLabel(released)}

@@ -27,6 +27,21 @@ The four groups are PC (6), PlayStation 5 and 4 (167, 48), Xbox Series and One
 (169, 49) and Nintendo Switch 2 and Switch (508, 130). "Мои платформы" is kept
 in `localStorage` (`umbra.gamePlatforms`); the feed and search start from it.
 
+## Feed
+
+- **Популярные новинки**: games released in the last four months, ranked by
+  reciprocal rank fusion of IGDB popularity (visits, playing, want to play),
+  Steam peak players, Twitch viewers and IGDB hype.
+- **Сейчас популярно**: released games, ranked by Twitch, playing, Steam peak
+  and visits.
+- **Самые ожидаемые**: unreleased games (or with no date) by hype and "want to
+  play". Games named by the popularity lists are added even when the date query
+  misses them, so a big title like GTA VI cannot fall out.
+- **Скоро выйдут**: awaited games coming in the next two months, by date.
+- **Game Pass**: recently added, coming and leaving lists; Microsoft Store ids
+  are matched to IGDB through `external_games`.
+- Popularity types are looked up by name on IGDB `popularity_types`.
+
 ## Caching
 
 Feed queries use the start of the current UTC day as "now", so the same query

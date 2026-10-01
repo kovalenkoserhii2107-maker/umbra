@@ -20,6 +20,7 @@ import { UpdatePrompt } from "./components/UpdatePrompt";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { BrandLockup } from "./components/Brand";
 import { AccountMenu } from "./components/AccountMenu";
+import { FriendBadge, FriendsIndexProvider } from "./components/FriendsIndex";
 
 export function Layout({
   children,
@@ -55,7 +56,7 @@ export function Layout({
       <Header />
       <main className="mx-auto w-full max-w-6xl px-4 pb-32 pt-6 sm:px-6">
         <SyncStatus />
-        {children}
+        <FriendsIndexProvider>{children}</FriendsIndexProvider>
       </main>
       <InstallPrompt />
       <UpdatePrompt />
@@ -72,7 +73,11 @@ export function Layout({
   );
 }
 
-function TabIcon({ name }: { name: "feed" | "search" | "platforms" | "library" }) {
+function TabIcon({
+  name,
+}: {
+  name: "feed" | "search" | "platforms" | "library";
+}) {
   const common = {
     viewBox: "0 0 24 24",
     fill: "none",
@@ -305,7 +310,8 @@ export function RatingBadge({ type, id }: { type: MediaType; id: number }) {
     return () => observer.disconnect();
   }, [type, id]);
   const score = cachedRating(type, id).imdb;
-  if (!score) return <div ref={root} className="absolute bottom-1.5 right-1.5" />;
+  if (!score)
+    return <div ref={root} className="absolute bottom-1.5 right-1.5" />;
   return (
     <div
       ref={root}
@@ -370,6 +376,7 @@ export function PosterCard({
             {titleOf(item)}
           </div>
         )}
+        <FriendBadge type={media} id={item.id} />
         <RatingBadge type={media} id={item.id} />
       </div>
       <div className="mt-2 space-y-0.5">

@@ -16,6 +16,22 @@ import {
 } from "../lib/collection";
 import { useLibraryMeta } from "../lib/meta";
 import { episodeLabel, progressOf } from "../lib/tracking";
+import { sharedStatus, useFriendsOn } from "../components/FriendsIndex";
+import type { MediaType } from "../lib/tmdb";
+
+function FriendsLine({ type, id }: { type: MediaType; id: number }) {
+  const rows = useFriendsOn(type, id);
+  if (!rows.length) return null;
+  return (
+    <p className="mt-0.5 truncate font-mono text-[11px] text-accent">
+      {rows
+        .slice(0, 3)
+        .map(({ friend, rating }) => `${friend.name} ${sharedStatus(rating)}`)
+        .join(" · ")}
+      {rows.length > 3 ? ` · +${rows.length - 3}` : ""}
+    </p>
+  );
+}
 
 const STATUSES: Array<{ id: "all" | Status; label: string }> = [
   { id: "all", label: "Все" },
@@ -224,6 +240,7 @@ export function LibraryPage() {
                   {item.type === "tv" ? "сериал" : "фильм"}
                   {item.year ? ` · ${item.year}` : ""} · {statusLine(item)}
                 </p>
+                <FriendsLine type={item.type} id={item.id} />
                 {item.note && item.status !== "watchlist" ? (
                   <p className="mt-1 line-clamp-1 text-sm text-mute">
                     {item.note}

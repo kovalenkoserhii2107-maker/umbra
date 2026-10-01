@@ -26,6 +26,9 @@ jobs:
       - run: npm test
       - run: npm run test:rules
       - run: npm run build
+        env:
+          # Public by design (it ships in the client), so a repository variable.
+          VITE_OMDB_KEY: ${{ vars.OMDB_KEY }}
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - uses: actions/upload-pages-artifact@v3

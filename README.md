@@ -63,7 +63,7 @@ npm run test:e2e
 
 Данные каталога: TMDB; внешние рейтинги — Agregarr/IMDb-подборки. При недоступности IMDb-подборки не подменяются рейтингом TMDB под прежним заголовком.
 
-Карточка фильма показывает три рейтинга: IMDb (Agregarr), TMDB (`vote_average`) и Rotten Tomatoes (Tomatometer). Tomatometer и Metascore (сводка рецензий критиков, которую IMDb показывает в разделе Critic reviews) берутся из Wikidata по IMDb ID: у Rotten Tomatoes, Metacritic и IMDb нет публичного API, доступного из браузера. Если в Wikidata оценки нет, показывается «—». Полные тексты рецензий открываются ссылкой на страницу Critic reviews IMDb.
+Карточка фильма показывает три рейтинга: IMDb (Agregarr), TMDB (`vote_average`) и Rotten Tomatoes (Tomatometer). Tomatometer и Metascore (сводка рецензий критиков, которую IMDb показывает в разделе Critic reviews) берутся из OMDb по IMDb ID, а если OMDb не ответил или ключа нет — из Wikidata: у Rotten Tomatoes, Metacritic и IMDb нет публичного API, доступного из браузера. Если в Wikidata оценки нет, показывается «—». Полные тексты рецензий открываются ссылкой на страницу Critic reviews IMDb.
 
 ## Баннер главной
 
@@ -98,4 +98,15 @@ This product uses the TMDB API but is not endorsed or certified by TMDB.
 - Приглашение: `#/friends/invite/{uid}`. Получатель добавляет приглашающего в `users/{me}/friends` и создаёт заявку `users/{them}/requests/{me}`; после «Принять» дружба взаимная.
 - Друзьям видна копия полки без заметок: `profiles/{uid}/ratings/{type-id}`. Правила разрешают чтение, только если владелец добавил читателя в `users/{owner}/friends`. Копия обновляется клиентом, пока у пользователя есть друзья; удаление друга сразу закрывает доступ.
 - **Новые правила нужно опубликовать** (`npx firebase deploy --only firestore:rules --project umbra-18ba8`). До этого раздел «Друзья» показывает ошибку доступа, остальное приложение работает как раньше: синхронизация копии и профиля не влияет на сохранение полки.
+
+### Ключ OMDb
+
+OMDb отдаёт свежие Tomatometer и Metascore, но нужен бесплатный ключ (https://www.omdbapi.com/apikey.aspx, 1000 запросов в день, результаты кэшируются на устройстве на сутки). Ключ попадает в клиент, как и ключ TMDB, поэтому это не секрет:
+
+- для всех пользователей: GitHub → Settings → Secrets and variables → Actions → **Variables** → `OMDB_KEY`; workflow передаёт его в сборку как `VITE_OMDB_KEY`;
+- для одного устройства: «Настройки» → «Rotten Tomatoes и Metacritic».
+
+## Оценки друзей в каталоге
+
+`FriendsIndexProvider` один раз загружает общие полки друзей и обновляет их при возвращении в приложение (не чаще раза в 2 минуты). На постерах в лентах и поиске значок с аватаром друга и его оценкой или статусом («хочет», «смотрит»); в коллекции — строка с оценками друзей; в карточке — ряд «Оценки друзей» рядом с рейтингами.
 

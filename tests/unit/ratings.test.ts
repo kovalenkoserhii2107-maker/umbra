@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseCriticScores } from "../../src/lib/ratings";
+import { parseOmdb } from "../../src/lib/omdb";
 
 const wd = (id: string) => ({ value: `http://www.wikidata.org/entity/${id}` });
 const RT = "Q105584";
@@ -50,5 +51,59 @@ describe("critic scores from Wikidata", () => {
       metascore: null,
     });
     expect(parseCriticScores(null).metascore).toBeNull();
+  });
+});
+
+describe("OMDb scores", () => {
+  it("reads the Tomatometer, Metascore and Rotten Tomatoes link", () => {
+    expect(
+      parseOmdb({
+        Response: "True",
+        Ratings: [
+          { Source: "Internet Movie Database", Value: "9.3/10" },
+          { Source: "Rotten Tomatoes", Value: "89%" },
+          { Source: "Metacritic", Value: "82/100" },
+        ],
+        Metascore: "82",
+        tomatoURL: "https://www.rottentomatoes.com/m/shawshank_redemption",
+      }),
+    ).toEqual({
+      tomatometer: 89,
+      metascore: 82,
+      rottenTomatoesUrl:
+        "https://www.rottentomatoes.com/m/shawshank_redemption",
+    });
+  });
+  it("reads a real OMDb response without the tomatoes flag", () => {
+    // Shape of an actual response for tt3896198 (Guardians of the Galaxy Vol. 2).
+    expect(
+      parseOmdb({
+        Title: "Guardians of the Galaxy: Vol. 2",
+        Ratings: [
+          { Source: "Internet Movie Database", Value: "7.6/10" },
+          { Source: "Rotten Tomatoes", Value: "85%" },
+          { Source: "Metacritic", Value: "67/100" },
+        ],
+        Metascore: "67",
+        imdbRating: "7.6",
+        imdbID: "tt3896198",
+        Type: "movie",
+        BoxOffice: "$389,813,101",
+        Response: "True",
+      }),
+    ).toEqual({ tomatometer: 85, metascore: 67, rottenTomatoesUrl: null });
+  });
+  it("treats N/A, errors and foreign links as missing", () => {
+    expect(
+      parseOmdb({
+        Response: "True",
+        Ratings: [],
+        Metascore: "N/A",
+        tomatoURL: "N/A",
+      }),
+    ).toEqual({ tomatometer: null, metascore: null, rottenTomatoesUrl: null });
+    expect(
+      parseOmdb({ Response: "False", Error: "Invalid API key!" }),
+    ).toBeNull();
   });
 });

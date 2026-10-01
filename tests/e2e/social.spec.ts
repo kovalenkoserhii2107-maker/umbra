@@ -17,7 +17,7 @@ const show = {
   credits: { cast: [], crew: [] },
   videos: { results: [] },
   "watch/providers": { results: {} },
-  external_ids: {},
+  external_ids: { imdb_id: "tt0000202" },
   genres: [{ id: 18, name: "Драма" }],
   episode_run_time: [40],
   seasons: [{ id: 1, name: "S1", season_number: 1, episode_count: 3 }],
@@ -44,6 +44,15 @@ async function catalog(context: BrowserContext) {
       });
     if (url.includes("/tv/202/season/")) return route.fulfill({ json: {} });
     if (url.includes("/tv/202?")) return route.fulfill({ json: show });
+    if (url.includes("/movie/now_playing"))
+      return route.fulfill({
+        json: {
+          page: 1,
+          results: [{ ...film, poster_path: "/p.jpg" }],
+          total_pages: 1,
+          total_results: 1,
+        },
+      });
     return route.fulfill({
       json: { page: 1, results: [], total_pages: 1, total_results: 0 },
     });
@@ -51,6 +60,27 @@ async function catalog(context: BrowserContext) {
   await context.route(
     /https:\/\/(api.agregarr.org|imdb-top250.mmdju.workers.dev|query.wikidata.org)\//,
     (route) => route.fulfill({ json: [] }),
+  );
+  await context.route("https://www.omdbapi.com/**", (route) =>
+    route.fulfill({
+      json:
+        new URL(route.request().url()).searchParams.get("apikey") === "demo-key"
+          ? {
+              Response: "True",
+              Ratings: [
+                { Source: "Rotten Tomatoes", Value: "93%" },
+                { Source: "Metacritic", Value: "79/100" },
+              ],
+              Metascore: "79",
+            }
+          : { Response: "False", Error: "Invalid API key!" },
+    }),
+  );
+  await context.route("https://image.tmdb.org/**", (route) =>
+    route.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="342" height="513"><rect width="342" height="513" fill="#333"/></svg>',
+    }),
   );
 }
 async function register(page: Page, name: string) {
@@ -124,6 +154,9 @@ test("friends invite, accept and see each other's ratings without notes", async 
     )
     .toBe(1);
   await expect(b.getByText("8/10")).toBeVisible();
+  // The friend's mark also shows on posters in the feeds.
+  await b.goto("#/");
+  await expect(b.getByLabel("Друзья: Anna: 8/10").first()).toBeVisible();
   await expect(b.getByText("Anna's secret note")).toHaveCount(0);
   await b.goto("#/friends");
   await b.getByRole("link", { name: /Anna/ }).click();
@@ -155,6 +188,19 @@ test("series tracking, collection filters, stats and sharing", async ({
   expect(sheet!.y + sheet!.height).toBeLessThanOrEqual(501);
   await page.getByRole("button", { name: "Отмена" }).click();
   await page.setViewportSize({ width: 1280, height: 720 });
+
+  await expect(
+    page.getByText("Rotten Tomatoes", { exact: true }).first(),
+  ).toBeVisible();
+  await page.goto("#/settings");
+  await page.getByLabel("Ключ OMDb").fill("demo-key");
+  await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await expect(
+    page.getByText("Ключ сохранён на этом устройстве."),
+  ).toBeVisible();
+  await page.goto("#/title/tv/202");
+  await expect(page.getByText("93%").first()).toBeVisible();
+  await expect(page.getByText("Metascore")).toBeVisible();
 
   await page.getByRole("button", { name: "Смотрю", exact: true }).click();
   await page.getByRole("checkbox", { name: "S1E2 просмотрена" }).click();

@@ -34,7 +34,7 @@ export function captureSteamReturn() {
     if (k.startsWith("openid.")) params[k] = v;
   });
   writeStorage(KEY, JSON.stringify(params));
-  window.history.replaceState(null, "", `${home()}#/games/library`);
+  window.history.replaceState(null, "", `${home()}#/settings`);
 }
 
 export function takeSteamReturn(): Record<string, string> | null {

@@ -4,9 +4,8 @@ import { readStorage, writeStorage } from "./storage";
 /**
  * OMDb returns the Tomatometer and Metascore by IMDb ID and allows browser
  * requests. It needs a free key (omdbapi.com/apikey.aspx, 1,000 requests a
- * day): from the build (VITE_OMDB_KEY) or entered in Settings.
+ * day), set at build time (VITE_OMDB_KEY).
  */
-const KEY = "umbra.omdbKey";
 const CACHE = "umbra.omdb.v2";
 const TTL = 24 * 3600_000;
 
@@ -26,25 +25,7 @@ export type OmdbScores = {
 };
 
 export function omdbKey() {
-  return (
-    readStorage(KEY)?.trim() ||
-    (import.meta.env.VITE_OMDB_KEY as string | undefined)?.trim() ||
-    ""
-  );
-}
-
-export function setOmdbKey(value: string) {
-  writeStorage(KEY, value.trim() || null);
-  writeStorage(CACHE, null);
-}
-
-/** The key entered on this device, without the one from the build. */
-export function ownOmdbKey() {
-  return readStorage(KEY)?.trim() || "";
-}
-
-export function hasBuildOmdbKey() {
-  return Boolean((import.meta.env.VITE_OMDB_KEY as string | undefined)?.trim());
+  return (import.meta.env.VITE_OMDB_KEY as string | undefined)?.trim() || "";
 }
 
 export function parseOmdb(json: unknown): OmdbScores | null {

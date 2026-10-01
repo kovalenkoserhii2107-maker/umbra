@@ -40,7 +40,7 @@ npx firebase deploy --only firestore:rules --project umbra-18ba8
 
 Единственный production-артефакт — каталог `dist`. В GitHub Pages выберите **Source: GitHub Actions**. Workflow проверяет код и публикует `dist` после merge в main. Не публикуйте корень исходников и не коммитьте собранные `assets` обратно в main.
 
-Vite назначает файлам content hashes. Service worker сохраняет согласованный комплект HTML/JS/CSS, проверяет обновления при возвращении в приложение и раз в минуту. Готовая версия появляется с кнопкой «Обновить»; она не перезагружает экран посреди редактирования. Ручной сброс Cache Storage и query-параметры версий не нужны. Настройки позволяют запустить проверку вручную. Номер сборки — короткий Git SHA.
+Vite назначает файлам content hashes. Service worker сохраняет согласованный комплект HTML/JS/CSS, проверяет обновления при возвращении в приложение и раз в минуту. Готовая версия появляется с кнопкой «Обновить»; она не перезагружает экран посреди редактирования. Ручной сброс Cache Storage и query-параметры версий не нужны. В «Профиль и настройки» → «Приложение» проверку можно запустить вручную. Номер сборки — короткий Git SHA.
 
 Кэшируются оболочка и до 200 постеров. TMDB API использует ограниченную очередь, timeout, дедупликацию и короткий кэш в памяти. Данные Firebase не проходят через service worker. Offline-каталог не обещает полноту: доступны ранее сохранённая полка и кэш оболочки, а поиск требует сети.
 
@@ -103,8 +103,7 @@ This product uses the TMDB API but is not endorsed or certified by TMDB.
 
 OMDb отдаёт свежие Tomatometer и Metascore, но нужен бесплатный ключ (https://www.omdbapi.com/apikey.aspx, 1000 запросов в день, результаты кэшируются на устройстве на сутки). Ключ попадает в клиент, как и ключ TMDB, поэтому это не секрет:
 
-- для всех пользователей: GitHub → Settings → Secrets and variables → Actions → **Variables** → `OMDB_KEY`; workflow передаёт его в сборку как `VITE_OMDB_KEY`;
-- для одного устройства: «Настройки» → «Rotten Tomatoes и Metacritic».
+GitHub → Settings → Secrets and variables → Actions → **Variables** → `OMDB_KEY`; workflow передаёт его в сборку как `VITE_OMDB_KEY`.
 
 ## Оценки друзей в каталоге
 
@@ -129,8 +128,7 @@ OMDb отдаёт свежие Tomatometer и Metascore, но нужен бес�
 
 OMDb отдаёт свежие Tomatometer и Metascore, но нужен бесплатный ключ (https://www.omdbapi.com/apikey.aspx, 1000 запросов в день, результаты кэшируются на устройстве на сутки). Ключ попадает в клиент, как и ключ TMDB, поэтому это не секрет:
 
-- для всех пользователей: GitHub → Settings → Secrets and variables → Actions → **Variables** → `OMDB_KEY`; workflow передаёт его в сборку как `VITE_OMDB_KEY`;
-- для одного устройства: «Настройки» → «Rotten Tomatoes и Metacritic».
+GitHub → Settings → Secrets and variables → Actions → **Variables** → `OMDB_KEY`; workflow передаёт его в сборку как `VITE_OMDB_KEY`.
 
 ## Оценки друзей в каталоге
 
@@ -174,7 +172,12 @@ E2E-тесты подменяют ответы TMDB и подставляют т
 - `POST /steam/verify` — проверка входа через Steam (OpenID `check_authentication`), возвращает SteamID.
 - Отвечает только сайтам из `ALLOWED_ORIGINS` (`worker/wrangler.toml`); остальным — 403.
 
-Публикация: `.github/workflows/worker.yml` при изменениях в `worker/` (или вручную через Run workflow). Нужные **Secrets** репозитория: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`, `ITAD_API_KEY`, `OPENCRITIC_API_KEY`, `STEAM_API_KEY`. Адрес Worker после первой публикации видно в итогах запуска workflow; его нужно положить в переменную **API_URL** (Variables), сайт берёт её как `VITE_API_URL`. Статус подключения виден в «Настройки» → «Игровой сервер».
+Публикация: `.github/workflows/worker.yml` при изменениях в `worker/` (или вручную через Run workflow). Нужные **Secrets** репозитория: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`, `ITAD_API_KEY`, `OPENCRITIC_API_KEY`, `STEAM_API_KEY`. Адрес Worker после первой публикации видно в итогах запуска workflow; его нужно положить в переменную **API_URL** (Variables), сайт берёт её как `VITE_API_URL`. Проверка: `GET /health` показывает, у каких сервисов есть ключи.
 
 Локально: `cd worker && npx wrangler dev` (ключи — в `worker/.dev.vars`, файл в `.gitignore`).
 
+## Меню и настройки
+
+Меню (☰): профиль (открывает настройки), «Статистика и итоги», «Друзья», «Установить приложение» (пока не установлено), «Профиль и настройки».
+
+«Профиль и настройки» — единственное место для аккаунта и параметров: аккаунт (почта, выход), Steam (вход, статус импорта, отключение), страна для «где смотреть» и цен, мои стриминги, резервная копия фильмов, проверка обновлений. Мои игровые платформы выбираются в ленте игр. Старый адрес `#/cabinet` ведёт сюда же.

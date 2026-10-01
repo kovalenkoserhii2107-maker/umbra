@@ -92,7 +92,7 @@ test("two devices synchronize notes, ratings and deletions; a second account see
   await expect(
     a.getByText("Все изменения сохранены", { exact: true }),
   ).toBeVisible();
-  await a.goto("#/cabinet");
+  await a.goto("#/settings");
   await a
     .getByRole("button", { name: "Выйти из аккаунта", exact: true })
     .click();
@@ -101,7 +101,7 @@ test("two devices synchronize notes, ratings and deletions; a second account see
   await a.goto("#/library");
   await expect(a.getByRole("heading", { name: "Фильмография" })).toBeVisible();
   await expect(a.getByText("Test Film", { exact: true })).toHaveCount(0);
-  await a.goto("#/cabinet");
+  await a.goto("#/settings");
   await a
     .getByRole("button", { name: "Выйти из аккаунта", exact: true })
     .click();
@@ -207,7 +207,7 @@ test("cached legacy profile cannot unlock the cabinet or import a previous user 
       JSON.stringify([{ id: 101, title: "Old Private Film" }]),
     );
   });
-  await page.goto("#/cabinet");
+  await page.goto("#/settings");
   await expect(
     page.getByRole("heading", { name: "Вход в Umbra" }),
   ).toBeVisible();

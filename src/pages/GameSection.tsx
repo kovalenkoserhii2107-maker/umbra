@@ -8,7 +8,7 @@ import {
   GameTile,
   PlatformPicker,
 } from "../components/GameTile";
-import { GameCollection, SteamPanel } from "../components/GameCollection";
+import { GameCollection } from "../components/GameCollection";
 import {
   BestShelf,
   DealsShelf,
@@ -30,7 +30,7 @@ import {
   type PlatformGroupId,
   type SearchSort,
 } from "../lib/igdb";
-import { toggleMyPlatform, useMyPlatforms } from "../lib/myPlatforms";
+import { useMyPlatforms } from "../lib/myPlatforms";
 
 const YEARS = Array.from(
   { length: 30 },
@@ -226,47 +226,31 @@ export function GameSearchPage() {
 }
 
 export function GamePlatformsPage() {
-  const mine = useMyPlatforms();
   return (
     <div className="rise">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
         платформы
       </p>
       <h1 className="mt-1 text-3xl tracking-tight">Где играть</h1>
-      <p className="mt-2 text-sm text-mute">
-        Отметь свои платформы: лента и поиск будут начинаться с них.
-      </p>
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
-        {PLATFORM_GROUPS.map((p) => {
-          const on = mine.includes(p.id);
-          return (
-            <div key={p.id} className={`${CARD} p-5`}>
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[11px] tracking-[0.16em] text-dim">
-                  {p.full}
-                </span>
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ background: p.tint }}
-                />
-              </div>
-              <Link
-                to={`/games/platforms/${p.id}`}
-                className="mt-6 block text-2xl tracking-tight hover:text-accent"
-              >
-                {p.name} →
-              </Link>
-              <button
-                type="button"
-                aria-pressed={on}
-                onClick={() => toggleMyPlatform(p.id)}
-                className={`mt-4 rounded-full border px-3 py-1 text-xs ${on ? "border-ink bg-ink text-canvas" : "border-hairline text-mute"}`}
-              >
-                {on ? "✓ Моя платформа" : "Добавить в мои"}
-              </button>
+        {PLATFORM_GROUPS.map((p) => (
+          <Link
+            key={p.id}
+            to={`/games/platforms/${p.id}`}
+            className={`${CARD} block p-5 transition hover:border-accent/40`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] tracking-[0.16em] text-dim">
+                {p.full}
+              </span>
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ background: p.tint }}
+              />
             </div>
-          );
-        })}
+            <p className="mt-6 text-2xl tracking-tight">{p.name} →</p>
+          </Link>
+        ))}
       </div>
     </div>
   );
@@ -408,7 +392,6 @@ export function GameLibraryPage() {
         коллекция
       </p>
       <h1 className="mb-4 mt-1 text-3xl tracking-tight">Мои игры</h1>
-      <SteamPanel />
       <GameCollection />
     </div>
   );

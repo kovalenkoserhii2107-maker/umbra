@@ -80,7 +80,7 @@ export function SteamPanel() {
   const status = busy || (syncing ? "Обновляю игры из Steam…" : "");
   const problem = error || syncError;
   return (
-    <div className={`${CARD} mb-6 p-4`}>
+    <div className={`${CARD} p-5`}>
       {steam ? (
         <div className="flex items-center gap-3">
           {steam.avatar ? (

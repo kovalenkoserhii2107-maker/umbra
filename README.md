@@ -158,3 +158,17 @@ VITE_OMDB_KEY=ваш_ключ_omdb
 
 E2E-тесты подменяют ответы TMDB и подставляют тестовый ключ сами. Копия ключа, которую сохраняли прежние версии на устройстве, удаляется при запуске.
 
+## Игровой сервер (Cloudflare Worker)
+
+`worker/` — небольшой посредник для игровых сервисов, которым нужен секретный ключ или которые не принимают запросы из браузера (IGDB, Twitch, IsThereAnyDeal, OpenCritic, Steam). Ключи хранятся в Cloudflare и на сайт не попадают.
+
+- `GET /health` — какие сервисы подключены (только да/нет).
+- `POST /igdb/:endpoint` — запрос IGDB (APICalypse в теле) к разрешённым разделам; ответы кэшируются от часа до недели, токен Twitch обновляется сам.
+- `GET /twitch/top-games?first=20` — что смотрят на Twitch, кэш 10 минут.
+- `POST /steam/verify` — проверка входа через Steam (OpenID `check_authentication`), возвращает SteamID.
+- Отвечает только сайтам из `ALLOWED_ORIGINS` (`worker/wrangler.toml`); остальным — 403.
+
+Публикация: `.github/workflows/worker.yml` при изменениях в `worker/` (или вручную через Run workflow). Нужные **Secrets** репозитория: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`, `ITAD_API_KEY`, `OPENCRITIC_API_KEY`, `STEAM_API_KEY`. Адрес Worker после первой публикации видно в итогах запуска workflow; его нужно положить в переменную **API_URL** (Variables), сайт берёт её как `VITE_API_URL`. Статус подключения виден в «Настройки» → «Игровой сервер».
+
+Локально: `cd worker && npx wrangler dev` (ключи — в `worker/.dev.vars`, файл в `.gitignore`).
+

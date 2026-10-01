@@ -8,4 +8,6 @@ interface ImportMetaEnv {
   readonly VITE_OMDB_KEY?: string;
   /** TMDB API key; the built-in one is used when it is not set. */
   readonly VITE_TMDB_KEY?: string;
+  /** Address of the Umbra API worker (worker/), e.g. https://umbra-api.x.workers.dev. */
+  readonly VITE_API_URL?: string;
 }

@@ -177,10 +177,11 @@ function CriticCard({
           ) : null}
         </p>
         <p className="shrink-0 font-mono text-[11px] text-dim">
-          {review.score !== null ? (
-            <span className="font-bold text-accent">{review.score} · </span>
-          ) : review.verdict ? (
+          {/* An outlet's own verdict ("Essential") reads better than its 0–100 mapping. */}
+          {review.verdict ? (
             <span className="text-accent">{review.verdict} · </span>
+          ) : review.score !== null ? (
+            <span className="font-bold text-accent">{review.score} · </span>
           ) : null}
           {review.date ? dateLabel(review.date) : ""}
         </p>

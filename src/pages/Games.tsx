@@ -142,9 +142,20 @@ function metascoreColor(score: number) {
   return "#ff4d4d";
 }
 
+/** Trailers first, launch trailer on top; diaries and spots after. */
+const videoRank = (name = "") =>
+  /launch trailer/i.test(name)
+    ? 0
+    : /trailer/i.test(name)
+      ? 1
+      : /teaser/i.test(name)
+        ? 2
+        : 3;
+
 function videosOf(game: RawGame): Video[] {
   return (game.videos ?? [])
     .filter((v) => v.video_id)
+    .sort((a, b) => videoRank(a.name) - videoRank(b.name))
     .map((v) => ({
       key: v.video_id!,
       site: "YouTube",

@@ -13,6 +13,7 @@ import {
   gameLinks,
   hours,
   multiplayerLabel,
+  platformList,
   releaseRows,
   timeToBeatLabel,
 } from "../../src/lib/gameFacts";
@@ -94,6 +95,21 @@ describe("game facts", () => {
     ]);
   });
 
+  it("lists platforms PC first, then PlayStation, Xbox, Nintendo", () => {
+    expect(
+      platformList({
+        ...game,
+        platforms: [
+          { id: 130, abbreviation: "Switch" },
+          { id: 49, abbreviation: "XONE" },
+          { id: 48, abbreviation: "PS4" },
+          { id: 6, abbreviation: "PC" },
+          { id: 167, abbreviation: "PS5" },
+        ],
+      }),
+    ).toEqual(["PC", "PS5", "PS4", "XONE", "Switch"]);
+  });
+
   it("describes multiplayer and time to beat", () => {
     expect(multiplayerLabel(game)).toBe(
       "онлайн до 4 игроков, кооператив по сети до 2",
@@ -118,7 +134,7 @@ describe("game facts", () => {
       ageLabels([
         { org: "ESRB", rating: "M" },
         { org: "PEGI", rating: "Eighteen" },
-        { org: "Unknown", rating: "X" },
+        { org: "USK", rating: "18" },
       ]),
     ).toEqual(["PEGI 18", "ESRB M"]);
   });

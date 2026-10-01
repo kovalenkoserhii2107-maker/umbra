@@ -5,12 +5,19 @@ import { dateLabel } from "./format";
 const iso = (seconds: number) =>
   new Date(seconds * 1000).toISOString().slice(0, 10);
 
+/** PC, then PlayStation, Xbox and Nintendo, newest console first. */
+const PLATFORM_ORDER = [6, 167, 48, 169, 49, 508, 130];
+const rank = (id: number) => {
+  const i = PLATFORM_ORDER.indexOf(id);
+  return i < 0 ? PLATFORM_ORDER.length : i;
+};
+
 function platformNames(game: RawGame) {
-  const names = new Map<number, string>();
-  for (const p of game.platforms ?? [])
-    if (typeof p !== "number" && p.id)
-      names.set(p.id, p.abbreviation || p.name || "");
-  return names;
+  const list = (game.platforms ?? [])
+    .filter((p) => typeof p !== "number" && p.id)
+    .map((p) => p as { id: number; name?: string; abbreviation?: string })
+    .sort((a, b) => rank(a.id) - rank(b.id));
+  return new Map(list.map((p) => [p.id, p.abbreviation || p.name || ""]));
 }
 
 /** "PS5, PC — 24 марта 2023", one line per date, earliest first. */
@@ -21,7 +28,9 @@ export function releaseRows(game: RawGame) {
     if (r.date && r.platform && names.has(r.platform))
       first.set(r.platform, Math.min(first.get(r.platform) ?? r.date, r.date));
   const byDay = new Map<string, string[]>();
-  for (const [platform, date] of [...first].sort((a, b) => a[1] - b[1])) {
+  for (const [platform, date] of [...first].sort(
+    (a, b) => a[1] - b[1] || rank(a[0]) - rank(b[0]),
+  )) {
     const day = iso(date);
     byDay.set(day, [...(byDay.get(day) ?? []), names.get(platform)!]);
   }
@@ -87,7 +96,7 @@ const AGE_WORDS: Record<string, string> = {
 
 /** "PEGI 18", "ESRB M"; PEGI first because it is used in Europe. */
 export function ageLabels(list: AgeRating[]) {
-  const order = ["PEGI", "ESRB", "USK", "CERO", "ACB", "GRAC", "CLASS_IND"];
+  const order = ["PEGI", "ESRB"];
   return list
     .filter((a) => order.includes(a.org))
     .sort((a, b) => order.indexOf(a.org) - order.indexOf(b.org))

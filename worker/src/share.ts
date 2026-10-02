@@ -38,6 +38,42 @@ export function shorten(text: string, max = 220) {
 
 const yearOf = (date?: string | null) => (date || "").slice(0, 4);
 
+/** IMDb score, e.g. "7.6": Agregarr first, OMDb as a fallback. */
+export async function imdbRating(deps: Deps, imdbId: string) {
+  const score = (v: unknown) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 && n <= 10 ? n.toFixed(1) : null;
+  };
+  try {
+    const r = await deps.fetch(
+      `https://api.agregarr.org/api/ratings?id=${encodeURIComponent(imdbId)}`,
+      { headers: { Accept: "application/json" } },
+    );
+    if (r.ok) {
+      const data = (await r.json()) as
+        | Array<{ imdbId?: string; rating?: number | string | null }>
+        | { imdbId?: string; rating?: number | string | null };
+      const row = (Array.isArray(data) ? data : [data]).find(
+        (x) => x?.imdbId === imdbId,
+      );
+      const value = score(row?.rating);
+      if (value) return value;
+    }
+  } catch {
+    /* try OMDb */
+  }
+  if (!deps.env.OMDB_KEY) return null;
+  try {
+    const r = await deps.fetch(
+      `https://www.omdbapi.com/?i=${encodeURIComponent(imdbId)}&apikey=${encodeURIComponent(deps.env.OMDB_KEY)}`,
+    );
+    if (!r.ok) return null;
+    return score(((await r.json()) as { imdbRating?: string }).imdbRating);
+  } catch {
+    return null;
+  }
+}
+
 async function tmdbPreview(
   deps: Deps,
   kind: "movie" | "tv",
@@ -46,7 +82,7 @@ async function tmdbPreview(
   const key = deps.env.TMDB_KEY;
   if (!key) return null;
   const response = await deps.fetch(
-    `https://api.themoviedb.org/3/${kind}/${id}?api_key=${encodeURIComponent(key)}&language=ru-RU`,
+    `https://api.themoviedb.org/3/${kind}/${id}?api_key=${encodeURIComponent(key)}&language=ru-RU&append_to_response=external_ids`,
   );
   if (!response.ok) return null;
   const d = (await response.json()) as {
@@ -60,18 +96,25 @@ async function tmdbPreview(
     vote_average?: number;
     vote_count?: number;
     genres?: Array<{ name?: string }>;
+    external_ids?: { imdb_id?: string | null };
   };
   const title = d.title || d.name;
   if (!title) return null;
   const year = yearOf(d.release_date || d.first_air_date);
+  const imdbId = d.external_ids?.imdb_id;
+  const imdb = imdbId ? await imdbRating(deps, imdbId) : null;
+  const tmdb =
+    d.vote_count && d.vote_average ? d.vote_average.toFixed(1) : null;
   const facts = [
     kind === "tv" ? "Сериал" : "Фильм",
     year,
     d.genres?.[0]?.name,
-    d.vote_count && d.vote_average ? `TMDB ${d.vote_average.toFixed(1)}` : "",
+    tmdb ? `TMDB ${tmdb}` : "",
   ].filter(Boolean);
+  const named = year ? `${title} (${year})` : title;
   return {
-    title: year ? `${title} (${year})` : title,
+    // The title is the boldest line of a preview: the IMDb score sits there.
+    title: imdb ? `${named} · ★ IMDb ${imdb}` : named,
     description: [facts.join(" · "), shorten(d.overview || d.tagline || "")]
       .filter(Boolean)
       .join("\n"),
@@ -186,7 +229,7 @@ export async function shareResponse(
   try {
     const { body } = await cached(
       deps,
-      `share/v2/${kind}/${id}`,
+      `share/v3/${kind}/${id}`,
       86400,
       async () => {
         const p =

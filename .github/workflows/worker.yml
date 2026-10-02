@@ -96,10 +96,11 @@ jobs:
           STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
           # Public TMDB key (a repository variable) for film link previews.
           TMDB_KEY: ${{ vars.TMDB_KEY }}
+          OMDB_KEY: ${{ vars.OMDB_KEY }}
         run: |
           jq -n 'env
             | with_entries(select(
-                (.key | IN("TWITCH_CLIENT_ID", "TWITCH_CLIENT_SECRET", "ITAD_API_KEY", "OPENCRITIC_API_KEY", "STEAM_API_KEY", "TMDB_KEY"))
+                (.key | IN("TWITCH_CLIENT_ID", "TWITCH_CLIENT_SECRET", "ITAD_API_KEY", "OPENCRITIC_API_KEY", "STEAM_API_KEY", "TMDB_KEY", "OMDB_KEY"))
                 and .value != ""))' \
             | npx --yes wrangler@4.145.0 secret bulk
       - name: Show the worker address

@@ -14,6 +14,7 @@ const env: Env = {
   OPENCRITIC_API_KEY: "rapid",
   ITAD_API_KEY: "itad",
   TMDB_KEY: "tmdb-key",
+  OMDB_KEY: "omdb-key",
   SITE_URL: "https://kovalenkoserhii2107-maker.github.io/umbra/",
 };
 
@@ -631,27 +632,32 @@ describe("umbra-api", () => {
       html.match(new RegExp(`property="og:${name}" content="([^"]*)"`))?.[1];
 
     it("give messengers a poster and a short description, people the app", async () => {
-      const { send, calls } = setup(() =>
-        Response.json({
-          title: "Стражи Галактики. Часть 2",
-          overview:
-            "Питер Квилл и его команда отправляются в новое путешествие. " +
-            "Они раскрывают тайну происхождения Квилла и сталкиваются с новыми врагами. ".repeat(
-              4,
-            ),
-          poster_path: "/poster.jpg",
-          release_date: "2017-04-19",
-          vote_average: 7.6,
-          vote_count: 20000,
-          genres: [{ name: "фантастика" }],
-        }),
+      const { send, calls } = setup(({ url }) =>
+        url.startsWith("https://api.agregarr.org")
+          ? Response.json([{ imdbId: "tt3896198", rating: 7.6 }])
+          : Response.json({
+              title: "Стражи Галактики. Часть 2",
+              external_ids: { imdb_id: "tt3896198" },
+              overview:
+                "Питер Квилл и его команда отправляются в новое путешествие. " +
+                "Они раскрывают тайну происхождения Квилла и сталкиваются с новыми врагами. ".repeat(
+                  4,
+                ),
+              poster_path: "/poster.jpg",
+              release_date: "2017-04-19",
+              vote_average: 7.6,
+              vote_count: 20000,
+              genres: [{ name: "фантастика" }],
+            }),
       );
       // Messengers send no Origin header; share links must still answer.
       const response = await send("/s/movie/283995", {}, "");
       expect(response.status).toBe(200);
       expect(response.headers.get("Content-Type")).toContain("text/html");
       const html = await response.text();
-      expect(og(html, "title")).toBe("Стражи Галактики. Часть 2 (2017)");
+      expect(og(html, "title")).toBe(
+        "Стражи Галактики. Часть 2 (2017) · ★ IMDb 7.6",
+      );
       expect(og(html, "image")).toBe(
         "https://image.tmdb.org/t/p/w780/poster.jpg",
       );
@@ -668,10 +674,30 @@ describe("umbra-api", () => {
         'content="0;url=https://kovalenkoserhii2107-maker.github.io/umbra/#/title/movie/283995"',
       );
       expect(calls[0].url).toContain(
-        "/3/movie/283995?api_key=tmdb-key&language=ru-RU",
+        "/3/movie/283995?api_key=tmdb-key&language=ru-RU&append_to_response=external_ids",
+      );
+      expect(calls[1].url).toBe(
+        "https://api.agregarr.org/api/ratings?id=tt3896198",
       );
       await send("/s/movie/283995", {}, "");
-      expect(calls).toHaveLength(1);
+      expect(calls).toHaveLength(2);
+    });
+
+    it("take the IMDb score from OMDb when Agregarr has none", async () => {
+      const { send, calls } = setup(({ url }) => {
+        if (url.startsWith("https://api.agregarr.org"))
+          return new Response("", { status: 502 });
+        if (url.startsWith("https://www.omdbapi.com"))
+          return Response.json({ imdbRating: "8.1" });
+        return Response.json({
+          name: "Тёмные",
+          first_air_date: "2017-12-01",
+          external_ids: { imdb_id: "tt5753856" },
+        });
+      });
+      const html = await (await send("/s/tv/70523", {}, "")).text();
+      expect(og(html, "title")).toBe("Тёмные (2017) · ★ IMDb 8.1");
+      expect(calls[2].url).toContain("apikey=omdb-key");
     });
 
     it("use the Russian Steam text for games and escape everything", async () => {

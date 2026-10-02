@@ -8,6 +8,8 @@ export type Env = {
   STEAM_API_KEY?: string;
   /** TMDB key for link previews of films (the public TMDB_KEY variable). */
   TMDB_KEY?: string;
+  /** OMDb key (the public OMDB_KEY variable), a fallback for IMDb scores. */
+  OMDB_KEY?: string;
   /** Where share links send people, e.g. https://…github.io/umbra/ */
   SITE_URL?: string;
 };

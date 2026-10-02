@@ -76,7 +76,7 @@ async function tmdbPreview(
       .filter(Boolean)
       .join("\n"),
     image: d.poster_path
-      ? `https://image.tmdb.org/t/p/w500${d.poster_path}`
+      ? `https://image.tmdb.org/t/p/w780${d.poster_path}`
       : "",
   };
 }
@@ -127,7 +127,7 @@ async function gamePreview(deps: Deps, id: number): Promise<Preview | null> {
       .filter(Boolean)
       .join("\n"),
     image: g.cover?.image_id
-      ? `https://images.igdb.com/igdb/image/upload/t_cover_big_2x/${g.cover.image_id}.jpg`
+      ? `https://images.igdb.com/igdb/image/upload/t_1080p/${g.cover.image_id}.jpg`
       : "",
   };
 }
@@ -148,7 +148,9 @@ export function sharePage(
   );
   const link = escape(target);
   const image = preview?.image
-    ? `<meta property="og:image" content="${escape(preview.image)}">`
+    ? `<meta property="og:image" content="${escape(preview.image)}">
+<meta property="og:image:alt" content="${title}">
+<meta name="twitter:image" content="${escape(preview.image)}">`
     : "";
   return `<!doctype html>
 <html lang="ru"><head><meta charset="utf-8">
@@ -161,7 +163,7 @@ export function sharePage(
 <meta property="og:description" content="${description}">
 <meta property="og:url" content="${escape(self)}">
 ${image}
-<meta name="twitter:card" content="summary">
+<meta name="twitter:card" content="${preview?.image ? "summary_large_image" : "summary"}">
 <link rel="canonical" href="${link}">
 <meta http-equiv="refresh" content="0;url=${link}">
 <style>body{background:#000;color:#fcfcfc;font:16px system-ui,sans-serif;padding:24px}a{color:#ff9e64}</style>
@@ -184,7 +186,7 @@ export async function shareResponse(
   try {
     const { body } = await cached(
       deps,
-      `share/${kind}/${id}`,
+      `share/v2/${kind}/${id}`,
       86400,
       async () => {
         const p =

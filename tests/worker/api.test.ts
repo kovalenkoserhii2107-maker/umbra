@@ -653,13 +653,17 @@ describe("umbra-api", () => {
       const html = await response.text();
       expect(og(html, "title")).toBe("Стражи Галактики. Часть 2 (2017)");
       expect(og(html, "image")).toBe(
-        "https://image.tmdb.org/t/p/w500/poster.jpg",
+        "https://image.tmdb.org/t/p/w780/poster.jpg",
       );
       const description = og(html, "description")!;
       expect(description).toMatch(
         /^Фильм · 2017 · фантастика · TMDB 7\.6\nПитер Квилл/,
       );
       expect(description.length).toBeLessThan(300);
+      // The poster shows full width in Telegram, not as a small thumbnail.
+      expect(html).toContain(
+        'name="twitter:card" content="summary_large_image"',
+      );
       expect(html).toContain(
         'content="0;url=https://kovalenkoserhii2107-maker.github.io/umbra/#/title/movie/283995"',
       );
@@ -702,7 +706,7 @@ describe("umbra-api", () => {
         "Игра · 2015 · критики 93\nОхотник на чудовищ Геральт.",
       );
       expect(og(html, "image")).toBe(
-        "https://images.igdb.com/igdb/image/upload/t_cover_big_2x/co1wyy.jpg",
+        "https://images.igdb.com/igdb/image/upload/t_1080p/co1wyy.jpg",
       );
       expect(html).not.toContain("<Wild");
       expect(html).toContain("#/games/1942");

@@ -1,9 +1,24 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { apiUrl } from "../lib/api";
 
 /** Absolute link to a screen of this app, e.g. "/title/movie/1". */
 export function appUrl(path: string) {
   return `${window.location.origin}${import.meta.env.BASE_URL}#${path}`;
+}
+
+/**
+ * The link to share. Messengers never see the part after "#", so films,
+ * shows and games go through the API worker, whose page has the poster and a
+ * short description for the preview and then opens the app.
+ */
+export function shareUrl(path: string) {
+  const api = apiUrl();
+  const title = path.match(/^\/title\/(movie|tv)\/(\d+)$/);
+  if (api && title) return `${api}/s/${title[1]}/${title[2]}`;
+  const game = path.match(/^\/games\/(\d+)$/);
+  if (api && game) return `${api}/s/game/${game[1]}`;
+  return appUrl(path);
 }
 
 type Target = {
@@ -243,7 +258,7 @@ export function ShareButton({
         <ShareSheet
           title={title}
           text={text}
-          url={appUrl(path)}
+          url={shareUrl(path)}
           onClose={() => setOpen(false)}
         />
       ) : null}

@@ -8,3 +8,5 @@ workers_dev = true
 [vars]
 # Pages that may call the API (production site and local dev/test servers).
 ALLOWED_ORIGINS = "https://kovalenkoserhii2107-maker.github.io,http://127.0.0.1:5187,http://127.0.0.1:4187,http://localhost:5173"
+# Share links (/s/movie/1) send people here.
+SITE_URL = "https://kovalenkoserhii2107-maker.github.io/umbra/"

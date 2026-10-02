@@ -6,6 +6,10 @@ export type Env = {
   ITAD_API_KEY?: string;
   OPENCRITIC_API_KEY?: string;
   STEAM_API_KEY?: string;
+  /** TMDB key for link previews of films (the public TMDB_KEY variable). */
+  TMDB_KEY?: string;
+  /** Where share links send people, e.g. https://…github.io/umbra/ */
+  SITE_URL?: string;
 };
 
 /** The subset of the Cache API the worker uses; tests pass an in-memory one. */

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { handle } from "../../worker/src/index";
 import { resetTokenForTests } from "../../worker/src/twitch";
 import { htmlToText } from "../../worker/src/steamStore";
+import { shorten } from "../../worker/src/share";
 import type { CacheLike, Deps, Env } from "../../worker/src/env";
 
 const SITE = "https://kovalenkoserhii2107-maker.github.io";
@@ -12,6 +13,8 @@ const env: Env = {
   STEAM_API_KEY: "steam",
   OPENCRITIC_API_KEY: "rapid",
   ITAD_API_KEY: "itad",
+  TMDB_KEY: "tmdb-key",
+  SITE_URL: "https://kovalenkoserhii2107-maker.github.io/umbra/",
 };
 
 type Call = { url: string; init?: RequestInit };
@@ -620,6 +623,111 @@ describe("umbra-api", () => {
       const response = await send(`/steam/user/${id}/profile`);
       expect(response.status).toBe(403);
       expect((await response.json()).error).toBe("steam_private");
+    });
+  });
+
+  describe("share links", () => {
+    const og = (html: string, name: string) =>
+      html.match(new RegExp(`property="og:${name}" content="([^"]*)"`))?.[1];
+
+    it("give messengers a poster and a short description, people the app", async () => {
+      const { send, calls } = setup(() =>
+        Response.json({
+          title: "Стражи Галактики. Часть 2",
+          overview:
+            "Питер Квилл и его команда отправляются в новое путешествие. " +
+            "Они раскрывают тайну происхождения Квилла и сталкиваются с новыми врагами. ".repeat(
+              4,
+            ),
+          poster_path: "/poster.jpg",
+          release_date: "2017-04-19",
+          vote_average: 7.6,
+          vote_count: 20000,
+          genres: [{ name: "фантастика" }],
+        }),
+      );
+      // Messengers send no Origin header; share links must still answer.
+      const response = await send("/s/movie/283995", {}, "");
+      expect(response.status).toBe(200);
+      expect(response.headers.get("Content-Type")).toContain("text/html");
+      const html = await response.text();
+      expect(og(html, "title")).toBe("Стражи Галактики. Часть 2 (2017)");
+      expect(og(html, "image")).toBe(
+        "https://image.tmdb.org/t/p/w500/poster.jpg",
+      );
+      const description = og(html, "description")!;
+      expect(description).toMatch(
+        /^Фильм · 2017 · фантастика · TMDB 7\.6\nПитер Квилл/,
+      );
+      expect(description.length).toBeLessThan(300);
+      expect(html).toContain(
+        'content="0;url=https://kovalenkoserhii2107-maker.github.io/umbra/#/title/movie/283995"',
+      );
+      expect(calls[0].url).toContain(
+        "/3/movie/283995?api_key=tmdb-key&language=ru-RU",
+      );
+      await send("/s/movie/283995", {}, "");
+      expect(calls).toHaveLength(1);
+    });
+
+    it("use the Russian Steam text for games and escape everything", async () => {
+      const { send } = setup(({ url }) => {
+        if (url.startsWith("https://id.twitch.tv")) return tokenResponse();
+        if (url.includes("api.igdb.com"))
+          return Response.json([
+            {
+              name: 'The "Witcher" 3 <Wild Hunt>',
+              summary: "English summary",
+              cover: { image_id: "co1wyy" },
+              first_release_date: 1431993600,
+              aggregated_rating: 93.4,
+              aggregated_rating_count: 30,
+              websites: [{ url: "https://store.steampowered.com/app/292030" }],
+            },
+          ]);
+        if (url.includes("appdetails"))
+          return Response.json({
+            "292030": {
+              success: true,
+              data: { short_description: "Охотник на чудовищ Геральт." },
+            },
+          });
+        return Response.json({});
+      });
+      const html = await (await send("/s/game/1942", {}, "")).text();
+      expect(og(html, "title")).toBe(
+        "The &quot;Witcher&quot; 3 &lt;Wild Hunt&gt; (2015)",
+      );
+      expect(og(html, "description")).toBe(
+        "Игра · 2015 · критики 93\nОхотник на чудовищ Геральт.",
+      );
+      expect(og(html, "image")).toBe(
+        "https://images.igdb.com/igdb/image/upload/t_cover_big_2x/co1wyy.jpg",
+      );
+      expect(html).not.toContain("<Wild");
+      expect(html).toContain("#/games/1942");
+    });
+
+    it("still open the app when nothing is found", async () => {
+      const { send } = setup(() => new Response("", { status: 404 }));
+      const html = await (await send("/s/tv/1", {}, "")).text();
+      expect(og(html, "title")).toBe("Umbra");
+      expect(og(html, "image")).toBeUndefined();
+      expect(html).toContain("#/title/tv/1");
+      expect((await send("/s/person/1", {}, "")).status).toBe(403);
+    });
+
+    it("shorten long text at a sentence or a word", () => {
+      expect(shorten("Короткий текст.")).toBe("Короткий текст.");
+      expect(shorten(`${"Слово ".repeat(60)}`, 50)).toMatch(
+        /^(Слово ){7}Слово…$/,
+      );
+      expect(
+        shorten(
+          "Первое предложение здесь. Второе очень длинное предложение тут",
+          36,
+        ),
+      ).toBe("Первое предложение здесь.");
     });
   });
 

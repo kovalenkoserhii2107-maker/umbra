@@ -169,6 +169,7 @@ E2E-тесты подменяют ответы TMDB и подставляют т
 - `GET /deals?country=` — текущие скидки на ПК; кэш 3 часа.
 - `GET /gamepass/:list` — Microsoft Store ids из каталога Xbox Game Pass (`recent`, `coming`, `leaving`, `console`, `pc`); кэш 6 часов.
 - `GET /steam/user/:steamId/profile|library|achievements/:appId` — профиль, игры с часами и список желаемого, достижения с редкостью (Steam Web API, ключ на сервере).
+- `GET /s/movie|tv|game/:id` — страница для ссылок «Поделиться»: Open Graph (постер, название с годом, короткое описание) для превью в Telegram и других мессенджерах и мгновенный переход в приложение. Отвечает всем сайтам; кэш сутки. Нужен `TMDB_KEY` (берётся из переменной репозитория при публикации).
 - `POST /steam/verify` — проверка входа через Steam (OpenID `check_authentication`), возвращает SteamID.
 - Отвечает только сайтам из `ALLOWED_ORIGINS` (`worker/wrangler.toml`); остальным — 403.
 

@@ -377,7 +377,7 @@ test("series tracking, collection filters, stats and sharing", async ({
   await share.click();
   await expect(page.getByRole("link", { name: /Telegram/ })).toHaveAttribute(
     "href",
-    /t\.me\/share\/url\?url=.*title%2Ftv%2F202/,
+    /t\.me\/share\/url\?url=https%3A%2F%2Fumbra-api\.test%2Fs%2Ftv%2F202/,
   );
   // The sheet sits on the visible screen, not at the bottom of a long page.
   await page.setViewportSize({ width: 390, height: 500 });

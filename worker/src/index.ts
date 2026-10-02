@@ -12,6 +12,7 @@ import { IGDB_ENDPOINTS, igdbQuery } from "./igdb";
 import { gamePassList } from "./gamepass";
 import { country, currentDeals, gamePrices } from "./itad";
 import { openCritic } from "./opencritic";
+import { shareResponse } from "./share";
 import { verifySteamLogin } from "./steam";
 import { steamApp } from "./steamStore";
 import {
@@ -234,6 +235,16 @@ export async function handle(request: Request, deps: Deps): Promise<Response> {
 
   if (request.method === "OPTIONS")
     return new Response(null, { status: origin ? 204 : 403, headers: cors });
+
+  // Share links are opened by messengers and people, not by the app.
+  const share = url.pathname.match(/^\/s\/(movie|tv|game)\/(\d{1,10})\/?$/);
+  if (share && (request.method === "GET" || request.method === "HEAD"))
+    return shareResponse(
+      deps,
+      share[1] as "movie" | "tv" | "game",
+      Number(share[2]),
+      url.toString(),
+    );
 
   // Only the health check answers other sites, so keys cannot be used from elsewhere.
   const isHealth = url.pathname.replace(/\/+$/, "") === "/health";

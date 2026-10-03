@@ -87,6 +87,7 @@ describe("umbra-api", () => {
         itad: true,
         opencritic: true,
         steam: true,
+        ai: false,
       },
     });
     expect(JSON.stringify(body)).not.toContain("client-secret");

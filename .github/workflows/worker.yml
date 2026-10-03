@@ -4,11 +4,13 @@ on:
     branches: [main]
     paths:
       - "worker/**"
+      - "package-lock.json"
       - "tests/worker/**"
       - ".github/workflows/worker.yml"
   pull_request:
     paths:
       - "worker/**"
+      - "package-lock.json"
       - "tests/worker/**"
       - ".github/workflows/worker.yml"
   workflow_dispatch:
@@ -35,6 +37,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The worker bundles npm packages (the Anthropic SDK) from the root.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
       # Says which keys GitHub actually hands to this job, without printing them.
       # Cloudflare keys are required; any service key that is missing is skipped
       # and shows up as "нет ключа" in the app settings.
@@ -48,8 +56,9 @@ jobs:
           ITAD_API_KEY: ${{ secrets.ITAD_API_KEY }}
           OPENCRITIC_API_KEY: ${{ secrets.OPENCRITIC_API_KEY }}
           STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           AS_VARIABLES: >-
-            ${{ vars.CLOUDFLARE_API_TOKEN != '' && 'CLOUDFLARE_API_TOKEN ' || '' }}${{ vars.CLOUDFLARE_ACCOUNT_ID != '' && 'CLOUDFLARE_ACCOUNT_ID ' || '' }}${{ vars.TWITCH_CLIENT_ID != '' && 'TWITCH_CLIENT_ID ' || '' }}${{ vars.TWITCH_CLIENT_SECRET != '' && 'TWITCH_CLIENT_SECRET ' || '' }}${{ vars.ITAD_API_KEY != '' && 'ITAD_API_KEY ' || '' }}${{ vars.OPENCRITIC_API_KEY != '' && 'OPENCRITIC_API_KEY ' || '' }}${{ vars.STEAM_API_KEY != '' && 'STEAM_API_KEY ' || '' }}
+            ${{ vars.CLOUDFLARE_API_TOKEN != '' && 'CLOUDFLARE_API_TOKEN ' || '' }}${{ vars.CLOUDFLARE_ACCOUNT_ID != '' && 'CLOUDFLARE_ACCOUNT_ID ' || '' }}${{ vars.TWITCH_CLIENT_ID != '' && 'TWITCH_CLIENT_ID ' || '' }}${{ vars.TWITCH_CLIENT_SECRET != '' && 'TWITCH_CLIENT_SECRET ' || '' }}${{ vars.ITAD_API_KEY != '' && 'ITAD_API_KEY ' || '' }}${{ vars.OPENCRITIC_API_KEY != '' && 'OPENCRITIC_API_KEY ' || '' }}${{ vars.STEAM_API_KEY != '' && 'STEAM_API_KEY ' || '' }}${{ vars.ANTHROPIC_API_KEY != '' && 'ANTHROPIC_API_KEY ' || '' }}
         run: |
           {
             echo "### Keys"
@@ -57,7 +66,7 @@ jobs:
             echo "| --- | --- |"
           } >> "$GITHUB_STEP_SUMMARY"
           missing_required=""
-          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID TWITCH_CLIENT_ID TWITCH_CLIENT_SECRET ITAD_API_KEY OPENCRITIC_API_KEY STEAM_API_KEY; do
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID TWITCH_CLIENT_ID TWITCH_CLIENT_SECRET ITAD_API_KEY OPENCRITIC_API_KEY STEAM_API_KEY ANTHROPIC_API_KEY; do
             if [ -n "${!name}" ]; then
               echo "| $name | ✅ |" >> "$GITHUB_STEP_SUMMARY"
             else
@@ -94,13 +103,14 @@ jobs:
           ITAD_API_KEY: ${{ secrets.ITAD_API_KEY }}
           OPENCRITIC_API_KEY: ${{ secrets.OPENCRITIC_API_KEY }}
           STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           # Public TMDB key (a repository variable) for film link previews.
           TMDB_KEY: ${{ vars.TMDB_KEY }}
           OMDB_KEY: ${{ vars.OMDB_KEY }}
         run: |
           jq -n 'env
             | with_entries(select(
-                (.key | IN("TWITCH_CLIENT_ID", "TWITCH_CLIENT_SECRET", "ITAD_API_KEY", "OPENCRITIC_API_KEY", "STEAM_API_KEY", "TMDB_KEY", "OMDB_KEY"))
+                (.key | IN("TWITCH_CLIENT_ID", "TWITCH_CLIENT_SECRET", "ITAD_API_KEY", "OPENCRITIC_API_KEY", "STEAM_API_KEY", "ANTHROPIC_API_KEY", "TMDB_KEY", "OMDB_KEY"))
                 and .value != ""))' \
             | npx --yes wrangler@4.145.0 secret bulk
       - name: Show the worker address

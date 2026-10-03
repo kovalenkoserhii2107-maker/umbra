@@ -12,7 +12,7 @@ export function apiUrl() {
 export type ApiHealth = {
   ok: boolean;
   services: Record<
-    "igdb" | "twitch" | "itad" | "opencritic" | "steam",
+    "igdb" | "twitch" | "itad" | "opencritic" | "steam" | "ai",
     boolean
   >;
 };
@@ -27,14 +27,18 @@ export class ApiError extends Error {
   }
 }
 
-async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function call<T>(
+  path: string,
+  init: RequestInit = {},
+  timeout = 15_000,
+): Promise<T> {
   const base = apiUrl();
   if (!base) throw new ApiError(0, "api_not_configured");
   let response: Response;
   try {
     response = await fetch(base + path, {
       ...init,
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(timeout),
     });
   } catch {
     throw new ApiError(0, "network");
@@ -223,3 +227,59 @@ export const steamLibrary = (steamId: string) =>
   call<SteamLibrary>(`/steam/user/${steamId}/library`);
 export const steamAchievements = (steamId: string, appId: number) =>
   call<SteamAchievements>(`/steam/user/${steamId}/achievements/${appId}`);
+
+export type AiStep =
+  | { question: string; answer: string }
+  | {
+      shown: Array<{
+        title: string;
+        year: number | null;
+        type: "movie" | "tv";
+        verdict: "seen" | "liked" | "disliked" | null;
+      }>;
+    };
+
+export type AiQuestion = {
+  question: string;
+  options: Array<{ label: string; hint: string }>;
+  allow_custom: boolean;
+};
+
+export type AiPicks = {
+  intro: string;
+  picks: Array<{
+    title: string;
+    original_title: string;
+    year: number;
+    type: "movie" | "tv";
+    reason: string;
+  }>;
+};
+
+/** One step of the Claude picker; `token` is the Firebase sign-in token. */
+export function aiTonight(
+  token: string,
+  body: { stage: "ask"; profile: string; steps: AiStep[] },
+): Promise<AiQuestion>;
+export function aiTonight(
+  token: string,
+  body: { stage: "pick"; profile: string; steps: AiStep[] },
+): Promise<AiPicks>;
+export function aiTonight(
+  token: string,
+  body: { stage: "ask" | "pick"; profile: string; steps: AiStep[] },
+) {
+  return call<AiQuestion | AiPicks>(
+    "/ai/tonight",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    },
+    // Thinking through a whole library takes a while.
+    150_000,
+  );
+}

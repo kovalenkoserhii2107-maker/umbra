@@ -121,6 +121,21 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['name', 'picture', 'since'])
           && validPerson(request.resource.data)
           && request.resource.data.since is timestamp;
+        // Someone with the owner's invite link adds themselves.
+        allow create, update: if owns(friend) && friend != uid
+          && request.resource.data.keys().hasOnly(['name', 'picture', 'since', 'invite'])
+          && validPerson(request.resource.data)
+          && request.resource.data.since is timestamp
+          && request.resource.data.invite is string
+          && request.resource.data.invite.matches('[A-Za-z0-9]{24}')
+          && exists(/databases/$(database)/documents/users/$(uid)/invites/$(request.resource.data.invite));
+      }
+      // Invite keys in the owner's links; only the owner sees them.
+      match /invites/{token} {
+        allow read, delete: if owns(uid);
+        allow create: if owns(uid) && token.matches('[A-Za-z0-9]{24}')
+          && request.resource.data.keys().hasOnly(['createdAt'])
+          && request.resource.data.createdAt is timestamp;
       }
       // Friend requests: anyone signed in may ask once in their own name.
       match /requests/{from} {

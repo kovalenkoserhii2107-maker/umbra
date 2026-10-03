@@ -283,6 +283,7 @@ export async function handle(request: Request, deps: Deps): Promise<Response> {
       invite[1],
       url.searchParams.get("n") || "",
       url.toString(),
+      url.searchParams.get("t") || "",
     );
 
   // Only the health check answers other sites, so keys cannot be used from elsewhere.

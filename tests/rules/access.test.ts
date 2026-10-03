@@ -156,6 +156,48 @@ it("lets people send friend requests only in their own name", async () => {
   await assertSucceeds(deleteDoc(doc(a, "users/A/requests/B")));
   await assertFails(setDoc(doc(a, "users/A/friends/A"), person("Me")));
 });
+it("lets someone with the owner's invite key join their friends", async () => {
+  const a = env.authenticatedContext("A").firestore();
+  const b = env.authenticatedContext("B").firestore();
+  const c = env.authenticatedContext("C").firestore();
+  const key = "AbCdEfGhIjKlMnOpQrStUv12";
+  const joined = { ...person("Boris"), invite: key };
+  // No key yet: nobody can add themselves.
+  await assertFails(setDoc(doc(b, "users/A/friends/B"), joined));
+  await assertSucceeds(
+    setDoc(doc(a, `users/A/invites/${key}`), { createdAt: serverTimestamp() }),
+  );
+  await assertFails(
+    setDoc(doc(b, `users/A/invites/Zz${key.slice(2)}`), {
+      createdAt: serverTimestamp(),
+    }),
+  );
+  await assertFails(
+    setDoc(doc(a, "users/A/invites/short"), { createdAt: serverTimestamp() }),
+  );
+  await assertFails(getDocs(collection(b, "users/A/invites")));
+  await assertSucceeds(getDocs(collection(a, "users/A/invites")));
+  // A wrong key, someone else's name or extra fields fail.
+  await assertFails(
+    setDoc(doc(b, "users/A/friends/B"), {
+      ...joined,
+      invite: "WrongWrongWrongWrong1234",
+    }),
+  );
+  await assertFails(setDoc(doc(c, "users/A/friends/B"), joined));
+  await assertFails(
+    setDoc(doc(b, "users/A/friends/B"), { ...joined, role: "admin" }),
+  );
+  await assertFails(setDoc(doc(b, "users/A/friends/B"), person("Boris")));
+  // With the key B joins, and A's ratings open to B.
+  await assertSucceeds(setDoc(doc(b, "users/A/friends/B"), joined));
+  await assertSucceeds(getDocs(collection(b, "profiles/A/ratings")));
+  await assertFails(getDoc(doc(b, "users/A/friends/B")));
+  await assertFails(deleteDoc(doc(b, "users/A/friends/B")));
+  // Deleting the key closes the link.
+  await assertSucceeds(deleteDoc(doc(a, `users/A/invites/${key}`)));
+  await assertFails(setDoc(doc(c, "users/A/friends/C"), joined));
+});
 
 const game = {
   id: 1942,

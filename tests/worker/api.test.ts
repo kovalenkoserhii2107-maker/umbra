@@ -703,6 +703,16 @@ describe("umbra-api", () => {
         `content="0;url=https://kovalenkoserhii2107-maker.github.io/umbra/#/friends/invite/${uid}"`,
       );
       expect(html).not.toContain("<b>");
+      // The invite key goes on to the app; anything else is dropped.
+      const key = "AbCdEfGhIjKlMnOpQrStUv12";
+      const keyed = await (
+        await send(`/s/invite/${uid}?t=${key}&n=A`, {}, "")
+      ).text();
+      expect(keyed).toContain(`#/friends/invite/${uid}?t=${key}"`);
+      const bad = await (
+        await send(`/s/invite/${uid}?t=${encodeURIComponent('"><x')}`, {}, "")
+      ).text();
+      expect(bad).toContain(`#/friends/invite/${uid}"`);
       expect(calls).toHaveLength(0);
       // Without a name, and nothing for ids that are not uids.
       const plain = await (await send(`/s/invite/${uid}`, {}, "")).text();

@@ -231,6 +231,8 @@ export function inviteResponse(
   uid: string,
   name: string,
   self: string,
+  /** The invite key that lets the friend join at once; passed on to the app. */
+  token = "",
 ) {
   const site =
     deps.env.SITE_URL || "https://kovalenkoserhii2107-maker.github.io/umbra/";
@@ -245,7 +247,7 @@ export function inviteResponse(
   return new Response(
     sharePage(
       preview,
-      `${base}#/friends/invite/${uid}`,
+      `${base}#/friends/invite/${uid}${/^[A-Za-z0-9]{24}$/.test(token) ? `?t=${token}` : ""}`,
       self,
       "Открыть приглашение в Umbra",
     ),

@@ -18,6 +18,8 @@ export function shareUrl(path: string) {
   if (api && title) return `${api}/s/${title[1]}/${title[2]}`;
   const game = path.match(/^\/games\/(\d+)$/);
   if (api && game) return `${api}/s/game/${game[1]}`;
+  const invite = path.match(/^\/friends\/invite\/([A-Za-z0-9]+)(\?.*)?$/);
+  if (api && invite) return `${api}/s/invite/${invite[1]}${invite[2] ?? ""}`;
   return appUrl(path);
 }
 

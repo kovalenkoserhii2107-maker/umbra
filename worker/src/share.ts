@@ -184,6 +184,8 @@ export function sharePage(
   preview: Preview | null,
   target: string,
   self: string,
+  /** The text of the fallback link while the page redirects. */
+  linkText?: string,
 ) {
   const title = escape(preview?.title || "Umbra");
   const description = escape(
@@ -211,9 +213,49 @@ ${image}
 <meta http-equiv="refresh" content="0;url=${link}">
 <style>body{background:#000;color:#fcfcfc;font:16px system-ui,sans-serif;padding:24px}a{color:#ff9e64}</style>
 </head><body>
-<p><a href="${link}">Открыть «${title}» в Umbra</a></p>
+<p><a href="${link}">${linkText ? escape(linkText) : `Открыть «${title}» в Umbra`}</a></p>
 <script>location.replace(${JSON.stringify(target).replace(/</g, "\\u003c")})</script>
 </body></html>`;
+}
+
+/** Someone's id from the invite link: Firebase uids are 20–40 letters and digits. */
+export const INVITE_UID = /^[A-Za-z0-9]{20,40}$/;
+
+/**
+ * A friend invite. The inviter's profile is private, so their name comes in
+ * the link itself (`?n=`); it is only shown in the preview, and the app
+ * then shows the real profile.
+ */
+export function inviteResponse(
+  deps: Deps,
+  uid: string,
+  name: string,
+  self: string,
+) {
+  const site =
+    deps.env.SITE_URL || "https://kovalenkoserhii2107-maker.github.io/umbra/";
+  const base = site.endsWith("/") ? site : `${site}/`;
+  const who = name.replace(/\s+/g, " ").trim().slice(0, 40);
+  const preview: Preview = {
+    title: who ? `${who} зовёт тебя в Umbra` : "Приглашение в Umbra",
+    description:
+      "Добавляйтесь в друзья и смотрите оценки друг друга: фильмы, сериалы и игры. Подбор на вечер с ИИ, коллекция и где смотреть — бесплатно.",
+    image: `${base}og-invite.png`,
+  };
+  return new Response(
+    sharePage(
+      preview,
+      `${base}#/friends/invite/${uid}`,
+      self,
+      "Открыть приглашение в Umbra",
+    ),
+    {
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "public, max-age=3600",
+      },
+    },
+  );
 }
 
 /** The HTML for one share link; previews are kept a day. */

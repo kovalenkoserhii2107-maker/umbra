@@ -68,6 +68,8 @@ export default defineConfig({
         navigateFallback: "index.html",
         navigateFallbackAllowlist: [/^\/umbra(?:\/|$)/],
         globPatterns: ["**/*.{js,css,svg,png,jpg,woff2,ico,html,json}"],
+        // Link-preview cards are for messengers, not for the app offline.
+        globIgnores: ["**/og-*.png"],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/images\.igdb\.com\//,

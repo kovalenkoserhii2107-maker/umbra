@@ -14,7 +14,7 @@ import { IGDB_ENDPOINTS, igdbQuery } from "./igdb";
 import { gamePassList } from "./gamepass";
 import { country, currentDeals, gamePrices } from "./itad";
 import { openCritic } from "./opencritic";
-import { shareResponse } from "./share";
+import { INVITE_UID, inviteResponse, shareResponse } from "./share";
 import { verifySteamLogin } from "./steam";
 import { steamApp } from "./steamStore";
 import {
@@ -269,6 +269,19 @@ export async function handle(request: Request, deps: Deps): Promise<Response> {
       deps,
       share[1] as "movie" | "tv" | "game",
       Number(share[2]),
+      url.toString(),
+    );
+
+  const invite = url.pathname.match(/^\/s\/invite\/([^/]+)\/?$/);
+  if (
+    invite &&
+    INVITE_UID.test(invite[1]) &&
+    (request.method === "GET" || request.method === "HEAD")
+  )
+    return inviteResponse(
+      deps,
+      invite[1],
+      url.searchParams.get("n") || "",
       url.toString(),
     );
 

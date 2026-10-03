@@ -316,10 +316,13 @@ test("friends invite, accept and see each other's ratings without notes", async 
   const telegram = await a
     .getByRole("link", { name: /Telegram/ })
     .getAttribute("href");
-  const invite = new URL(
-    new URL(telegram!).searchParams.get("url")!,
-  ).hash.slice(1);
-  expect(invite).toMatch(/^\/friends\/invite\/.+/);
+  // The link goes through the API worker for the preview with the app card
+  // and the inviter's name; the worker then opens the invite in the app.
+  const link = new URL(new URL(telegram!).searchParams.get("url")!);
+  expect(link.origin).toBe("https://umbra-api.test");
+  expect(link.searchParams.get("n")).toBe("Anna");
+  const uid = link.pathname.match(/^\/s\/invite\/([A-Za-z0-9]+)$/)![1];
+  const invite = `/friends/invite/${uid}`;
   await a.getByRole("button", { name: "Отмена" }).click();
 
   await b.goto(`#${invite}`);

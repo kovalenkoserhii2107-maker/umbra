@@ -684,6 +684,32 @@ describe("umbra-api", () => {
       expect(calls).toHaveLength(2);
     });
 
+    it("show who invites a friend, with the app card", async () => {
+      const { send, calls } = setup(() => new Response("unused"));
+      const uid = "dTm7ZOQxNWYfjXrBwaAcJ6WPf2x2";
+      const response = await send(
+        `/s/invite/${uid}?n=${encodeURIComponent("Сергей <b>")}`,
+        {},
+        "",
+      );
+      expect(response.status).toBe(200);
+      const html = await response.text();
+      expect(og(html, "title")).toBe("Сергей &lt;b&gt; зовёт тебя в Umbra");
+      expect(og(html, "image")).toBe(
+        "https://kovalenkoserhii2107-maker.github.io/umbra/og-invite.png",
+      );
+      expect(og(html, "description")).toContain("оценки друг друга");
+      expect(html).toContain(
+        `content="0;url=https://kovalenkoserhii2107-maker.github.io/umbra/#/friends/invite/${uid}"`,
+      );
+      expect(html).not.toContain("<b>");
+      expect(calls).toHaveLength(0);
+      // Without a name, and nothing for ids that are not uids.
+      const plain = await (await send(`/s/invite/${uid}`, {}, "")).text();
+      expect(og(plain, "title")).toBe("Приглашение в Umbra");
+      expect((await send("/s/invite/bad%22id", {}, "")).status).toBe(403);
+    });
+
     it("take the IMDb score from OMDb when Agregarr has none", async () => {
       const { send, calls } = setup(({ url }) => {
         if (url.startsWith("https://api.agregarr.org"))

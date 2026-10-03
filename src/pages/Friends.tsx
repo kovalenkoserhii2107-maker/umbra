@@ -60,7 +60,7 @@ export function FriendsPage() {
         <ShareButton
           title="Приглашение в Umbra"
           text={`${account.name} приглашает тебя в друзья в Umbra — будем видеть оценки фильмов друг друга:`}
-          path={`/friends/invite/${account.sub}`}
+          path={`/friends/invite/${account.sub}?n=${encodeURIComponent(account.name)}`}
           label="Пригласить друга"
           showLabel
           className="mt-3 inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm text-canvas"

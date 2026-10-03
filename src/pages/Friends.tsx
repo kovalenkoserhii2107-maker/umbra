@@ -1,14 +1,23 @@
-import { useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import { Empty, useAsync } from "../components";
 import { ShareButton } from "../components/ShareButton";
 import { useAuth } from "../lib/auth";
 import {
+  INVITE_TOKEN,
+  acceptInvite,
   acceptRequest,
   declineRequest,
   friendsError,
   loadFriendRatings,
   loadProfile,
+  myInviteToken,
   removeFriend,
   sendRequest,
   useFriendList,
@@ -28,7 +37,17 @@ export function FriendsPage() {
   const friends = useFriendList(uid);
   const requests = useRequests(uid);
   const [message, setMessage] = useState("");
+  // The key in my link lets a friend join at once; without it (rules not
+  // published yet) the link still works through a friend request.
+  const token = useAsync(
+    () => (uid ? myInviteToken() : Promise.resolve("")),
+    [uid],
+  );
   if (!account) return null;
+  const invitePath = `/friends/invite/${account.sub}?${new URLSearchParams({
+    ...(token.data ? { t: token.data } : {}),
+    n: account.name,
+  })}`;
 
   async function run(action: () => Promise<void>) {
     setMessage("");
@@ -54,17 +73,27 @@ export function FriendsPage() {
       <div className="mt-5 rounded-2xl border border-hairline bg-card p-4">
         <p className="text-sm">Пригласи друга по ссылке</p>
         <p className="mt-1 text-xs text-mute">
-          Друг откроет ссылку, войдёт в Umbra и отправит заявку. После того как
-          ты её примешь, вы увидите оценки друг друга.
+          Друг откроет ссылку, войдёт или зарегистрируется в Umbra — и вы сразу
+          станете друзьями и увидите оценки друг друга.
         </p>
-        <ShareButton
-          title="Приглашение в Umbra"
-          text={`${account.name} приглашает тебя в друзья в Umbra — будем видеть оценки фильмов друг друга:`}
-          path={`/friends/invite/${account.sub}`}
-          label="Пригласить друга"
-          showLabel
-          className="mt-3 inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm text-canvas"
-        />
+        {token.loading ? (
+          <button
+            type="button"
+            disabled
+            className="mt-3 inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm text-canvas opacity-60"
+          >
+            Готовлю ссылку…
+          </button>
+        ) : (
+          <ShareButton
+            title="Приглашение в Umbra"
+            text={`${account.name} зовёт тебя в друзья в Umbra — будем видеть оценки фильмов друг друга:`}
+            path={invitePath}
+            label="Пригласить друга"
+            showLabel
+            className="mt-3 inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm text-canvas"
+          />
+        )}
       </div>
 
       {error || message ? (
@@ -145,12 +174,37 @@ export function FriendsPage() {
 
 export function InvitePage() {
   const { uid = "" } = useParams();
+  const [params] = useSearchParams();
+  const token = params.get("t") || "";
   const { account } = useAuth();
   const navigate = useNavigate();
   const friends = useFriendList(account?.sub || null);
   const profile = useAsync(() => loadProfile(uid), [uid]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const tried = useRef(false);
+  const keyed = INVITE_TOKEN.test(token) && uid !== account?.sub;
+
+  // A link with the invite key: friends right away, no request to accept.
+  useEffect(() => {
+    if (!keyed || !account || !profile.data || tried.current) return;
+    tried.current = true;
+    setBusy(true);
+    acceptInvite(profile.data, token, {
+      name: account.name,
+      picture: account.picture,
+    })
+      .then(() =>
+        navigate(`/friends/${uid}`, { replace: true, state: { joined: true } }),
+      )
+      .catch(() => {
+        setMessage(
+          "Не получилось добавить сразу — отправь заявку, и друг её примет.",
+        );
+        setBusy(false);
+      });
+  }, [keyed, account, profile.data]);
+
   if (!account) return null;
   const already = friends.list?.some((p) => p.uid === uid);
 
@@ -179,8 +233,10 @@ export function InvitePage() {
     <div className="rise mx-auto max-w-md pt-6 text-center">
       {uid === account.sub ? (
         <Empty text="Это твоя ссылка-приглашение. Отправь её другу." />
-      ) : profile.loading ? (
-        <p className="text-sm text-mute">Открываю приглашение…</p>
+      ) : profile.loading || (keyed && busy) ? (
+        <p role="status" className="text-sm text-mute">
+          {keyed ? "Добавляю в друзья…" : "Открываю приглашение…"}
+        </p>
       ) : !profile.data ? (
         <Empty
           text={
@@ -232,6 +288,9 @@ type Show = "all" | "rated" | "watchlist" | "watching";
 
 export function FriendPage() {
   const { uid = "" } = useParams();
+  const joined = Boolean(
+    (useLocation().state as { joined?: boolean } | null)?.joined,
+  );
   const { account } = useAuth();
   const { items } = useAppState();
   const friends = useFriendList(account?.sub || null);
@@ -263,6 +322,15 @@ export function FriendPage() {
           <h1 className="truncate text-2xl tracking-tight">{name}</h1>
         </div>
       </div>
+
+      {joined ? (
+        <p
+          role="status"
+          className="mt-4 rounded-2xl border border-ok/40 bg-ok/10 px-4 py-3 text-sm"
+        >
+          Вы теперь друзья — {name} видит твои оценки, а ты его.
+        </p>
+      ) : null}
 
       {friends.list && !friend ? (
         <p className="mt-4 text-sm text-mute">

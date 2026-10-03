@@ -89,6 +89,56 @@ export async function sendRequest(target: Person, mine: Omit<Person, "uid">) {
   await batch.commit();
 }
 
+/** An invite key: 24 letters and digits, part of my invite link. */
+export const INVITE_TOKEN = /^[A-Za-z0-9]{24}$/;
+
+function newInviteToken() {
+  const abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  return Array.from(bytes, (b) => abc[b % abc.length]).join("");
+}
+
+/**
+ * My invite key, made on first use. Whoever has a link with it may add
+ * themselves to my friends straight away (Firestore rules check the key).
+ */
+export async function myInviteToken(): Promise<string> {
+  const uid = me();
+  const snap = await getDocs(collection(firebaseDb, "users", uid, "invites"));
+  const found = snap.docs.find((d) => INVITE_TOKEN.test(d.id));
+  if (found) return found.id;
+  const token = newInviteToken();
+  await setDoc(doc(firebaseDb, "users", uid, "invites", token), {
+    createdAt: serverTimestamp(),
+  });
+  return token;
+}
+
+/** Opening a friend's invite link: we become friends both ways at once. */
+export async function acceptInvite(
+  inviter: Person,
+  token: string,
+  mine: Omit<Person, "uid">,
+) {
+  const uid = me();
+  if (uid === inviter.uid) throw new Error("Это твоя собственная ссылка.");
+  const batch = writeBatch(firebaseDb);
+  batch.set(doc(firebaseDb, "users", uid, "friends", inviter.uid), {
+    name: inviter.name.slice(0, 100),
+    picture: inviter.picture.slice(0, 2048),
+    since: serverTimestamp(),
+  });
+  batch.set(doc(firebaseDb, "users", inviter.uid, "friends", uid), {
+    name: mine.name.slice(0, 100),
+    picture: mine.picture.slice(0, 2048),
+    since: serverTimestamp(),
+    invite: token,
+  });
+  // A request sent earlier is no longer needed.
+  batch.delete(doc(firebaseDb, "users", inviter.uid, "requests", uid));
+  await batch.commit();
+}
+
 export async function acceptRequest(from: Person) {
   const uid = me();
   const batch = writeBatch(firebaseDb);

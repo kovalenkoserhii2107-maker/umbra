@@ -309,28 +309,40 @@ test("friends invite, accept and see each other's ratings without notes", async 
   const a = await one.newPage();
   const b = await two.newPage();
   await register(a, "Anna");
-  await register(b, "Boris");
 
   await a.goto("#/friends");
   await a.getByRole("button", { name: "Пригласить друга" }).click();
   const telegram = await a
     .getByRole("link", { name: /Telegram/ })
     .getAttribute("href");
-  const invite = new URL(
-    new URL(telegram!).searchParams.get("url")!,
-  ).hash.slice(1);
-  expect(invite).toMatch(/^\/friends\/invite\/.+/);
+  // The link goes through the API worker for the preview with the app card
+  // and the inviter's name; the worker then opens the invite in the app.
+  const link = new URL(new URL(telegram!).searchParams.get("url")!);
+  expect(link.origin).toBe("https://umbra-api.test");
+  expect(link.searchParams.get("n")).toBe("Anna");
+  const key = link.searchParams.get("t")!;
+  expect(key).toMatch(/^[A-Za-z0-9]{24}$/);
+  const uid = link.pathname.match(/^\/s\/invite\/([A-Za-z0-9]+)$/)![1];
   await a.getByRole("button", { name: "Отмена" }).click();
 
-  await b.goto(`#${invite}`);
-  await expect(b.getByText("приглашает тебя в друзья")).toBeVisible();
-  await expect(b.getByText("Anna", { exact: true })).toBeVisible();
-  await b.getByRole("button", { name: "Добавить в друзья" }).click();
-  await expect(b.getByText(/ещё не принял заявку/)).toBeVisible();
+  // Boris opens the link (as the worker sends him on), signs up, and they
+  // are friends at once: no request for Anna to accept.
+  await b.goto(`#/friends/invite/${uid}?t=${key}`);
+  await expect(b).toHaveURL(/#\/login\?next=/);
+  await b
+    .getByRole("button", { name: "Нет аккаунта — зарегистрироваться" })
+    .click();
+  await b.getByLabel("Имя", { exact: true }).fill("Boris");
+  await b
+    .getByLabel("Email", { exact: true })
+    .fill(`boris-${Date.now()}@example.com`);
+  await b.getByLabel("Пароль", { exact: true }).fill("test-password-123");
+  await b.getByRole("button", { name: "Создать аккаунт", exact: true }).click();
+  await expect(b).toHaveURL(new RegExp(`#/friends/${uid}$`));
+  await expect(b.getByText("Вы теперь друзья")).toBeVisible();
 
-  await expect(a.getByText("Заявки в друзья")).toBeVisible();
-  await a.getByRole("button", { name: "Принять", exact: true }).click();
   await expect(a.getByRole("link", { name: /Boris/ })).toBeVisible();
+  await expect(a.getByText("Заявки в друзья")).toHaveCount(0);
 
   await a.goto("#/title/movie/101");
   await a.getByRole("button", { name: "В просмотренные", exact: true }).click();

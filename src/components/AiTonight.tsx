@@ -251,12 +251,15 @@ export function AiTonight({
   region,
   services,
   library,
+  rewatch,
 }: {
   items: LibraryItem[];
   meta: MetaMap;
   region: string;
   services: Platform[];
   library: Library;
+  /** Titles I have already watched may be offered too. */
+  rewatch: boolean;
 }) {
   const [session, setSession] = useState<Session | null>(loadSession);
   const [busy, setBusy] = useState<"" | "ask" | "pick">("");
@@ -281,6 +284,14 @@ export function AiTonight({
       ),
     [items],
   );
+  /** Never offered, even with watched titles allowed: dropped ones. */
+  const disliked = useMemo(
+    () =>
+      items
+        .filter((x) => x.status === "dropped")
+        .map((x) => keyOf(x.type, x.id)),
+    [items],
+  );
 
   /** Sends `next` and shows the result; on failure nothing changes. */
   async function run(next: Session, stage: "ask" | "pick") {
@@ -295,6 +306,7 @@ export function AiTonight({
           stage,
           profile: next.profile,
           steps: next.steps,
+          rewatch,
         });
         if (!alive.current) return;
         setSession({ ...next, asked: [...next.asked, q] });
@@ -303,10 +315,13 @@ export function AiTonight({
           stage,
           profile: next.profile,
           steps: next.steps,
+          rewatch,
         });
         const found = await resolvePicks(
           data.picks,
-          new Set([...seen, ...next.shown]),
+          new Set(
+            rewatch ? [...disliked, ...next.shown] : [...seen, ...next.shown],
+          ),
           SHOW + RESERVE,
         );
         const annotated = await withServices(
@@ -378,15 +393,23 @@ export function AiTonight({
     });
   }
 
-  const isSaved = (p: Pick) => Boolean(library.get(p.type, p.item.id));
+  const isSaved = (p: Pick) =>
+    library.get(p.type, p.item.id)?.status === "watchlist";
 
   /** Marks a card; a new pick from the reserve takes its place. */
   function judge(p: Pick, verdict: Verdict) {
     if (!session || session.verdicts[p.key]) return;
     const before = { ...session.before };
     if (verdict === "seen") {
-      before[p.key] = library.get(p.type, p.item.id) ?? null;
-      library.upsert(watchlistEntry(p, "watched"));
+      const was = library.get(p.type, p.item.id);
+      before[p.key] = was ?? null;
+      // Already watched: keep the entry and its rating as they are.
+      if (was?.status !== "watched")
+        library.upsert({
+          ...watchlistEntry(p, "watched"),
+          rating: was?.rating ?? null,
+          note: was?.note ?? "",
+        });
     }
     const [next, ...reserve] = session.reserve;
     setSession({
@@ -575,14 +598,17 @@ export function AiTonight({
                     pick={p}
                     saved={isSaved(p)}
                     onSave={() => library.upsert(watchlistEntry(p))}
+                    mine={library.get(p.type, p.item.id)}
                   >
-                    <button
-                      type="button"
-                      onClick={() => judge(p, "seen")}
-                      className="rounded-full border border-ok/50 px-3 py-1 text-xs text-ok"
-                    >
-                      ✓ Смотрел
-                    </button>
+                    {library.get(p.type, p.item.id)?.status !== "watched" ? (
+                      <button
+                        type="button"
+                        onClick={() => judge(p, "seen")}
+                        className="rounded-full border border-ok/50 px-3 py-1 text-xs text-ok"
+                      >
+                        ✓ Смотрел
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => judge(p, "disliked")}

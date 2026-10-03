@@ -1,7 +1,31 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { yearOf } from "../lib/format";
-import { posterUrl, titleOf } from "../lib/tmdb";
+import type { LibraryItem } from "../lib/library";
+import {
+  cachedRating,
+  ensureImdbRating,
+  subscribeRatings,
+} from "../lib/ratings";
+import { posterUrl, titleOf, type MediaType } from "../lib/tmdb";
 import type { Pick } from "../lib/tonight";
+
+/** The IMDb score, loaded on first show and shared through the ratings cache. */
+function useImdb(type: MediaType, id: number) {
+  const [, setTick] = useState(0);
+  useEffect(() => subscribeRatings(() => setTick((n) => n + 1)), []);
+  useEffect(() => {
+    void ensureImdbRating(type, id).catch(() => undefined);
+  }, [type, id]);
+  return cachedRating(type, id).imdb ?? null;
+}
+
+const MINE: Record<LibraryItem["status"], string> = {
+  watchlist: "в «Хочу посмотреть»",
+  watching: "смотришь",
+  watched: "смотрел",
+  dropped: "бросил",
+};
 
 /** Building blocks shared by both evening pickers. */
 export function Question({
@@ -78,21 +102,30 @@ export function PickCard({
   pick,
   saved,
   onSave,
+  mine,
   children,
 }: {
   pick: Pick;
   saved: boolean;
   onSave: () => void;
+  /** The title in my collection, e.g. a film offered for a rewatch. */
+  mine?: LibraryItem;
   /** Extra controls under the card, e.g. "seen it" for the AI picker. */
   children?: React.ReactNode;
 }) {
   const href = `/title/${pick.type}/${pick.item.id}`;
   const poster = posterUrl(pick.item.poster_path, "w185");
   const year = yearOf(pick.item.release_date || pick.item.first_air_date);
-  const score =
+  const imdb = useImdb(pick.type, pick.item.id);
+  const tmdbScore =
     pick.item.vote_count && pick.item.vote_count >= 50
       ? pick.item.vote_average
       : null;
+  const score = imdb
+    ? `IMDb ${imdb}`
+    : tmdbScore
+      ? `TMDB ${tmdbScore.toFixed(1)}`
+      : "";
   return (
     <article className="flex gap-3 rounded-2xl border border-hairline bg-card p-3">
       <Link to={href} className="w-20 shrink-0">
@@ -115,14 +148,16 @@ export function PickCard({
           {titleOf(pick.item)}
         </Link>
         <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.12em] text-dim">
-          {[
-            pick.type === "tv" ? "сериал" : "фильм",
-            year,
-            score ? `TMDB ${score.toFixed(1)}` : "",
-          ]
+          {[pick.type === "tv" ? "сериал" : "фильм", year, score]
             .filter(Boolean)
             .join(" · ")}
         </p>
+        {mine && mine.status !== "watchlist" ? (
+          <p className="mt-1 inline-block rounded-full border border-ok/40 px-2 py-0.5 text-[11px] text-ok">
+            Ты {MINE[mine.status]}
+            {mine.rating !== null ? ` · ${mine.rating}/10` : ""}
+          </p>
+        ) : null}
         {pick.reasons.length ? (
           <ul className="mt-1.5 space-y-0.5 text-xs text-accent">
             {pick.reasons.map((r) => (
@@ -141,14 +176,17 @@ export function PickCard({
           </p>
         ) : null}
         <div className="mt-2 flex flex-wrap gap-1.5">
-          <button
-            type="button"
-            disabled={saved}
-            onClick={onSave}
-            className="rounded-full border border-hairline px-3 py-1 text-xs disabled:text-dim"
-          >
-            {saved ? "В «Хочу посмотреть»" : "+ Хочу посмотреть"}
-          </button>
+          {/* A title I have seen stays as it is in the collection. */}
+          {mine && mine.status !== "watchlist" ? null : (
+            <button
+              type="button"
+              disabled={saved}
+              onClick={onSave}
+              className="rounded-full border border-hairline px-3 py-1 text-xs disabled:text-dim"
+            >
+              {saved ? "В «Хочу посмотреть»" : "+ Хочу посмотреть"}
+            </button>
+          )}
           {children}
         </div>
       </div>

@@ -61,7 +61,7 @@ function ContinueCard({ item }: { item: LibraryItem }) {
 }
 
 /** The rule-based picker: fixed questions, scored by the library. */
-function QuickPicker() {
+function QuickPicker({ rewatch }: { rewatch: boolean }) {
   const { items, settings, get, upsert } = useAppState();
   const { meta } = useLibraryMeta(items);
   const services = PLATFORMS.filter((p) => settings.subscribed.includes(p.id));
@@ -81,14 +81,17 @@ function QuickPicker() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  // With watched titles allowed, only dropped ones stay out.
   const seen = useMemo(
     () =>
       new Set(
         items
-          .filter((x) => x.status !== "watchlist")
+          .filter((x) =>
+            rewatch ? x.status === "dropped" : x.status !== "watchlist",
+          )
           .map((x) => keyOf(x.type, x.id)),
       ),
-    [items],
+    [items, rewatch],
   );
 
   function answer<K extends keyof Answers>(
@@ -106,7 +109,7 @@ function QuickPicker() {
     answers.format &&
     answers.company &&
     answers.era;
-  const key = complete ? JSON.stringify(answers) : "";
+  const key = complete ? JSON.stringify({ ...answers, rewatch }) : "";
 
   // Collect and rank once the four answers are in.
   useEffect(() => {
@@ -309,8 +312,9 @@ function QuickPicker() {
               <PickCard
                 key={p.key}
                 pick={p}
-                saved={!!get(p.type, p.item.id)}
+                saved={get(p.type, p.item.id)?.status === "watchlist"}
                 onSave={() => save(p)}
+                mine={get(p.type, p.item.id)}
               />
             ))}
           </div>
@@ -333,6 +337,7 @@ function QuickPicker() {
 }
 
 const MODE = "umbra.tonightMode";
+const REWATCH = "umbra.tonightRewatch";
 
 export function TonightPage() {
   const { items, settings, get, upsert, update, remove } = useAppState();
@@ -354,6 +359,11 @@ export function TonightPage() {
       alive = false;
     };
   }, []);
+  const [rewatch, setRewatch] = useState(() => readStorage(REWATCH) === "1");
+  const toggleRewatch = (on: boolean) => {
+    setRewatch(on);
+    writeStorage(REWATCH, on ? "1" : "0");
+  };
   const choose = (m: "ai" | "quick") => {
     setMode(m);
     writeStorage(MODE, m);
@@ -397,6 +407,27 @@ export function TonightPage() {
           ))}
         </div>
       ) : null}
+      <label className="mt-4 flex w-fit cursor-pointer items-center gap-3 text-sm">
+        <span className="relative inline-flex">
+          <input
+            type="checkbox"
+            role="switch"
+            checked={rewatch}
+            onChange={(e) => toggleRewatch(e.target.checked)}
+            className="peer sr-only"
+          />
+          <span className="h-6 w-10 rounded-full bg-hairline transition peer-checked:bg-accent" />
+          <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-ink transition peer-checked:translate-x-4" />
+        </span>
+        <span>
+          Включать просмотренное
+          <span className="block text-xs text-mute">
+            {rewatch
+              ? "Уже просмотренные фильмы тоже попадут в подборку"
+              : "В подборке только то, что ты ещё не видел"}
+          </span>
+        </span>
+      </label>
       {ai && mode === "ai" && !signedIn ? (
         <p className="mt-3 text-sm text-mute">
           <Link to="/login?next=%2Ftonight" className="text-accent">
@@ -412,13 +443,14 @@ export function TonightPage() {
           region={settings.region}
           services={services}
           library={{ get, upsert, update, remove }}
+          rewatch={rewatch}
         />
       ) : ai === null && mode === "ai" && signedIn ? (
         <p role="status" className="mt-6 text-sm text-mute">
           Загрузка…
         </p>
       ) : (
-        <QuickPicker />
+        <QuickPicker rewatch={rewatch} />
       )}
     </div>
   );

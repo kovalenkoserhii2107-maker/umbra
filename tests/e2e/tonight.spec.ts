@@ -208,8 +208,13 @@ test("Claude asks its own questions, picks titles and refines in a new round", a
     }
     return route.fulfill({ status: 404, headers: cors, json: {} });
   });
+  await context.route("https://api.agregarr.org/**", (route) =>
+    route.fulfill({ json: [{ imdbId: "tt8946378", rating: 7.9 }] }),
+  );
   await context.route("https://api.themoviedb.org/**", (route) => {
     const url = new URL(route.request().url());
+    if (url.pathname === "/3/movie/1001/external_ids")
+      return route.fulfill({ json: { imdb_id: "tt8946378" } });
     const film = url.searchParams.get("query")?.match(/^Film (\d+)$/);
     if (url.pathname === "/3/search/movie" && film)
       return route.fulfill({
@@ -264,6 +269,10 @@ test("Claude asks its own questions, picks titles and refines in a new round", a
     "aria-selected",
     "true",
   );
+  const rewatch = page.getByRole("switch", { name: /Включать просмотренное/ });
+  await expect(rewatch).not.toBeChecked();
+  await page.getByText("Включать просмотренное").click();
+  await expect(rewatch).toBeChecked();
   await page.getByRole("button", { name: "Начать" }).click();
 
   await expect(page.getByText("Вопрос Claude 1")).toBeVisible();
@@ -294,7 +303,16 @@ test("Claude asks its own questions, picks titles and refines in a new round", a
     fullPage: true,
   });
 
+  // IMDb score on the card, TMDB only as a fallback.
+  await expect(page.locator("article", { hasText: "Фильм 1" })).toContainText(
+    "IMDb 7.9",
+  );
+  await expect(page.locator("article", { hasText: "Фильм 2" })).toContainText(
+    "TMDB 7.0",
+  );
+
   const pick = asked.at(-1)!;
+  expect((pick.body as { rewatch?: boolean }).rewatch).toBe(true);
   expect(pick.auth).toMatch(/^Bearer .+/);
   expect(pick.body.stage).toBe("pick");
   expect(pick.body.profile).toContain("В библиотеке 0 тайтлов");

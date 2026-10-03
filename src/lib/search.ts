@@ -112,3 +112,66 @@ export function applySearch(
   else copy.sort((a, b) => relevanceScore(b, query) - relevanceScore(a, query));
   return copy;
 }
+
+const EN = "qwertyuiop[]asdfghjkl;'zxcvbnm,.`";
+const RU = "йцукенгшщзхъфывапролджэячсмитьбюё";
+
+/**
+ * The same keys on the other keyboard layout: "ltyf" ↔ "дюна"-style typos.
+ * Null when the text has letters of both alphabets or none to switch.
+ */
+export function switchLayout(text: string) {
+  const lower = text.toLowerCase();
+  const latin = /[a-z]/.test(lower);
+  const cyrillic = /[а-яё]/.test(lower);
+  if (latin === cyrillic) return null;
+  const [from, to] = latin ? [EN, RU] : [RU, EN];
+  let out = "";
+  for (const ch of lower) {
+    const i = from.indexOf(ch);
+    out += i >= 0 ? to[i] : ch;
+  }
+  return out === lower ? null : out;
+}
+
+/** "дюна 2021" → the title and the year to keep. */
+export function splitYear(query: string) {
+  const m = query.trim().match(/^(.*\S)\s+((?:19|20)\d{2})$/);
+  return m ? { text: m[1], year: m[2] } : { text: query.trim(), year: "" };
+}
+
+const RECENT = "umbra.recentSearches";
+
+export function recentSearches(): string[] {
+  try {
+    const list = JSON.parse(localStorage.getItem(RECENT) || "[]");
+    return Array.isArray(list)
+      ? list.filter((x): x is string => typeof x === "string").slice(0, 8)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+export function rememberSearch(query: string) {
+  const q = query.trim();
+  if (q.length < 2) return recentSearches();
+  const next = [
+    q,
+    ...recentSearches().filter((x) => x.toLowerCase() !== q.toLowerCase()),
+  ].slice(0, 8);
+  try {
+    localStorage.setItem(RECENT, JSON.stringify(next));
+  } catch {
+    /* storage unavailable */
+  }
+  return next;
+}
+
+export function forgetSearches() {
+  try {
+    localStorage.removeItem(RECENT);
+  } catch {
+    /* storage unavailable */
+  }
+}

@@ -284,13 +284,11 @@ export function AiTonight({
       ),
     [items],
   );
-  /** Never offered again, even for a rewatch: dropped or rated low. */
+  /** Never offered, even with watched titles allowed: dropped ones. */
   const disliked = useMemo(
     () =>
       items
-        .filter(
-          (x) => x.status === "dropped" || (x.rating !== null && x.rating < 7),
-        )
+        .filter((x) => x.status === "dropped")
         .map((x) => keyOf(x.type, x.id)),
     [items],
   );

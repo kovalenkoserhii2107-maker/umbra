@@ -81,15 +81,13 @@ function QuickPicker({ rewatch }: { rewatch: boolean }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  // With rewatches on, only dropped and low-rated titles stay out.
+  // With watched titles allowed, only dropped ones stay out.
   const seen = useMemo(
     () =>
       new Set(
         items
           .filter((x) =>
-            rewatch
-              ? x.status === "dropped" || (x.rating !== null && x.rating < 7)
-              : x.status !== "watchlist",
+            rewatch ? x.status === "dropped" : x.status !== "watchlist",
           )
           .map((x) => keyOf(x.type, x.id)),
       ),
@@ -425,8 +423,8 @@ export function TonightPage() {
           Включать просмотренное
           <span className="block text-xs text-mute">
             {rewatch
-              ? "Можно пересмотреть любимое — кроме брошенного и оценённого ниже 7"
-              : "Только то, что ты ещё не видел"}
+              ? "Уже просмотренные фильмы тоже попадут в подборку"
+              : "В подборке только то, что ты ещё не видел"}
           </span>
         </span>
       </label>

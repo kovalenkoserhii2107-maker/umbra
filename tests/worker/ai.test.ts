@@ -225,7 +225,7 @@ describe("AI picker", () => {
     );
     expect(sent.output_config.effort).toBe("high");
     expect(sent.messages[0].content).toContain("recommend 12 titles");
-    expect(sent.messages[0].content).toContain("Rewatches are not wanted");
+    expect(sent.messages[0].content).toContain("Watched titles are not wanted");
   });
 
   it("needs a valid sign-in", async () => {
@@ -277,7 +277,9 @@ describe("AI picker", () => {
       rewatch: true,
     });
     expect(req.rewatch).toBe(true);
-    expect(sessionPrompt(req, "2026-10-03")).toContain("Rewatches are welcome");
+    expect(sessionPrompt(req, "2026-10-03")).toContain(
+      "Watched titles are welcome",
+    );
     expect(parseAiRequest({ stage: "pick", profile: "x" }).rewatch).toBe(false);
   });
 

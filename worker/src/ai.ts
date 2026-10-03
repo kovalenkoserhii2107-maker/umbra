@@ -59,7 +59,7 @@ How a session works:
 
 Recommending:
 - Use the whole library, every title and every rating in it: high ratings show taste, low ratings and dropped titles show what to avoid, the watchlist shows intentions (a watchlist title that fits is a strong pick; say so in the reason).
-- Each request says whether rewatches are welcome. When they are not, never recommend anything the user has already watched, rated or dropped. When they are, titles they watched and rated highly may be among the picks next to new ones; never offer a title they rated low or dropped. Never repeat a title shown earlier in the session; titles marked "watching" only when continuing them clearly fits.
+- Each request says whether watched titles may be shown. When they may not, never recommend anything the user has already watched, rated or dropped. When they may, watched titles are candidates like any other and are judged by the same fit (their own rating counts, so a title they rated low is a poor fit); never offer a dropped title. Never repeat a title shown earlier in the session; titles marked "watching" only when continuing them clearly fits.
 - Recommend real, released titles that can be identified unambiguously: give the exact original title, the year of release (first air year for a series) and whether it is a film or a series.
 - Mix well-known and lesser-known titles when that fits the person. Respect hard constraints from the answers (length, company, language, things to avoid) strictly.
 - Each reason is one or two sentences in Russian, speaking to the user as "ты", saying why this fits them tonight, ideally tied to their answers and to titles they rated.
@@ -210,8 +210,8 @@ export function sessionPrompt(req: AiRequest, today: string) {
     req.stage === "pick"
       ? `Now recommend 12 titles for tonight, best fit first, none of them shown before. ${
           req.rewatch
-            ? "Rewatches are welcome: up to a third of the picks may be titles the user watched and rated 8/10 or higher; for those, say in the reason that it is a rewatch and what they rated it."
-            : "Rewatches are not wanted: only titles the user has not watched, so check every pick against the whole library."
+            ? "Watched titles are welcome: the picks may include titles the user has already watched, chosen by fit like new ones; for those, say in the reason that they have seen it and what they rated it."
+            : "Watched titles are not wanted: only titles the user has not watched, so check every pick against the whole library."
         } The intro is one short sentence in Russian on what you looked for.`
       : `Ask question ${asked + 1} of ${QUESTIONS_PER_ROUND} in round ${round}.${round > 1 ? " Use the reactions to the earlier recommendations: find out what was off." : ""}`;
   return `${lines.length ? `Session so far:\n${lines.join("\n")}` : "The session has just started; no questions asked yet."}\n\nToday is ${today}.\n\n${task}`;

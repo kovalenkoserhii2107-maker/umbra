@@ -3,9 +3,19 @@ import { Link, useSearchParams } from "react-router-dom";
 import { ErrorBox } from "../components";
 import { catalog, profileUrl, type PersonHit } from "../lib/catalog";
 import {
+  ERAS,
+  FAMES,
+  LANGUAGES,
+  MINE,
+  PRESETS,
+  RUNTIMES,
+  SCORE_STEPS,
   SEARCH_GENRES,
   applySearch,
+  countFilters,
   defaultFilters,
+  filtersFromParams,
+  filtersToParams,
   forgetSearches,
   recentSearches,
   rememberSearch,
@@ -39,7 +49,6 @@ const SORTS: Array<[SearchSort, string]> = [
   ["rating", "Рейтинг"],
   ["year", "Новизна"],
 ];
-const SCORES = [0, 6, 7, 8];
 const YEARS = Array.from({ length: 60 }, (_, i) =>
   String(new Date().getFullYear() - i),
 );
@@ -199,14 +208,36 @@ function Chip({
   );
 }
 
+function FilterGroup({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section>
+      <h3 className="font-mono text-[10px] uppercase tracking-[0.16em] text-dim">
+        {title}
+      </h3>
+      {hint ? <p className="mt-0.5 text-[11px] text-dim">{hint}</p> : null}
+      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+        {children}
+      </div>
+    </section>
+  );
+}
+
 export function SearchPage() {
-  const { get } = useAppState();
+  const { get, settings } = useAppState();
   const [params, setParams] = useSearchParams();
   const q = params.get("q")?.trim() || "";
   const tab = (TABS.find(([id]) => id === params.get("tab"))?.[0] ??
     "all") as Tab;
   const [text, setText] = useState(q);
-  const [filters, setFilters] = useState<SearchFilters>(defaultFilters);
+  const filters = useMemo(() => filtersFromParams(params), [params]);
   const [showFilters, setShowFilters] = useState(false);
   const [found, setFound] = useState<Found | null>(null);
   const [browse, setBrowse] = useState<{
@@ -222,17 +253,147 @@ export function SearchPage() {
   const more = useRef<HTMLDivElement>(null);
   const generation = useRef(0);
 
-  const filtered =
-    filters.genre !== null ||
-    filters.year !== "" ||
-    filters.minScore > 0 ||
-    filters.sort !== "relevance";
-  const activeFilters = [
-    filters.genre !== null,
-    filters.year !== "",
-    filters.minScore > 0,
-    filters.sort !== "relevance",
-  ].filter(Boolean).length;
+  const activeFilters = countFilters(filters);
+  const filtered = activeFilters > 0;
+  const where = {
+    region: settings.region,
+    providers: settings.subscribed,
+  };
+  const status = (item: TmdbItem) => get(kindOf(item), item.id)?.status;
+
+  /** Filters are kept in the address; the tab stays where it is. */
+  function setFilters(update: (f: SearchFilters) => SearchFilters) {
+    setParams(
+      (prev) => filtersToParams(update(filtersFromParams(prev)), prev),
+      {
+        replace: true,
+      },
+    );
+  }
+
+  const genreName = (id: number) =>
+    SEARCH_GENRES.find((g) => g.id === id)?.label ?? String(id);
+  const label = <T extends string>(list: Array<[T, string]>, id: T) =>
+    list.find(([x]) => x === id)?.[1] ?? id;
+  const activeChips: Array<{ key: string; label: string; clear: () => void }> =
+    [
+      ...(filters.sort !== "relevance"
+        ? [
+            {
+              key: "sort",
+              label: `Сортировка: ${label(SORTS, filters.sort).toLowerCase()}`,
+              clear: () => setFilters((f) => ({ ...f, sort: "relevance" })),
+            },
+          ]
+        : []),
+      ...filters.genres.map((id) => ({
+        key: `g${id}`,
+        label: genreName(id),
+        clear: () =>
+          setFilters((f) => ({
+            ...f,
+            genres: f.genres.filter((g) => g !== id),
+          })),
+      })),
+      ...filters.without.map((id) => ({
+        key: `x${id}`,
+        label: `без: ${genreName(id)}`,
+        clear: () =>
+          setFilters((f) => ({
+            ...f,
+            without: f.without.filter((g) => g !== id),
+          })),
+      })),
+      ...(filters.year || filters.era
+        ? [
+            {
+              key: "era",
+              label: filters.year || label(ERAS, filters.era),
+              clear: () => setFilters((f) => ({ ...f, era: "", year: "" })),
+            },
+          ]
+        : []),
+      ...(filters.minScore
+        ? [
+            {
+              key: "score",
+              label: `★ ${String(filters.minScore).replace(".", ",")}+`,
+              clear: () => setFilters((f) => ({ ...f, minScore: 0 })),
+            },
+          ]
+        : []),
+      ...(filters.fame
+        ? [
+            {
+              key: "fame",
+              label: label(FAMES, filters.fame),
+              clear: () => setFilters((f) => ({ ...f, fame: "" })),
+            },
+          ]
+        : []),
+      ...(filters.mine
+        ? [
+            {
+              key: "mine",
+              label: label(MINE, filters.mine),
+              clear: () => setFilters((f) => ({ ...f, mine: "" })),
+            },
+          ]
+        : []),
+      ...(filters.lang
+        ? [
+            {
+              key: "lang",
+              label: label(LANGUAGES, filters.lang),
+              clear: () => setFilters((f) => ({ ...f, lang: "" })),
+            },
+          ]
+        : []),
+      ...(filters.runtime
+        ? [
+            {
+              key: "len",
+              label: label(RUNTIMES, filters.runtime),
+              clear: () => setFilters((f) => ({ ...f, runtime: "" })),
+            },
+          ]
+        : []),
+      ...(filters.services
+        ? [
+            {
+              key: "svc",
+              label: "На моих сервисах",
+              clear: () => setFilters((f) => ({ ...f, services: false })),
+            },
+          ]
+        : []),
+    ];
+
+  function applyPreset(preset: Partial<SearchFilters>) {
+    setParams(
+      (prev) => {
+        const next = filtersToParams({ ...defaultFilters, ...preset }, prev);
+        if (preset.kind && preset.kind !== "all") next.set("tab", preset.kind);
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
+  /** Genre chips: tap to include, again to exclude, again to clear. */
+  function cycleGenre(id: number) {
+    setFilters((f) =>
+      f.genres.includes(id)
+        ? {
+            ...f,
+            genres: f.genres.filter((g) => g !== id),
+            without: [...f.without, id],
+          }
+        : f.without.includes(id)
+          ? { ...f, without: f.without.filter((g) => g !== id) }
+          : { ...f, genres: [...f.genres, id] },
+    );
+  }
 
   function setParam(key: string, value: string) {
     setParams(
@@ -307,10 +468,7 @@ export function SearchPage() {
     let alive = true;
     setLoading(true);
     catalog
-      .browseFiltered(
-        { ...filters, kind: tab === "movie" || tab === "tv" ? tab : "all" },
-        1,
-      )
+      .browseFiltered(filters, 1, where)
       .then(
         (d) =>
           alive &&
@@ -338,13 +496,14 @@ export function SearchPage() {
   const titles = useMemo(
     () =>
       found
-        ? applySearch(found.items, found.used, {
-            ...filters,
-            kind,
-            year: found.year || filters.year,
-          })
+        ? applySearch(
+            found.items,
+            found.used,
+            { ...filters, kind, year: found.year || filters.year },
+            status,
+          )
         : [],
-    [found, filters, kind],
+    [found, filters, kind, get],
   );
 
   async function loadMore() {
@@ -382,8 +541,9 @@ export function SearchPage() {
       setLoading(true);
       try {
         const data = await catalog.browseFiltered(
-          { ...filters, kind },
+          filters,
           browse.page + 1,
+          where,
         );
         setBrowse((b) =>
           b
@@ -433,7 +593,9 @@ export function SearchPage() {
   const remember = () => q && setRecent(rememberSearch(q));
   const typing = text.trim() !== q && text.trim().length > 1;
 
-  const list = q ? titles : (browse?.items ?? []);
+  const list = q
+    ? titles
+    : applySearch(browse?.items ?? [], "", filters, status);
   const people = found?.people ?? [];
 
   return (
@@ -522,9 +684,50 @@ export function SearchPage() {
         ) : null}
       </div>
 
+      {activeFilters && tab !== "person" ? (
+        <div
+          className="mt-2 flex flex-wrap gap-1.5"
+          aria-label="Включённые фильтры"
+        >
+          {activeChips.map((c) => (
+            <button
+              key={c.key}
+              type="button"
+              onClick={c.clear}
+              aria-label={`Убрать фильтр: ${c.label}`}
+              className="rounded-full bg-accent/15 px-2.5 py-1 text-xs text-accent"
+            >
+              {c.label} ×
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() =>
+              setFilters((f) => ({ ...defaultFilters, kind: f.kind }))
+            }
+            className="px-1 text-xs text-mute underline"
+          >
+            Сбросить всё
+          </button>
+        </div>
+      ) : null}
+
       {showFilters && tab !== "person" ? (
-        <div className="mt-2 space-y-3 rounded-2xl border border-hairline bg-card p-3">
-          <div className="flex flex-wrap gap-2">
+        <div className="mt-2 space-y-4 rounded-2xl border border-hairline bg-card p-3">
+          <FilterGroup title="Готовые подборки">
+            {PRESETS.filter(
+              (p) => !(q && (p.filters.services || p.filters.runtime)),
+            ).map((p) => (
+              <Chip
+                key={p.id}
+                active={false}
+                onClick={() => applyPreset(p.filters)}
+              >
+                {p.label}
+              </Chip>
+            ))}
+          </FilterGroup>
+          <FilterGroup title="Сортировка">
             {SORTS.map(([id, label]) => (
               <Chip
                 key={id}
@@ -534,15 +737,40 @@ export function SearchPage() {
                 {label}
               </Chip>
             ))}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {SCORES.map((n) => (
+          </FilterGroup>
+          <FilterGroup title="Жанры" hint="Нажми ещё раз, чтобы исключить жанр">
+            {SEARCH_GENRES.map((g) => {
+              const on = filters.genres.includes(g.id);
+              const off = filters.without.includes(g.id);
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  aria-pressed={on || off}
+                  aria-label={off ? `${g.label}: исключён` : g.label}
+                  onClick={() => cycleGenre(g.id)}
+                  className={`shrink-0 rounded-full border px-2.5 py-1 text-xs ${on ? "border-ink bg-ink text-canvas" : off ? "border-accent/60 text-accent line-through" : "border-hairline text-mute"}`}
+                >
+                  {off ? "без: " : ""}
+                  {g.label}
+                </button>
+              );
+            })}
+          </FilterGroup>
+          <FilterGroup title="Годы">
+            {ERAS.map(([id, label]) => (
               <Chip
-                key={n}
-                active={filters.minScore === n}
-                onClick={() => setFilters((f) => ({ ...f, minScore: n }))}
+                key={id}
+                active={!filters.year && filters.era === id}
+                onClick={() =>
+                  setFilters((f) => ({
+                    ...f,
+                    year: "",
+                    era: f.era === id && !f.year ? "" : id,
+                  }))
+                }
               >
-                {n ? `★ ${n}+` : "Любой рейтинг"}
+                {label}
               </Chip>
             ))}
             <select
@@ -550,48 +778,114 @@ export function SearchPage() {
               onChange={(e) =>
                 setFilters((f) => ({ ...f, year: e.target.value }))
               }
-              aria-label="Год"
-              className="rounded-full border border-hairline bg-canvas px-3 py-1 text-xs text-mute"
+              aria-label="Точный год"
+              className={`rounded-full border bg-canvas px-2.5 py-1 text-xs ${filters.year ? "border-ink text-ink" : "border-hairline text-mute"}`}
             >
-              <option value="">Любой год</option>
+              <option value="">Точный год</option>
               {YEARS.map((y) => (
                 <option key={y} value={y}>
                   {y}
                 </option>
               ))}
             </select>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Chip
-              active={filters.genre === null}
-              onClick={() => setFilters((f) => ({ ...f, genre: null }))}
-            >
-              Все жанры
-            </Chip>
-            {SEARCH_GENRES.map((g) => (
+          </FilterGroup>
+          <FilterGroup title="Рейтинг TMDB">
+            {SCORE_STEPS.map((n) => (
               <Chip
-                key={g.id}
-                active={filters.genre === g.id}
+                key={n}
+                active={filters.minScore === n}
                 onClick={() =>
                   setFilters((f) => ({
                     ...f,
-                    genre: f.genre === g.id ? null : g.id,
+                    minScore: f.minScore === n ? 0 : n,
                   }))
                 }
               >
-                {g.label}
+                ★ {String(n).replace(".", ",")}+
               </Chip>
             ))}
-          </div>
-          {activeFilters ? (
-            <button
-              type="button"
-              onClick={() => setFilters(defaultFilters)}
-              className="text-xs text-accent"
-            >
-              Сбросить фильтры
-            </button>
-          ) : null}
+          </FilterGroup>
+          <FilterGroup title="Известность">
+            {FAMES.map(([id, label]) => (
+              <Chip
+                key={id}
+                active={filters.fame === id}
+                onClick={() =>
+                  setFilters((f) => ({ ...f, fame: f.fame === id ? "" : id }))
+                }
+              >
+                {label}
+              </Chip>
+            ))}
+          </FilterGroup>
+          <FilterGroup title="Моя коллекция">
+            {MINE.map(([id, label]) => (
+              <Chip
+                key={id}
+                active={filters.mine === id}
+                onClick={() =>
+                  setFilters((f) => ({ ...f, mine: f.mine === id ? "" : id }))
+                }
+              >
+                {label}
+              </Chip>
+            ))}
+          </FilterGroup>
+          <FilterGroup title="Язык оригинала">
+            {LANGUAGES.map(([id, label]) => (
+              <Chip
+                key={id}
+                active={filters.lang === id}
+                onClick={() =>
+                  setFilters((f) => ({ ...f, lang: f.lang === id ? "" : id }))
+                }
+              >
+                {label}
+              </Chip>
+            ))}
+          </FilterGroup>
+          {q ? (
+            <p className="text-xs text-dim">
+              Длительность и «На моих сервисах» работают в каталоге — очисти
+              поиск, чтобы подобрать по ним.
+            </p>
+          ) : (
+            <>
+              <FilterGroup title="Длительность">
+                {RUNTIMES.map(([id, label]) => (
+                  <Chip
+                    key={id}
+                    active={filters.runtime === id}
+                    onClick={() =>
+                      setFilters((f) => ({
+                        ...f,
+                        runtime: f.runtime === id ? "" : id,
+                      }))
+                    }
+                  >
+                    {label}
+                  </Chip>
+                ))}
+              </FilterGroup>
+              <FilterGroup title="Где смотреть">
+                <Chip
+                  active={filters.services}
+                  onClick={() =>
+                    setFilters((f) => ({ ...f, services: !f.services }))
+                  }
+                >
+                  На моих сервисах
+                </Chip>
+              </FilterGroup>
+            </>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowFilters(false)}
+            className="w-full rounded-full bg-accent py-2 text-sm font-medium text-black"
+          >
+            Показать результаты
+          </button>
         </div>
       ) : null}
 
@@ -681,7 +975,12 @@ export function SearchPage() {
 
       {!q && browse ? (
         <div className="mt-4">
-          {browse.items.map((item) => (
+          {!list.length && !loading ? (
+            <p className="mt-2 text-sm text-mute">
+              По этим фильтрам ничего нет — попробуй убрать какой-нибудь.
+            </p>
+          ) : null}
+          {list.map((item) => (
             <TitleRow
               key={`${kindOf(item)}-${item.id}`}
               item={item}

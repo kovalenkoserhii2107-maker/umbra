@@ -160,3 +160,8 @@ export function safeReturnPath(value: string | null) {
     ? value
     : "/";
 }
+/** A fresh Firebase ID token for calls that the API worker checks. */
+export async function idToken() {
+  const user = firebaseAuth.currentUser;
+  return user ? user.getIdToken() : null;
+}

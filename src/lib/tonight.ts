@@ -1,6 +1,13 @@
 import type { LibraryItem } from "./library";
 import { metaKey, type MetaMap } from "./meta";
-import { tmdb, titleOf, type MediaType, type TmdbItem } from "./tmdb";
+import { yearOf } from "./format";
+import {
+  posterUrl,
+  tmdb,
+  titleOf,
+  type MediaType,
+  type TmdbItem,
+} from "./tmdb";
 
 /**
  * "What to watch tonight": a few answers plus everything the player has
@@ -425,4 +432,21 @@ export async function withServices(
     for (const p of batch) if (!strict || p.where?.length) out.push(p);
   }
   return out.slice(0, limit);
+}
+
+/** A pick as a library entry: "want to watch" unless told otherwise. */
+export function watchlistEntry(
+  p: Pick,
+  status: LibraryItem["status"] = "watchlist",
+) {
+  return {
+    id: p.item.id,
+    type: p.type,
+    title: titleOf(p.item),
+    poster: posterUrl(p.item.poster_path, "w185"),
+    year: yearOf(p.item.release_date || p.item.first_air_date),
+    status,
+    rating: null,
+    note: "",
+  };
 }

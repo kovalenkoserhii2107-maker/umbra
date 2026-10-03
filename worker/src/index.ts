@@ -1,4 +1,6 @@
+import { aiAllowed, aiTonight, checkAiLimits, parseAiRequest } from "./ai";
 import type { CacheLike, Deps, Env } from "./env";
+import { verifyIdToken } from "./firebaseAuth";
 import {
   ApiError,
   allowedOrigin,
@@ -41,6 +43,7 @@ function health(env: Env) {
       itad: Boolean(env.ITAD_API_KEY),
       opencritic: Boolean(env.OPENCRITIC_API_KEY),
       steam: Boolean(env.STEAM_API_KEY),
+      ai: Boolean(env.ANTHROPIC_API_KEY),
     },
   };
 }
@@ -222,6 +225,29 @@ async function route(
     return json(
       await verifySteamLogin(deps, payload.params || {}, origins(deps.env)),
     );
+  }
+
+  if (path === "/ai/tonight" && request.method === "POST") {
+    if (!deps.env.ANTHROPIC_API_KEY)
+      throw new ApiError(503, "ai_not_configured", "No ANTHROPIC_API_KEY");
+    const user = await verifyIdToken(
+      deps,
+      request.headers.get("Authorization"),
+      deps.env.FIREBASE_PROJECT_ID || "umbra-18ba8",
+    );
+    if (!aiAllowed(deps.env.AI_USERS, user.email))
+      throw new ApiError(403, "ai_not_allowed", "AI is not enabled for you");
+    let raw: unknown;
+    try {
+      raw = await request.json();
+    } catch {
+      throw new ApiError(400, "bad_json", "Body must be JSON");
+    }
+    const body = parseAiRequest(raw);
+    await checkAiLimits(deps, user.uid);
+    return json(await aiTonight(deps, body), 200, {
+      "Cache-Control": "no-store",
+    });
   }
 
   throw new ApiError(404, "not_found", "No such route");

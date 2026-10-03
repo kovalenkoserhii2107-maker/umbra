@@ -534,6 +534,19 @@ export const tmdb = {
   /** Genre names by id, in Russian; they change rarely. */
   genres: (type: MediaType) =>
     request<{ genres: Named[] }>(`/genre/${type}/list`, {}, 7 * 86400_000),
+  /** Films or series by name and, when given, release year; kept a day. */
+  findTitle: (type: MediaType, query: string, year?: number) =>
+    request<TmdbPage<TmdbItem>>(
+      `/search/${type}`,
+      {
+        query,
+        [type === "movie" ? "year" : "first_air_date_year"]: year || undefined,
+      },
+      86400_000,
+    ).then((data) => ({
+      ...data,
+      results: data.results.map((item) => ({ ...item, media_type: type })),
+    })),
   /** Discover with any filters; answers are kept for an hour. */
   discoverBy: (
     type: MediaType,

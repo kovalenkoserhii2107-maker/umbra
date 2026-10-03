@@ -12,6 +12,15 @@ export type Env = {
   OMDB_KEY?: string;
   /** Where share links send people, e.g. https://…github.io/umbra/ */
   SITE_URL?: string;
+  /** Anthropic key for the AI picker (a repository secret). */
+  ANTHROPIC_API_KEY?: string;
+  /** Firebase project whose sign-in tokens are accepted. */
+  FIREBASE_PROJECT_ID?: string;
+  /** AI requests per person and in total per day. */
+  AI_DAILY_LIMIT?: string;
+  AI_GLOBAL_LIMIT?: string;
+  /** Comma-separated emails allowed to use the AI; empty means everyone signed in. */
+  AI_USERS?: string;
 };
 
 /** The subset of the Cache API the worker uses; tests pass an in-memory one. */

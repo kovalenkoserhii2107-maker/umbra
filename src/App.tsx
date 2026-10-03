@@ -71,6 +71,9 @@ const FriendPage = lazy(() =>
 const InvitePage = lazy(() =>
   import("./pages/Friends").then((m) => ({ default: m.InvitePage })),
 );
+const TonightPage = lazy(() =>
+  import("./pages/Tonight").then((m) => ({ default: m.TonightPage })),
+);
 const TitlePage = lazy(() =>
   import("./pages/Title").then((m) => ({ default: m.TitlePage })),
 );
@@ -111,6 +114,7 @@ export default function App() {
         <Route path="/platforms/:slug" element={<PlatformPage />} />
         <Route path="/library" element={<LibraryPage />} />
         <Route path="/stats" element={<StatsPage />} />
+        <Route path="/tonight" element={<TonightPage />} />
         <Route path="/friends" element={<FriendsPage />} />
         <Route path="/friends/invite/:uid" element={<InvitePage />} />
         <Route path="/friends/:uid" element={<FriendPage />} />

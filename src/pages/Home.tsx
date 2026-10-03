@@ -36,6 +36,28 @@ function posterPathFromStored(url: string) {
   return match ? match[1] : null;
 }
 
+/** Entry to the evening picker, right under the spotlight. */
+function TonightEntry() {
+  return (
+    <Link
+      to="/tonight"
+      className="mb-8 mt-4 flex items-center justify-between gap-4 rounded-2xl border border-accent/40 bg-gradient-to-r from-accent/15 to-transparent px-4 py-4 hover:border-accent"
+    >
+      <span className="min-w-0">
+        <span className="block text-lg tracking-tight">
+          Что посмотреть вечером?
+        </span>
+        <span className="block text-sm text-mute">
+          4 вопроса — и подборка под настроение по твоим оценкам
+        </span>
+      </span>
+      <span aria-hidden="true" className="shrink-0 text-2xl text-accent">
+        →
+      </span>
+    </Link>
+  );
+}
+
 function Featured({ spotlight }: { spotlight: Spotlight }) {
   const { item, media, kicker, note } = spotlight;
   const { get, upsert } = useAppState();
@@ -359,6 +381,7 @@ export function HomePage() {
       ) : spotlightPending ? (
         <FeaturedPlaceholder />
       ) : null}
+      <TonightEntry />
       <WatchlistReleases list={releaseList} />
       <ContinueRow rows={continueWatching(items, watchingShows.data ?? {})} />
       <Row

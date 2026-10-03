@@ -321,13 +321,14 @@ function dateOf(item: TmdbItem) {
   return item.release_date || item.first_air_date || "";
 }
 
-function asPage(page: TmdbPage<TmdbItem>, type?: MediaType): TmdbPage<TmdbItem> {
+function asPage(
+  page: TmdbPage<TmdbItem>,
+  type?: MediaType,
+): TmdbPage<TmdbItem> {
   return {
     ...page,
     results: byCatalogRank(
-      page.results.map((item) =>
-        type ? { ...item, media_type: type } : item,
-      ),
+      page.results.map((item) => (type ? { ...item, media_type: type } : item)),
     ),
   };
 }
@@ -523,6 +524,27 @@ export const tmdb = {
         external_source: "imdb_id",
       },
     ),
+  /** Where a title streams, by country. */
+  watchProviders: (type: MediaType, id: number) =>
+    request<{ results?: Record<string, WatchGroup> }>(
+      `/${type}/${id}/watch/providers`,
+      {},
+      6 * 3600_000,
+    ),
+  /** Genre names by id, in Russian; they change rarely. */
+  genres: (type: MediaType) =>
+    request<{ genres: Named[] }>(`/genre/${type}/list`, {}, 7 * 86400_000),
+  /** Discover with any filters; answers are kept for an hour. */
+  discoverBy: (
+    type: MediaType,
+    params: Record<string, string | number | undefined>,
+  ) =>
+    request<TmdbPage<TmdbItem>>(`/discover/${type}`, params, 3600_000).then(
+      (data) => ({
+        ...data,
+        results: data.results.map((item) => ({ ...item, media_type: type })),
+      }),
+    ),
   discover: (type: MediaType, providerId: number, region: string, page = 1) =>
     request<TmdbPage<TmdbItem>>(`/discover/${type}`, {
       with_watch_providers: providerId,
@@ -582,7 +604,10 @@ export const tmdb = {
       request<TmdbPage<TmdbItem>>("/discover/tv", params),
     ]);
     const merged = [
-      ...movies.results.map((item) => ({ ...item, media_type: "movie" as const })),
+      ...movies.results.map((item) => ({
+        ...item,
+        media_type: "movie" as const,
+      })),
       ...shows.results.map((item) => ({ ...item, media_type: "tv" as const })),
     ];
     const seen = new Set<string>();
@@ -596,11 +621,7 @@ export const tmdb = {
       .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
       .slice(0, 20);
   },
-  platformMovies: (
-    providerId: number,
-    region: string,
-    companies?: number[],
-  ) =>
+  platformMovies: (providerId: number, region: string, companies?: number[]) =>
     request<TmdbPage<TmdbItem>>("/discover/movie", {
       with_watch_providers: providerId,
       watch_region: region,

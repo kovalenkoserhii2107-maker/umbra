@@ -58,7 +58,10 @@ describe("AI picker on the client", () => {
     expect(text).toContain(
       "Разделение (2020, сериал) · заметка: «все советуют»",
     );
-    expect(text).toContain("Посмотрено без оценки: Аватар (2009).");
+    expect(text).toContain(
+      "Посмотрено без оценки (всё, что видел): Аватар (2009).",
+    );
+    expect(text).toContain("Все мои оценки (из 10), от лучших:\n- Зодиак");
     expect(text).toContain("триллер +");
   });
 

@@ -12,8 +12,8 @@ import { tmdb, type TmdbItem } from "./tmdb";
  */
 export const QUESTIONS_PER_ROUND = 4;
 
-const LIMITS = { rated: 160, watching: 30, watchlist: 80, dropped: 40 };
-const MAX = 58_000;
+/** The whole library goes in; this only guards against a runaway size. */
+const MAX = 300_000;
 
 function line(x: LibraryItem, meta: MetaMap, withRating: boolean) {
   const m = meta[metaKey(x)];
@@ -33,9 +33,10 @@ export function buildProfile(
   services: Platform[],
 ) {
   const recent = [...items].sort((a, b) => b.updatedAt - a.updatedAt);
-  const rated = recent.filter(
-    (x) => x.rating !== null && x.status !== "dropped",
-  );
+  // Favourites first, so the taste is plain to see.
+  const rated = recent
+    .filter((x) => x.rating !== null && x.status !== "dropped")
+    .sort((a, b) => b.rating! - a.rating!);
   const by = (status: LibraryItem["status"]) =>
     recent.filter((x) => x.status === status);
   const plain = recent.filter(
@@ -53,32 +54,28 @@ export function buildProfile(
       ? `Отношение к жанрам по оценкам (от -1 до +1): ${taste.join(", ")}.`
       : "",
     rated.length
-      ? `Оценки (из 10), новые сверху:\n${rated
-          .slice(0, LIMITS.rated)
+      ? `Все мои оценки (из 10), от лучших:\n${rated
           .map((x) => line(x, meta, true))
           .join("\n")}`
       : "Оценок пока нет.",
     by("watching").length
       ? `Смотрю сейчас:\n${by("watching")
-          .slice(0, LIMITS.watching)
           .map((x) => line(x, meta, false))
           .join("\n")}`
       : "",
     by("watchlist").length
       ? `Хочу посмотреть:\n${by("watchlist")
-          .slice(0, LIMITS.watchlist)
           .map((x) => line(x, meta, false))
           .join("\n")}`
       : "",
     by("dropped").length
       ? `Бросил (не понравилось):\n${by("dropped")
-          .slice(0, LIMITS.dropped)
           .map((x) => line(x, meta, true))
           .join("\n")}`
       : "",
     // Titles only: enough not to suggest them again.
     plain.length
-      ? `Посмотрено без оценки: ${plain.map((x) => `${x.title} (${x.year})`).join("; ")}.`
+      ? `Посмотрено без оценки (всё, что видел): ${plain.map((x) => `${x.title} (${x.year})`).join("; ")}.`
       : "",
   ].filter(Boolean);
   const text = parts.join("\n\n");

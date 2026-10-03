@@ -262,15 +262,20 @@ export type AiPicks = {
 /** One step of the Claude picker; `token` is the Firebase sign-in token. */
 export function aiTonight(
   token: string,
-  body: { stage: "ask"; profile: string; steps: AiStep[] },
+  body: { stage: "ask"; profile: string; steps: AiStep[]; rewatch: boolean },
 ): Promise<AiQuestion>;
 export function aiTonight(
   token: string,
-  body: { stage: "pick"; profile: string; steps: AiStep[] },
+  body: { stage: "pick"; profile: string; steps: AiStep[]; rewatch: boolean },
 ): Promise<AiPicks>;
 export function aiTonight(
   token: string,
-  body: { stage: "ask" | "pick"; profile: string; steps: AiStep[] },
+  body: {
+    stage: "ask" | "pick";
+    profile: string;
+    steps: AiStep[];
+    rewatch: boolean;
+  },
 ) {
   return call<AiQuestion | AiPicks>(
     "/ai/tonight",

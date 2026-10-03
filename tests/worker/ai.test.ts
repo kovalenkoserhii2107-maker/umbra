@@ -225,6 +225,7 @@ describe("AI picker", () => {
     );
     expect(sent.output_config.effort).toBe("high");
     expect(sent.messages[0].content).toContain("recommend 12 titles");
+    expect(sent.messages[0].content).toContain("Rewatches are not wanted");
   });
 
   it("needs a valid sign-in", async () => {
@@ -266,6 +267,18 @@ describe("AI picker", () => {
     expect(((await response.json()) as { error: string }).error).toBe(
       "ai_not_configured",
     );
+  });
+
+  it("lets rewatches in when asked", () => {
+    const req = parseAiRequest({
+      stage: "pick",
+      profile: "x",
+      steps: [],
+      rewatch: true,
+    });
+    expect(req.rewatch).toBe(true);
+    expect(sessionPrompt(req, "2026-10-03")).toContain("Rewatches are welcome");
+    expect(parseAiRequest({ stage: "pick", profile: "x" }).rewatch).toBe(false);
   });
 
   it("builds the session from rounds of answers and shown picks", () => {

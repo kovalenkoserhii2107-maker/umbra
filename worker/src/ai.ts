@@ -26,6 +26,8 @@ export type AiRequest = {
   stage: "ask" | "pick";
   profile: string;
   steps: AiStep[];
+  /** The user also wants titles they have already watched. */
+  rewatch: boolean;
 };
 
 export type AiQuestion = {
@@ -56,7 +58,8 @@ How a session works:
 - Answers may be free text, may contradict earlier ones (the latest wins) or say "неважно".
 
 Recommending:
-- Use the whole library: high ratings show taste, low ratings and dropped titles show what to avoid, the watchlist shows intentions (a watchlist title that fits is a strong pick; say so in the reason). Never recommend anything the user has already watched, rated, dropped or been shown before; titles marked "watching" only when continuing them clearly fits.
+- Use the whole library, every title and every rating in it: high ratings show taste, low ratings and dropped titles show what to avoid, the watchlist shows intentions (a watchlist title that fits is a strong pick; say so in the reason).
+- Each request says whether rewatches are welcome. When they are not, never recommend anything the user has already watched, rated or dropped. When they are, titles they watched and rated highly may be among the picks next to new ones; never offer a title they rated low or dropped. Never repeat a title shown earlier in the session; titles marked "watching" only when continuing them clearly fits.
 - Recommend real, released titles that can be identified unambiguously: give the exact original title, the year of release (first air year for a series) and whether it is a film or a series.
 - Mix well-known and lesser-known titles when that fits the person. Respect hard constraints from the answers (length, company, language, things to avoid) strictly.
 - Each reason is one or two sentences in Russian, speaking to the user as "ты", saying why this fits them tonight, ideally tied to their answers and to titles they rated.
@@ -123,7 +126,7 @@ export function parseAiRequest(raw: unknown): AiRequest {
   >;
   const stage = body.stage === "pick" ? "pick" : "ask";
   const profile =
-    typeof body.profile === "string" ? body.profile.slice(0, 60_000) : "";
+    typeof body.profile === "string" ? body.profile.slice(0, 300_000) : "";
   const steps: AiStep[] = [];
   for (const s of Array.isArray(body.steps) ? body.steps.slice(0, 60) : []) {
     if (!s || typeof s !== "object") continue;
@@ -165,7 +168,7 @@ export function parseAiRequest(raw: unknown): AiRequest {
   }
   if (!profile.trim())
     throw new ApiError(400, "bad_profile", "The library summary is missing");
-  return { stage, profile, steps };
+  return { stage, profile, steps, rewatch: body.rewatch === true };
 }
 
 /** Questions answered since the last picks. */
@@ -205,7 +208,11 @@ export function sessionPrompt(req: AiRequest, today: string) {
   const asked = roundAnswers(req.steps);
   const task =
     req.stage === "pick"
-      ? `Now recommend 12 titles for tonight, best fit first, none of them watched or shown before. The intro is one short sentence in Russian on what you looked for.`
+      ? `Now recommend 12 titles for tonight, best fit first, none of them shown before. ${
+          req.rewatch
+            ? "Rewatches are welcome: up to a third of the picks may be titles the user watched and rated 8/10 or higher; for those, say in the reason that it is a rewatch and what they rated it."
+            : "Rewatches are not wanted: only titles the user has not watched, so check every pick against the whole library."
+        } The intro is one short sentence in Russian on what you looked for.`
       : `Ask question ${asked + 1} of ${QUESTIONS_PER_ROUND} in round ${round}.${round > 1 ? " Use the reactions to the earlier recommendations: find out what was off." : ""}`;
   return `${lines.length ? `Session so far:\n${lines.join("\n")}` : "The session has just started; no questions asked yet."}\n\nToday is ${today}.\n\n${task}`;
 }

@@ -17,6 +17,8 @@ export type AiShown = {
   year: number | null;
   type: "movie" | "tv";
   verdict: "seen" | "liked" | "disliked" | null;
+  /** The user's score out of 10 when they marked it seen and rated it. */
+  rating: number | null;
 };
 export type AiStep = AiAnswer | { shown: AiShown[] };
 
@@ -33,6 +35,7 @@ export type AiQuestion = {
 };
 
 export type AiPicks = {
+  taste: string;
   intro: string;
   picks: Array<{
     title: string;
@@ -58,7 +61,9 @@ Recommending:
 - Mix well-known and lesser-known titles when that fits the person. Respect hard constraints from the answers (length, company, language, things to avoid) strictly.
 - Each reason is one or two sentences in Russian, speaking to the user as "ты", saying why this fits them tonight, ideally tied to their answers and to titles they rated.
 
-Language: everything the user reads (questions, options, hints, intro, reasons, the "title" field) is in Russian; use the usual Russian release title when one exists.`;
+Taste: with the recommendations, sum up in "taste" what you understood about this person's taste from their ratings and answers: two or three sentences in Russian, concrete (name genres, moods, directors or titles from their library), so they see you studied it. When their library is nearly empty, say what you went by instead.
+
+Language: everything the user reads (questions, options, hints, taste, intro, reasons, the "title" field) is in Russian; use the usual Russian release title when one exists.`;
 
 const QUESTION_SCHEMA = {
   type: "object",
@@ -85,6 +90,7 @@ const QUESTION_SCHEMA = {
 const PICKS_SCHEMA = {
   type: "object",
   properties: {
+    taste: { type: "string" },
     intro: { type: "string" },
     picks: {
       type: "array",
@@ -102,7 +108,7 @@ const PICKS_SCHEMA = {
       },
     },
   },
-  required: ["intro", "picks"],
+  required: ["taste", "intro", "picks"],
   additionalProperties: false,
 };
 
@@ -141,6 +147,12 @@ export function parseAiRequest(raw: unknown): AiRequest {
               )
                 ? (p.verdict as AiShown["verdict"])
                 : null,
+              rating:
+                Number.isInteger(p.rating) &&
+                (p.rating as number) >= 1 &&
+                (p.rating as number) <= 10
+                  ? (p.rating as number)
+                  : null,
             },
           ];
         }),
@@ -180,7 +192,7 @@ export function sessionPrompt(req: AiRequest, today: string) {
         `Recommendations shown after round ${round}:`,
         ...s.shown.map(
           (p) =>
-            `- ${p.title}${p.year ? ` (${p.year})` : ""}, ${p.type === "tv" ? "series" : "film"}${p.verdict ? ` — user: ${VERDICT[p.verdict]}` : ""}`,
+            `- ${p.title}${p.year ? ` (${p.year})` : ""}, ${p.type === "tv" ? "series" : "film"}${p.verdict ? ` — user: ${VERDICT[p.verdict]}${p.rating ? `, rated ${p.rating}/10` : ""}` : ""}`,
         ),
       );
       round++;
@@ -193,7 +205,7 @@ export function sessionPrompt(req: AiRequest, today: string) {
   const asked = roundAnswers(req.steps);
   const task =
     req.stage === "pick"
-      ? `Now recommend 8 titles for tonight, best fit first, none of them watched or shown before. The intro is one short sentence in Russian on what you looked for.`
+      ? `Now recommend 12 titles for tonight, best fit first, none of them watched or shown before. The intro is one short sentence in Russian on what you looked for.`
       : `Ask question ${asked + 1} of ${QUESTIONS_PER_ROUND} in round ${round}.${round > 1 ? " Use the reactions to the earlier recommendations: find out what was off." : ""}`;
   return `${lines.length ? `Session so far:\n${lines.join("\n")}` : "The session has just started; no questions asked yet."}\n\nToday is ${today}.\n\n${task}`;
 }
@@ -215,6 +227,7 @@ function clean<T>(stage: AiRequest["stage"], data: unknown): T {
   }
   const p = data as AiPicks;
   return {
+    taste: text(p.taste, 700),
     intro: text(p.intro, 400),
     picks: (p.picks ?? [])
       .filter((x) => text(x.title, 200) || text(x.original_title, 200))

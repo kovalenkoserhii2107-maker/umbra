@@ -165,8 +165,16 @@ test("Claude asks its own questions, picks titles and refines in a new round", a
         return route.fulfill({
           headers: cors,
           json: {
+            taste: "Тебе нравятся детективы с иронией.",
             intro: "Искал лёгкий детектив на вечер.",
             picks: [
+              ...Array.from({ length: 6 }, (_, i) => ({
+                title: `Фильм ${i + 1}`,
+                original_title: `Film ${i + 1}`,
+                year: 2020,
+                type: "movie",
+                reason: `Причина ${i + 1}.`,
+              })),
               {
                 title: "Достать ножи",
                 original_title: "Knives Out",
@@ -202,6 +210,26 @@ test("Claude asks its own questions, picks titles and refines in a new round", a
   });
   await context.route("https://api.themoviedb.org/**", (route) => {
     const url = new URL(route.request().url());
+    const film = url.searchParams.get("query")?.match(/^Film (\d+)$/);
+    if (url.pathname === "/3/search/movie" && film)
+      return route.fulfill({
+        json: {
+          page: 1,
+          total_pages: 1,
+          total_results: 1,
+          results: [
+            {
+              id: 1000 + Number(film[1]),
+              title: `Фильм ${film[1]}`,
+              release_date: "2020-05-01",
+              poster_path: null,
+              vote_average: 7,
+              vote_count: 900,
+              overview: "",
+            },
+          ],
+        },
+      });
     if (
       url.pathname === "/3/search/movie" &&
       url.searchParams.get("query") === "Knives Out"
@@ -256,8 +284,9 @@ test("Claude asks its own questions, picks titles and refines in a new round", a
   await page.getByRole("button", { name: /Неважно/ }).click();
 
   const card = page.locator("article", { hasText: "Достать ножи" });
-  await expect(card).toBeVisible();
-  await expect(card).toContainText("Детектив с юмором — как ты любишь.");
+  await expect(page.locator("article", { hasText: "Фильм 1" })).toContainText(
+    "Причина 1.",
+  );
   await expect(page.getByText("Искал лёгкий детектив на вечер.")).toBeVisible();
   await expect(page.getByText("Пропавший фильм")).toHaveCount(0);
   await page.screenshot({
@@ -276,12 +305,58 @@ test("Claude asks its own questions, picks titles and refines in a new round", a
     { question: "Вопрос Claude 4", answer: "Неважно" },
   ]);
 
-  await card.getByRole("button", { name: "Уже смотрел" }).click();
+  await expect(
+    page.getByText("Тебе нравятся детективы с иронией."),
+  ).toBeVisible();
+  // Six cards; Knives Out (the seventh pick) waits in reserve.
+  await expect(page.locator("article")).toHaveCount(6);
+  await expect(card).toHaveCount(0);
+
+  // "Seen" adds the film to the collection, offers a rating and brings a new pick.
+  const first = page.locator("article", { hasText: "Фильм 1" });
+  await first.getByRole("button", { name: "✓ Смотрел" }).click();
+  await expect(card).toBeVisible();
+  const rate = page.getByRole("group", { name: "Оценка «Фильм 1»" });
+  await rate.getByRole("button", { name: "8", exact: true }).click();
+  await expect(page.getByText("В коллекции с оценкой 8/10")).toBeVisible();
+
+  // A swipe to the left means "not that".
+  const second = page.locator("article", { hasText: "Фильм 2" });
+  const box = (await second.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  for (let i = 1; i <= 10; i++)
+    await page.mouse.move(
+      box.x + box.width / 2 - i * 20,
+      box.y + box.height / 2,
+    );
+  await page.mouse.up();
+  await expect(page.getByText("✕ Не то")).toBeVisible();
+  await expect(page.locator("article")).toHaveCount(5);
+  await page.screenshot({
+    path: ".ui-evidence/tonight-ai-seen.png",
+    fullPage: true,
+  });
+
   await page.getByRole("button", { name: /Уточнить ещё/ }).click();
   await expect(page.getByText("раунд 2 · вопрос 1 из 4")).toBeVisible();
-  expect(asked.at(-1)!.body.steps.at(-1)).toEqual({
-    shown: [
-      { title: "Достать ножи", year: 2019, type: "movie", verdict: "seen" },
-    ],
+  const shown = (
+    asked.at(-1)!.body.steps.at(-1) as {
+      shown: Array<{ title: string; verdict: string; rating: number | null }>;
+    }
+  ).shown;
+  expect(shown.find((x) => x.title === "Фильм 1")).toMatchObject({
+    verdict: "seen",
+    rating: 8,
   });
+  expect(shown.find((x) => x.title === "Фильм 2")).toMatchObject({
+    verdict: "disliked",
+  });
+  expect(shown.find((x) => x.title === "Достать ножи")).toMatchObject({
+    verdict: null,
+  });
+
+  // The film marked as seen is in the collection now.
+  await page.goto("#/library");
+  await expect(page.getByText("Фильм 1").first()).toBeVisible();
 });

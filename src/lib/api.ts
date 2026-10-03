@@ -236,6 +236,7 @@ export type AiStep =
         year: number | null;
         type: "movie" | "tv";
         verdict: "seen" | "liked" | "disliked" | null;
+        rating: number | null;
       }>;
     };
 
@@ -246,6 +247,8 @@ export type AiQuestion = {
 };
 
 export type AiPicks = {
+  /** What Claude understood about the user's taste. */
+  taste: string;
   intro: string;
   picks: Array<{
     title: string;

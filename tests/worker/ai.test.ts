@@ -185,6 +185,7 @@ describe("AI picker", () => {
   it("picks titles at high effort and cleans the answer", async () => {
     const { send, calls } = setup(() =>
       claudeReply({
+        taste: "Любишь детективы с юмором.",
         intro: "Искал напряжённое, но не мрачное.",
         picks: [
           {
@@ -213,13 +214,17 @@ describe("AI picker", () => {
       await token(),
     );
     expect(response.status).toBe(200);
-    const data = (await response.json()) as { picks: unknown[] };
+    const data = (await response.json()) as {
+      taste: string;
+      picks: unknown[];
+    };
     expect(data.picks).toHaveLength(1);
+    expect(data.taste).toBe("Любишь детективы с юмором.");
     const sent = JSON.parse(
       String(calls.find((c) => c.url.includes("anthropic"))!.init?.body),
     );
     expect(sent.output_config.effort).toBe("high");
-    expect(sent.messages[0].content).toContain("recommend 8 titles");
+    expect(sent.messages[0].content).toContain("recommend 12 titles");
   });
 
   it("needs a valid sign-in", async () => {
@@ -272,7 +277,13 @@ describe("AI picker", () => {
         { question: "Q2", answer: "A2" },
         {
           shown: [
-            { title: "Дюна", year: 2021, type: "movie", verdict: "seen" },
+            {
+              title: "Дюна",
+              year: 2021,
+              type: "movie",
+              verdict: "seen",
+              rating: 8,
+            },
             { title: "", year: 1 },
           ],
         },
@@ -283,7 +294,9 @@ describe("AI picker", () => {
     expect(req.steps).toHaveLength(4);
     expect(roundAnswers(req.steps)).toBe(1);
     const prompt = sessionPrompt(req, "2026-10-03");
-    expect(prompt).toContain("Дюна (2021), film — user: already seen it");
+    expect(prompt).toContain(
+      "Дюна (2021), film — user: already seen it, rated 8/10",
+    );
     expect(prompt).toContain("Round 2, Q1: Q3");
     expect(prompt).toContain("Ask question 2 of 4 in round 2");
     expect(() => parseAiRequest({ stage: "ask", steps: [] })).toThrow();

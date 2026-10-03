@@ -7,10 +7,8 @@ import { useAuth } from "../lib/auth";
 import { useAppState } from "../state";
 import { useLibraryMeta } from "../lib/meta";
 import { PLATFORMS } from "../lib/providers";
-import { posterUrl, titleOf } from "../lib/tmdb";
 import { episodeLabel } from "../lib/tracking";
 import { readStorage, writeStorage } from "../lib/storage";
-import { yearOf } from "../lib/format";
 import { correctPosterUrl } from "../lib/tmdb";
 import {
   COMPANIES,
@@ -22,6 +20,7 @@ import {
   keyOf,
   loadCandidates,
   rankTonight,
+  watchlistEntry,
   withServices,
   type Answers,
   type Pick,
@@ -335,22 +334,8 @@ function QuickPicker() {
 
 const MODE = "umbra.tonightMode";
 
-/** Saves a pick to "want to watch". */
-export function watchlistEntry(p: Pick) {
-  return {
-    id: p.item.id,
-    type: p.type,
-    title: titleOf(p.item),
-    poster: posterUrl(p.item.poster_path, "w185"),
-    year: yearOf(p.item.release_date || p.item.first_air_date),
-    status: "watchlist" as const,
-    rating: null,
-    note: "",
-  };
-}
-
 export function TonightPage() {
-  const { items, settings, get, upsert } = useAppState();
+  const { items, settings, get, upsert, update, remove } = useAppState();
   const { meta } = useLibraryMeta(items);
   const auth = useAuth();
   const services = PLATFORMS.filter((p) => settings.subscribed.includes(p.id));
@@ -426,8 +411,7 @@ export function TonightPage() {
           meta={meta}
           region={settings.region}
           services={services}
-          isSaved={(p) => Boolean(get(p.type, p.item.id))}
-          onSave={(p) => upsert(watchlistEntry(p))}
+          library={{ get, upsert, update, remove }}
         />
       ) : ai === null && mode === "ai" && signedIn ? (
         <p role="status" className="mt-6 text-sm text-mute">

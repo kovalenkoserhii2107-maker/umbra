@@ -114,6 +114,10 @@ test("film search finds titles as letters are typed", async ({
   await tmdb(context, queries);
   await register(page);
   await page.goto("#/search");
+  // A slow phone: the address catches up after the next letters are typed,
+  // and those letters must stay.
+  const cdp = await context.newCDPSession(page);
+  await cdp.send("Emulation.setCPUThrottlingRate", { rate: 6 });
 
   const box = page.getByRole("textbox", {
     name: "Поиск фильмов, сериалов и людей",

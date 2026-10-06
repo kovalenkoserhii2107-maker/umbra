@@ -309,6 +309,7 @@ export function HomePage() {
   const trending = useAsync(() => loadFeedPage("trending", 1), []);
   const airing = useAsync(() => loadFeedPage("airing", 1), []);
   const upcoming = useAsync(() => loadFeedPage("upcoming", 1), []);
+  const upcomingTv = useAsync(() => loadFeedPage("upcoming-tv", 1), []);
   const imdbMovies = useAsync(() => loadFeedPage("imdb250-movie", 1), []);
   const imdbTv = useAsync(() => loadFeedPage("imdb250-tv", 1), []);
   const recs = useAsync(
@@ -406,6 +407,12 @@ export function HomePage() {
         items={upcoming.data?.results ?? []}
         type="movie"
         to="/feed/upcoming"
+      />
+      <Row
+        title={preview("upcoming-tv").title}
+        items={upcomingTv.data?.results ?? []}
+        type="tv"
+        to="/feed/upcoming-tv"
       />
       <Row title={preview("watchlist").title} items={watchlist} />
       <Row

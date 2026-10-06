@@ -31,6 +31,10 @@ export type TmdbItem = {
   genre_ids?: number[];
   popularity?: number;
   original_language?: string;
+  /** Set by the "coming soon" feeds: the premiere date to show. */
+  upcoming_date?: string;
+  /** For a returning series: the season that starts on that date. */
+  upcoming_season?: number;
 };
 
 export type TmdbPage<T> = {
@@ -427,14 +431,17 @@ export const tmdb = {
     request<TmdbPage<TmdbItem>>("/movie/upcoming", { page }).then((data) =>
       asPage(data, "movie"),
     ),
-  upcomingWindow: (page: number, from: string, to: string) =>
-    request<TmdbPage<TmdbItem>>("/discover/movie", {
-      page,
-      sort_by: "popularity.desc",
-      "vote_count.gte": 40,
-      "primary_release_date.gte": from,
-      "primary_release_date.lte": to,
-    }).then((data) => asPage(data, "movie")),
+  /** Discover as it is: no catalog reordering, answers kept for an hour. */
+  discoverRaw: (
+    type: MediaType,
+    params: Record<string, string | number | undefined>,
+  ) =>
+    request<TmdbPage<TmdbItem>>(`/discover/${type}`, params, 3600_000).then(
+      (data) => ({
+        ...data,
+        results: data.results.map((item) => ({ ...item, media_type: type })),
+      }),
+    ),
   airingToday: (page = 1) =>
     request<TmdbPage<TmdbItem>>("/tv/airing_today", { page }),
   popularTv: (page = 1) => request<TmdbPage<TmdbItem>>("/tv/popular", { page }),

@@ -260,8 +260,11 @@ export async function aiTonight(
   const client = new Anthropic({
     apiKey,
     fetch: deps.fetch,
-    maxRetries: 1,
-    timeout: 120_000,
+    // One attempt that ends before the app stops waiting (150 s): a retry
+    // after a slow first try would bill an answer nobody sees. The app has
+    // "Повторить" for a quick second go.
+    maxRetries: 0,
+    timeout: 135_000,
   });
   const stage = req.stage;
   let message: Anthropic.Beta.Messages.BetaMessage;

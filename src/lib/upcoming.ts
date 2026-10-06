@@ -1,5 +1,6 @@
 import { dayMonthLabel } from "./format";
 import { localIso } from "./releases";
+import { readStorage, writeStorage } from "./storage";
 import { tmdb, type TmdbItem, type TmdbPage } from "./tmdb";
 
 /**
@@ -18,8 +19,57 @@ const real = (x: TmdbItem) => Boolean(x.poster_path);
 const byPopularity = (a: TmdbItem, b: TmdbItem) =>
   (b.popularity ?? 0) - (a.popularity ?? 0);
 
+/**
+ * The first page of each list is kept on the device for a few hours: the
+ * series one takes some twenty requests, and the feed opens it every time.
+ */
+const KEEP = 6 * 3600_000;
+
+const slim = ({ overview: _o, backdrop_path: _b, ...x }: TmdbItem) => x;
+
+async function kept(
+  name: string,
+  page: number,
+  today: Date,
+  load: () => Promise<TmdbPage<TmdbItem>>,
+) {
+  if (page !== 1) return load();
+  const key = `umbra.upcoming.${name}`;
+  const day = localIso(today);
+  try {
+    const hit = JSON.parse(readStorage(key) || "null") as {
+      at: number;
+      day: string;
+      data: TmdbPage<TmdbItem>;
+    } | null;
+    if (hit && hit.day === day && Date.now() - hit.at < KEEP) return hit.data;
+  } catch {
+    /* a broken entry is simply reloaded */
+  }
+  const data = await load();
+  writeStorage(
+    key,
+    JSON.stringify({
+      at: Date.now(),
+      day,
+      data: { ...data, results: data.results.map(slim) },
+    }),
+  );
+  return data;
+}
+
 /** Films premiering from today to a year ahead, most anticipated first. */
-export async function upcomingMovies(
+export const upcomingMovies = (page = 1, today = new Date()) =>
+  kept("movie", page, today, () => loadMovies(page, today));
+
+/**
+ * Series coming soon: brand-new shows, and new seasons of shows already on
+ * the air whose first episode has a date (the details say which season).
+ */
+export const upcomingShows = (page = 1, today = new Date()) =>
+  kept("tv", page, today, () => loadShows(page, today));
+
+async function loadMovies(
   page = 1,
   today = new Date(),
 ): Promise<TmdbPage<TmdbItem>> {
@@ -38,11 +88,7 @@ export async function upcomingMovies(
   };
 }
 
-/**
- * Series coming soon: brand-new shows, and new seasons of shows already on
- * the air whose first episode has a date (the details say which season).
- */
-export async function upcomingShows(
+async function loadShows(
   page = 1,
   today = new Date(),
 ): Promise<TmdbPage<TmdbItem>> {

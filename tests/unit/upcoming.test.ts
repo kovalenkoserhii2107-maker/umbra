@@ -1,5 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+// Unit tests run in Node: a small in-memory localStorage.
+const store = new Map<string, string>();
+vi.stubGlobal("localStorage", {
+  getItem: (k: string) => store.get(k) ?? null,
+  setItem: (k: string, v: string) => void store.set(k, v),
+  removeItem: (k: string) => void store.delete(k),
+  clear: () => store.clear(),
+});
+
 const discoverRaw = vi.fn();
 const showAirDates = vi.fn();
 vi.mock("../../src/lib/tmdb", () => ({
@@ -24,6 +33,7 @@ const page = (results: unknown[]) => ({
 });
 
 beforeEach(() => {
+  localStorage.clear();
   discoverRaw.mockReset();
   showAirDates.mockReset();
 });
@@ -122,6 +132,35 @@ describe("coming soon", () => {
       [20, "2026-10-30", 5],
       [10, "2026-11-20", undefined],
     ]);
+  });
+
+  it("keeps the first page on the device for the day", async () => {
+    localStorage.clear();
+    discoverRaw.mockResolvedValue(
+      page([
+        {
+          id: 5,
+          title: "Kept",
+          release_date: "2026-11-01",
+          popularity: 9,
+          poster_path: "/k.jpg",
+          overview: "long text that is not kept",
+        },
+      ]),
+    );
+    const first = await upcomingMovies(1, TODAY);
+    const again = await upcomingMovies(1, TODAY);
+    expect(discoverRaw).toHaveBeenCalledTimes(1);
+    expect(again.results[0]).toMatchObject({
+      id: 5,
+      upcoming_date: "2026-11-01",
+    });
+    expect(again.results[0]).not.toHaveProperty("overview");
+    expect(first.results).toHaveLength(1);
+    // Another day, or another page, asks TMDB again.
+    await upcomingMovies(1, new Date(2026, 9, 7, 12));
+    await upcomingMovies(2, TODAY);
+    expect(discoverRaw).toHaveBeenCalledTimes(3);
   });
 
   it("labels premiere dates", () => {

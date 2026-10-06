@@ -252,6 +252,8 @@ export function SearchPage() {
   const input = useRef<HTMLInputElement>(null);
   const more = useRef<HTMLDivElement>(null);
   const generation = useRef(0);
+  /** The query this page last put in the address itself. */
+  const ownQuery = useRef<string | null>(null);
 
   const activeFilters = countFilters(filters);
   const filtered = activeFilters > 0;
@@ -396,6 +398,7 @@ export function SearchPage() {
   }
 
   function setParam(key: string, value: string) {
+    if (key === "q") ownQuery.current = value;
     setParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -407,8 +410,13 @@ export function SearchPage() {
     );
   }
 
-  // The URL can change from outside (back button, a recent search).
+  // The URL can change from outside (back button, a link). The address
+  // catching up with what this page wrote must not undo letters typed since.
   useEffect(() => {
+    if (q === ownQuery.current) {
+      ownQuery.current = null;
+      return;
+    }
     setText((t) => (t.trim() === q ? t : q));
   }, [q]);
 

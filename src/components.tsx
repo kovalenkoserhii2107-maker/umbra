@@ -526,7 +526,14 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {
   return { data, error, loading };
 }
 
-export function ErrorBox({ code }: { code: string }) {
+export function ErrorBox({
+  code,
+  onRetry,
+}: {
+  code: string;
+  /** Without it "Повторить" reloads the page. */
+  onRetry?: () => void;
+}) {
   if (code === "BAD_KEY" || code === "NO_KEY") {
     return (
       <div className="rounded-2xl border border-hairline bg-card p-6 text-sm text-mute">
@@ -534,10 +541,24 @@ export function ErrorBox({ code }: { code: string }) {
       </div>
     );
   }
+  const busy = /^HTTP_(429|5\d\d)$/.test(code);
   return (
-    <div className="rounded-2xl border border-hairline bg-card p-6 text-sm text-mute">
-      Не удалось загрузить данные (
-      {code === "NETWORK" ? "проверь подключение к интернету" : code}).
+    <div
+      role="alert"
+      className="rounded-2xl border border-hairline bg-card p-6 text-sm text-mute"
+    >
+      {code === "NETWORK" || !navigator.onLine
+        ? "Нет связи. Проверь интернет — твоя коллекция доступна и без сети."
+        : busy
+          ? "Каталог фильмов (TMDB) сейчас не отвечает. Попробуй через минуту."
+          : `Не удалось загрузить данные (${code}).`}
+      <button
+        type="button"
+        onClick={onRetry ?? (() => window.location.reload())}
+        className="mt-3 block rounded-full border border-hairline px-4 py-1.5 text-ink"
+      >
+        Повторить
+      </button>
     </div>
   );
 }

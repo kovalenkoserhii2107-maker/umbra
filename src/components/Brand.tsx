@@ -1,7 +1,7 @@
 export function BrandMark({ size = 28 }: { size?: number }) {
   return (
     <img
-      src={`${import.meta.env.BASE_URL}brand-mark.png`}
+      src={`${import.meta.env.BASE_URL}brand-mark.webp`}
       width={size}
       height={size}
       alt=""

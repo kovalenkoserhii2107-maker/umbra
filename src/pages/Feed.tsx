@@ -78,17 +78,7 @@ export function FeedPage() {
 
   if (!feed) return <Empty text="Раздел не найден." />;
   if (error && !rows.length)
-    return (
-      <div>
-        <ErrorBox code={error} />
-        <button
-          onClick={() => retry((n) => n + 1)}
-          className="mt-3 text-accent"
-        >
-          Повторить
-        </button>
-      </div>
-    );
+    return <ErrorBox code={error} onRetry={() => retry((n) => n + 1)} />;
 
   return (
     <div className="rise">

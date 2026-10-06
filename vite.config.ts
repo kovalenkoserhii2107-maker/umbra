@@ -28,7 +28,7 @@ export default defineConfig({
         "apple-touch-icon.png",
         "icon-192.png",
         "icon-512.png",
-        "brand-mark.png",
+        "brand-mark.webp",
       ],
       manifest: {
         name: "Umbra",
@@ -67,7 +67,7 @@ export default defineConfig({
         clientsClaim: true,
         navigateFallback: "index.html",
         navigateFallbackAllowlist: [/^\/umbra(?:\/|$)/],
-        globPatterns: ["**/*.{js,css,svg,png,jpg,woff2,ico,html,json}"],
+        globPatterns: ["**/*.{js,css,svg,png,jpg,webp,woff2,ico,html,json}"],
         // Link-preview cards are for messengers, not for the app offline.
         globIgnores: ["**/og-*.png"],
         runtimeCaching: [

@@ -9,6 +9,7 @@ import {
   type TmdbItem,
 } from "./lib/tmdb";
 import { yearOf } from "./lib/format";
+import { premiereLabel } from "./lib/upcoming";
 import {
   cachedRating,
   ensureImdbRating,
@@ -393,10 +394,17 @@ export function PosterCard({
       </div>
       <div className="mt-2 space-y-0.5">
         <p className="line-clamp-2 text-sm leading-snug">{titleOf(item)}</p>
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
-          {media === "tv" ? "сериал" : "фильм"}
-          {year ? ` · ${year}` : ""}
-        </p>
+        {item.upcoming_date ? (
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-accent">
+            {item.upcoming_season ? `сезон ${item.upcoming_season} · ` : ""}
+            {premiereLabel(item.upcoming_date)}
+          </p>
+        ) : (
+          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
+            {media === "tv" ? "сериал" : "фильм"}
+            {year ? ` · ${year}` : ""}
+          </p>
+        )}
       </div>
     </Link>
   );

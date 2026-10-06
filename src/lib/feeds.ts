@@ -1,10 +1,12 @@
 import { tmdb, type MediaType, type TmdbItem, type TmdbPage } from "./tmdb";
+import { upcomingMovies, upcomingShows } from "./upcoming";
 
 export type FeedId =
   | "theaters"
   | "trending"
   | "airing"
   | "upcoming"
+  | "upcoming-tv"
   | "watchlist"
   | "imdb250-movie"
   | "imdb250-tv"
@@ -21,7 +23,13 @@ export const FEEDS: FeedMeta[] = [
   { id: "theaters", title: "Сейчас в кинотеатрах", type: "movie", more: true },
   { id: "trending", title: "Популярные новинки", more: true },
   { id: "airing", title: "Сериалы в эфире", type: "tv", more: true },
-  { id: "upcoming", title: "Скоро выйдут", type: "movie", more: true },
+  { id: "upcoming", title: "Скоро выйдут фильмы", type: "movie", more: true },
+  {
+    id: "upcoming-tv",
+    title: "Скоро выйдут сериалы",
+    type: "tv",
+    more: true,
+  },
   { id: "watchlist", title: "Хочу посмотреть", more: false },
   {
     id: "imdb250-movie",
@@ -37,16 +45,6 @@ export function feedById(id: string) {
   return FEEDS.find((f) => f.id === id);
 }
 
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function daysAhead(n: number) {
-  const d = new Date();
-  d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
-}
-
 export async function loadFeedPage(
   id: FeedId,
   page: number,
@@ -55,8 +53,8 @@ export async function loadFeedPage(
   if (id === "theaters") return tmdb.nowPlaying(page);
   if (id === "trending") return tmdb.fresh(page);
   if (id === "airing") return tmdb.onAir(page);
-  if (id === "upcoming")
-    return tmdb.upcomingWindow(page, todayIso(), daysAhead(150));
+  if (id === "upcoming") return upcomingMovies(page);
+  if (id === "upcoming-tv") return upcomingShows(page);
   if (id === "imdb250-movie") return tmdb.imdbChart("movie", page);
   if (id === "imdb250-tv") return tmdb.imdbChart("tv", page);
   if (id === "recs") {

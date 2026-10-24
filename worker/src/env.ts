@@ -1,3 +1,5 @@
+import type { PairingStore } from "./tvLogin";
+
 /** Bindings from wrangler.toml [vars] and the secrets set by the deploy workflow. */
 export type Env = {
   ALLOWED_ORIGINS?: string;
@@ -21,6 +23,20 @@ export type Env = {
   AI_GLOBAL_LIMIT?: string;
   /** Comma-separated emails allowed to use the AI; empty means everyone signed in. */
   AI_USERS?: string;
+  /** Service account JSON (a repository secret): signs TV sign-in tokens. */
+  FIREBASE_SERVICE_ACCOUNT?: string;
+  /** Durable Object namespace for TV sign-in codes (wrangler.toml). */
+  TV_PAIRING?: {
+    idFromName(name: string): unknown;
+    get(id: unknown): {
+      fetch(url: string, init: RequestInit): Promise<Response>;
+    };
+  };
+  /**
+   * Local development only (worker/.dev.vars): accept the Firebase Auth
+   * emulator's unsigned tokens. Never set in wrangler.toml.
+   */
+  AUTH_EMULATOR?: string;
 };
 
 /** The subset of the Cache API the worker uses; tests pass an in-memory one. */
@@ -31,6 +47,8 @@ export type CacheLike = {
 
 export type Deps = {
   env: Env;
+  /** TV sign-in codes; missing when the namespace is not bound. */
+  pairing?: PairingStore;
   fetch: typeof fetch;
   cache: CacheLike | null;
   now: () => number;

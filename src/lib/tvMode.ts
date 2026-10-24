@@ -71,6 +71,8 @@ type Bridge = {
   launchApp(slug: string, query: string): void;
   voiceAvailable(): boolean;
   startVoice(language: string): void;
+  /** Since the sign-in update of the app; older versions lack it. */
+  googleSignIn?(): void;
   stopVoice(): void;
 };
 
@@ -114,12 +116,36 @@ export function launchTvApp(app: TvApp, title: string) {
   tvBridge()?.launchApp(app, title);
 }
 
-/** Events from the app: voice input. */
-export type TvEvent = {
-  type: "voice";
-  state: "listening" | "partial" | "result" | "error" | "end";
-  text: string;
-};
+/** Events from the app: voice input and Google sign-in. */
+export type TvEvent =
+  | {
+      type: "voice";
+      state: "listening" | "partial" | "result" | "error" | "end";
+      text: string;
+    }
+  | {
+      type: "google";
+      /** token: `text` is a Google ID token; error: cancelled, no_account, failed. */
+      state: "token" | "error";
+      text: string;
+    };
+
+/** Sign in with the Google account of the TV (the app's account picker). */
+export function canGoogleOnTv() {
+  return typeof tvBridge()?.googleSignIn === "function";
+}
+
+export function startGoogleOnTv() {
+  tvBridge()?.googleSignIn?.();
+}
+
+/** "BRAVIA 4K VH21" from the WebView's user agent, for the phone to show. */
+export function tvDeviceName(userAgent: string) {
+  const model = userAgent.match(
+    /Android [\d.]+; ([^;)]+?)(?: Build\/[^;)]*)?[;)]/,
+  )?.[1];
+  return model && model !== "K" ? model.trim() : "Телевизор";
+}
 
 export function onTvEvent(listener: (event: TvEvent) => void) {
   const handler = (e: Event) => listener((e as CustomEvent<TvEvent>).detail);

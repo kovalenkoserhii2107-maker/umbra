@@ -13,8 +13,19 @@
 | `openExternal(url)` | открыть ссылку в приложении телевизора |
 | `launchApp(slug, query)` | открыть стриминг (с поиском, если умеет) |
 | `voiceAvailable()`, `startVoice(lang)`, `stopVoice()` | голосовой ввод через SpeechRecognizer |
+| `googleSignIn()` | вход через Google-аккаунт телевизора (Credential Manager) |
 
-Результаты голоса приходят событием `window.addEventListener("umbratv", e => e.detail)`: `{type: "voice", state: "listening" | "partial" | "result" | "error" | "end", text}`.
+Ответы приходят событием `window.addEventListener("umbratv", e => e.detail)`:
+
+- голос: `{type: "voice", state: "listening" | "partial" | "result" | "error" | "end", text}`;
+- Google: `{type: "google", state: "token", text: <ID-токен Google>}` или `{type: "google", state: "error", text: "cancelled" | "no_account" | "failed"}`.
+
+## Вход на телевизоре
+
+Два способа, оба на экране входа сайта в TV-режиме (`src/components/TvLogin.tsx`):
+
+1. **Google-аккаунт телевизора.** Системный выбор аккаунта → ID-токен Google для веб-клиента проекта Firebase (`GOOGLE_WEB_CLIENT_ID` в `app/build.gradle.kts`) → сайт входит через `signInWithCredential`. Работает только для APK, чей SHA-1 добавлен в Firebase Console → Project settings → приложение Android `app.umbra.tv` (релизный ключ и debug-ключ разработчика).
+2. **QR с телефона.** Телевизор получает у воркера код (`POST /tv/code`), показывает QR со ссылкой `#/tv-link?code=…`; на телефоне, где выполнен вход, — «Подтвердить» или «Отказать» (`POST /tv/confirm`); телевизор забирает одноразовый custom token (`POST /tv/token`). Коды живут 10 минут в Durable Object `TvPairing`, токен подписывается секретом воркера `FIREBASE_SERVICE_ACCOUNT` (`worker/src/tvLogin.ts`, `worker/src/customToken.ts`).
 
 ## Сборка
 
@@ -28,7 +39,7 @@ cd android-tv
 
 Адрес сайта можно переопределить: `./gradlew assembleDebug -PsiteUrl=http://192.168.1.10:5187/umbra/?tv=1`.
 
-Release подписывается ключом из переменных окружения `UMBRA_TV_KEYSTORE` (путь к .jks), `UMBRA_TV_KEYSTORE_PASSWORD`, `UMBRA_TV_KEY_ALIAS`, `UMBRA_TV_KEY_PASSWORD`; без них — debug-ключом. Ключ должен быть всегда один и тот же, иначе обновление не встанет поверх установленной версии.
+Release подписывается постоянным ключом (сейчас он хранится у владельца в `~/Developer/umbra-tv-signing/`) из переменных окружения `UMBRA_TV_KEYSTORE` (путь к .jks), `UMBRA_TV_KEYSTORE_PASSWORD`, `UMBRA_TV_KEY_ALIAS`, `UMBRA_TV_KEY_PASSWORD`; без них — debug-ключом. Ключ должен быть всегда один и тот же, иначе обновление не встанет поверх установленной версии.
 
 Баннер и иконки генерируются из `public/brand-mark.webp` (macOS): `swift android-tv/tools/make-art.swift` из корня репозитория.
 

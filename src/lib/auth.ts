@@ -1,10 +1,13 @@
 import { useSyncExternalStore } from "react";
 import {
+  GoogleAuthProvider,
   createUserWithEmailAndPassword,
   getRedirectResult,
   onAuthStateChanged,
   sendPasswordResetEmail,
   sendEmailVerification,
+  signInWithCredential,
+  signInWithCustomToken,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
@@ -111,6 +114,17 @@ export function cloudUid() {
 }
 export async function signInWithGoogle() {
   await signInWithPopup(firebaseAuth, googleProvider);
+}
+/** TV app: a Google ID token from the account chosen on the TV. */
+export async function signInWithGoogleToken(token: string) {
+  await signInWithCredential(
+    firebaseAuth,
+    GoogleAuthProvider.credential(token),
+  );
+}
+/** TV app: the one-time token the phone approved (worker /tv/token). */
+export async function signInWithTvToken(token: string) {
+  await signInWithCustomToken(firebaseAuth, token);
 }
 export async function signInWithEmail(email: string, password: string) {
   await signInWithEmailAndPassword(firebaseAuth, email.trim(), password);

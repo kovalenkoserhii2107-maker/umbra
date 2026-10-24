@@ -51,6 +51,13 @@ class TvBridge(private val activity: MainActivity) {
         main.post { activity.startVoice(language) }
     }
 
+    /** Вход через Google-аккаунт телевизора; ответ — событие `umbratv` (type: "google"). */
+    @JavascriptInterface
+    fun googleSignIn() {
+        if (!activity.isTrustedPage) return
+        main.post { activity.googleSignIn() }
+    }
+
     @JavascriptInterface
     fun stopVoice() {
         main.post { activity.stopVoice() }

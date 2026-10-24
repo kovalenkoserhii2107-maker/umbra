@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { authError, signOutAccount, useAuth, verifyEmail } from "../lib/auth";
 import { PLATFORMS, REGIONS } from "../lib/providers";
 import { useAppState } from "../state";
@@ -235,6 +236,19 @@ export function SettingsPage() {
           </div>
         </Card>
       ) : null}
+
+      <Card title="Телевизор">
+        <p className="mt-2 text-sm text-mute">
+          Umbra для Android TV: войди на телевизоре через этот аккаунт — по
+          QR-коду или коду с экрана.
+        </p>
+        <Link
+          to="/tv-link"
+          className="mt-4 inline-block rounded-full border border-hairline px-4 py-2 text-sm"
+        >
+          Войти на телевизоре
+        </Link>
+      </Card>
 
       <Card title="Приложение">
         <p className="mt-2 text-sm text-mute">

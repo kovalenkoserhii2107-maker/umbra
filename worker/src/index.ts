@@ -24,6 +24,16 @@ import {
   steamProfile,
 } from "./steamUser";
 import { topGames } from "./twitch";
+import { customToken, parseServiceAccount } from "./customToken";
+import {
+  answerCode,
+  createCode,
+  describeCode,
+  durableStore,
+  takeToken,
+} from "./tvLogin";
+
+export { TvPairing } from "./tvLogin";
 
 function origins(env: Env) {
   return (env.ALLOWED_ORIGINS || "")
@@ -46,6 +56,43 @@ function health(env: Env) {
       ai: Boolean(env.ANTHROPIC_API_KEY),
     },
   };
+}
+
+function signedIn(request: Request, deps: Deps) {
+  return verifyIdToken(
+    deps,
+    request.headers.get("Authorization"),
+    deps.env.FIREBASE_PROJECT_ID || "umbra-18ba8",
+  );
+}
+
+function tvSignInReady(deps: Deps) {
+  const { env } = deps;
+  if (!deps.pairing) return false;
+  if (env.AUTH_EMULATOR === "true") return true;
+  try {
+    parseServiceAccount(env.FIREBASE_SERVICE_ACCOUNT);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** The TV's sign-in for `uid`: a custom token signed with the service account. */
+async function mintToken(deps: Deps, uid: string) {
+  const claims = { tv: true };
+  if (deps.env.AUTH_EMULATOR === "true" && !deps.env.FIREBASE_SERVICE_ACCOUNT) {
+    // The local Auth emulator takes unsigned custom tokens.
+    const part = (v: unknown) =>
+      btoa(JSON.stringify(v))
+        .replace(/=+$/, "")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_");
+    const iat = Math.floor(deps.now() / 1000);
+    return `${part({ alg: "none", typ: "JWT" })}.${part({ aud: "https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit", iat, exp: iat + 3600, uid, claims })}.`;
+  }
+  const account = parseServiceAccount(deps.env.FIREBASE_SERVICE_ACCOUNT);
+  return customToken(account, uid, deps.now(), claims);
 }
 
 async function route(
@@ -227,6 +274,36 @@ async function route(
     );
   }
 
+  // Signing in on a TV with the phone (tvLogin.ts). Without the key that
+  // signs the TV's token, no codes are given out: an approval would be lost.
+  if (path.startsWith("/tv/") && !tvSignInReady(deps))
+    throw new ApiError(503, "tv_not_configured", "TV sign-in is not set up");
+  if (path === "/tv/code" && request.method === "POST")
+    return json(
+      await createCode(
+        deps,
+        await request.json().catch(() => null),
+        request.headers.get("CF-Connecting-IP") || "local",
+      ),
+    );
+  const tvCode = path.match(/^\/tv\/code\/([A-Za-z0-9-]{1,12})$/);
+  if (tvCode && request.method === "GET") {
+    await signedIn(request, deps);
+    return json(await describeCode(deps, tvCode[1]));
+  }
+  if (path === "/tv/confirm" && request.method === "POST") {
+    const user = await signedIn(request, deps);
+    return json(
+      await answerCode(deps, await request.json().catch(() => null), user.uid),
+    );
+  }
+  if (path === "/tv/token" && request.method === "POST")
+    return json(
+      await takeToken(deps, await request.json().catch(() => null), (uid) =>
+        mintToken(deps, uid),
+      ),
+    );
+
   if (path === "/ai/tonight" && request.method === "POST") {
     if (!deps.env.ANTHROPIC_API_KEY)
       throw new ApiError(503, "ai_not_configured", "No ANTHROPIC_API_KEY");
@@ -311,6 +388,7 @@ export default {
     ).caches?.default;
     return handle(request, {
       env,
+      pairing: env.TV_PAIRING ? durableStore(env.TV_PAIRING) : undefined,
       fetch: (input, init) => fetch(input, init),
       cache: cache ?? null,
       now: () => Date.now(),

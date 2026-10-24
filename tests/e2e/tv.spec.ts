@@ -5,6 +5,8 @@ test.use({ viewport: { width: 960, height: 540 } });
 
 async function register(page: Page) {
   await page.goto("?tv=1#/login");
+  // On TV the email form opens from the sign-in screen (Google and QR first).
+  await page.getByRole("button", { name: "Войти по email и паролю" }).click();
   await page
     .getByRole("button", { name: "Нет аккаунта — зарегистрироваться" })
     .click();

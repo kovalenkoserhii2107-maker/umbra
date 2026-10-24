@@ -34,6 +34,8 @@ import { useAuth } from "../lib/auth";
 import { loadFriendsOn, useFriendList } from "../lib/friends";
 import { Avatar, byInterest, sharedStatus } from "../components/FriendsIndex";
 import { Seasons } from "../components/Seasons";
+import { TvTitleActions } from "../components/TvActions";
+import { isTv } from "../lib/tvMode";
 import {
   backdropUrl,
   kindOf,
@@ -320,7 +322,7 @@ export function TitlePage() {
             <div className="h-full bg-canvas-soft" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-card via-card/50 to-transparent" />
-          <div className="absolute right-3 top-3">
+          <div className="absolute right-3 top-3 tv:hidden">
             <ShareButton
               title={title}
               path={`/title/${media}/${item.id}`}
@@ -394,6 +396,13 @@ export function TitlePage() {
               ))}
             </div>
           ) : null}
+          {isTv ? (
+            <TvTitleActions
+              title={original || title}
+              offers={region}
+              videos={sortedVideos(item.videos?.results)}
+            />
+          ) : null}
         </div>
       </header>
 
@@ -456,7 +465,7 @@ export function TitlePage() {
       <Franchise item={item} currentId={item.id} />
       <PosterRow title="Рекомендации" items={recommendations} media={media} />
       <PosterRow title="Похожее" items={similar} media={media} />
-      <LinksRow item={item} media={media} />
+      {isTv ? null : <LinksRow item={item} media={media} />}
     </article>
   );
 }

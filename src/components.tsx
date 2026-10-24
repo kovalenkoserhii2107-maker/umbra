@@ -22,6 +22,8 @@ import { InstallPrompt } from "./components/InstallPrompt";
 import { BrandLockup } from "./components/Brand";
 import { AccountMenu } from "./components/AccountMenu";
 import { FriendBadge, FriendsIndexProvider } from "./components/FriendsIndex";
+import { useTvScreenFocus } from "./components/TvFocus";
+import { isTv } from "./lib/tvMode";
 
 // Loaded with the games code, only inside the games section.
 const SteamAutoSync = lazy(() =>
@@ -39,6 +41,7 @@ export function Layout({
 }) {
   const location = useLocation();
   const scrollY = useRef(new Map<string, number>());
+  useTvScreenFocus(`${location.key} ${location.pathname}`);
   useEffect(() => {
     const saved = scrollY.current.get(location.key);
     window.scrollTo({ top: saved ?? 0, behavior: "auto" });
@@ -66,9 +69,9 @@ export function Layout({
         <SyncStatus />
         <FriendsIndexProvider>{children}</FriendsIndexProvider>
       </main>
-      <InstallPrompt />
+      {isTv ? null : <InstallPrompt />}
       <UpdatePrompt />
-      <nav className="fixed inset-x-0 bottom-0 z-30 md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 md:hidden tv:hidden">
         <div className="border-t border-hairline bg-[#0c0c0c]/95 backdrop-blur-md">
           <SectionTabs />
         </div>
@@ -210,7 +213,8 @@ function BackButton() {
   const navigate = useNavigate();
   const location = useLocation();
   const home = location.pathname === "/" || location.pathname === "/games";
-  if (home) return null;
+  // On TV the remote has its own Back.
+  if (home || isTv) return null;
   return (
     <button
       type="button"
@@ -242,6 +246,8 @@ function BackButton() {
 
 function ModeSwitch() {
   const { pathname } = useLocation();
+  // Games are not part of the TV app.
+  if (isTv) return <span className="ml-auto" />;
   const games = pathname.startsWith("/games");
   const item = (active: boolean) =>
     `flex h-8 items-center rounded-full px-3 font-mono text-[10px] uppercase tracking-[0.12em] ${active ? "bg-ink text-canvas" : "text-mute"}`;
@@ -260,20 +266,28 @@ function ModeSwitch() {
 function Header() {
   const { pathname } = useLocation();
   const games = pathname.startsWith("/games");
-  const links = games
+  const links = isTv
     ? [
-        { to: "/games", label: "Лента", end: true },
-        { to: "/games/search", label: "Поиск" },
-        { to: "/games/platforms", label: "Платформы" },
-        { to: "/games/library", label: "Коллекция" },
-      ]
-    : [
         { to: "/", label: "Лента", end: true },
         { to: "/search", label: "Поиск" },
-        { to: "/platforms", label: "Платформы" },
+        { to: "/tonight", label: "На вечер" },
         { to: "/library", label: "Коллекция" },
-        { to: "/guide", label: "Справочник" },
-      ];
+        { to: "/platforms", label: "Платформы" },
+      ]
+    : games
+      ? [
+          { to: "/games", label: "Лента", end: true },
+          { to: "/games/search", label: "Поиск" },
+          { to: "/games/platforms", label: "Платформы" },
+          { to: "/games/library", label: "Коллекция" },
+        ]
+      : [
+          { to: "/", label: "Лента", end: true },
+          { to: "/search", label: "Поиск" },
+          { to: "/platforms", label: "Платформы" },
+          { to: "/library", label: "Коллекция" },
+          { to: "/guide", label: "Справочник" },
+        ];
   return (
     <header
       className="sticky top-0 z-40 border-b border-hairline bg-canvas/85 backdrop-blur-md"
@@ -284,14 +298,14 @@ function Header() {
         <Link to="/" className="inline-flex shrink-0 items-center">
           <BrandLockup />
         </Link>
-        <nav className="hidden items-center gap-5 text-sm text-mute md:flex">
+        <nav className="hidden items-center gap-5 text-sm text-mute md:flex tv:flex tv:gap-1 tv:text-base">
           {links.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
               end={link.end}
               className={({ isActive }) =>
-                isActive ? "text-ink" : "hover:text-ink"
+                `${isActive ? "text-ink tv:bg-white/10" : "hover:text-ink"} tv:rounded-full tv:px-3 tv:py-1.5`
               }
             >
               {link.label}
@@ -429,7 +443,8 @@ export function Row({
         {to ? (
           <Link
             to={to}
-            className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent"
+            // On TV the row ends with "Ещё" instead.
+            className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent tv:hidden"
           >
             Все
           </Link>

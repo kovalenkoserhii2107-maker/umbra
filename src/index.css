@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* TV mode (?tv=1): html.tv, see src/lib/tvMode.ts. */
+@custom-variant tv (&:where(.tv, .tv *));
+
 @theme {
   --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
@@ -86,4 +89,58 @@ body {
   .poster-hover {
     transition: none;
   }
+}
+
+/* ---- TV: a remote, a screen 3 metres away ---- */
+
+html.tv {
+  scroll-padding-top: 88px;
+}
+
+/* No mouse: focus is the only pointer, so it is always visible. */
+.tv :focus {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 3px;
+}
+.tv label:has(> input:focus),
+.tv label:has(> span > input:focus) {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+.tv label input:focus {
+  outline: none;
+}
+
+/* Posters grow under focus instead of getting a frame around the caption. */
+.tv a:has(> .poster-hover):focus {
+  outline: none;
+}
+.tv a:focus > .poster-hover {
+  transform: scale(1.06);
+  border-color: var(--color-accent);
+  box-shadow:
+    0 0 0 3px var(--color-accent),
+    0 18px 40px rgba(0, 0, 0, 0.6);
+}
+.tv a:focus > .poster-hover + div {
+  color: var(--color-ink);
+}
+
+/* Room inside rows for the grown poster. */
+.tv .row-scroll {
+  padding: 10px 8px 12px;
+  margin-inline: -8px;
+  scroll-padding-inline: 24px;
+}
+
+/* Small print, made readable from the sofa. */
+.tv .text-\[10px\] {
+  font-size: 12px;
+}
+.tv .text-\[11px\] {
+  font-size: 13px;
+}
+.tv .text-xs {
+  font-size: 13px;
 }

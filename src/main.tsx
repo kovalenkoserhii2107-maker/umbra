@@ -9,11 +9,13 @@ import { listenAuth } from "./lib/auth";
 import { listenInstall } from "./lib/install";
 import { blockZoom } from "./lib/zoom";
 import { captureSteamReturn } from "./lib/steamLink";
+import { enableTvMode } from "./lib/tvMode";
 
 captureSteamReturn();
 listenAuth();
 listenInstall();
 blockZoom();
+enableTvMode();
 
 class Boundary extends Component<
   { children: ReactNode },

@@ -144,3 +144,13 @@ html.tv {
 .tv .text-xs {
   font-size: 13px;
 }
+
+/* TV screens (src/tv): a picture fades in when the focus moves to its title. */
+.tv-fade {
+  animation: tv-fade 0.45s ease-out both;
+}
+@keyframes tv-fade {
+  from {
+    opacity: 0;
+  }
+}

@@ -2,6 +2,10 @@ import { lazy, Suspense } from "react";
 import { RequireAccount } from "./components/RequireAccount";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { Layout } from "./components";
+import { isTv } from "./lib/tvMode";
+
+// The TV app has screens of its own (src/tv); loaded only there.
+const TvApp = lazy(() => import("./tv/TvApp"));
 const FeedPage = lazy(() =>
   import("./pages/Feed").then((m) => ({ default: m.FeedPage })),
 );
@@ -90,6 +94,12 @@ function Screen() {
 }
 
 export default function App() {
+  if (isTv)
+    return (
+      <Suspense fallback={null}>
+        <TvApp />
+      </Suspense>
+    );
   return (
     <Routes>
       <Route

@@ -310,7 +310,7 @@ export function TitlePage() {
     <article className="rise pb-8">
       <header className={`${CARD} relative overflow-hidden rounded-3xl`}>
         <div
-          className={`relative ${item.backdrop_path ? "h-52 sm:h-80" : poster ? "h-28 sm:h-36" : "h-16"}`}
+          className={`relative ${item.backdrop_path ? "h-52 sm:h-80 tv:h-44" : poster ? "h-28 sm:h-36" : "h-16"}`}
         >
           {item.backdrop_path ? (
             <img
@@ -332,13 +332,13 @@ export function TitlePage() {
           </div>
         </div>
         <div
-          className={`relative flex items-end gap-4 px-4 sm:px-6 ${item.backdrop_path ? "-mt-20 sm:-mt-28" : poster ? "-mt-16 sm:-mt-20" : "-mt-4"}`}
+          className={`relative flex items-end gap-4 px-4 sm:px-6 ${item.backdrop_path ? "-mt-20 sm:-mt-28 tv:-mt-24" : poster ? "-mt-16 sm:-mt-20" : "-mt-4"}`}
         >
           {poster ? (
             <img
               src={poster}
               alt=""
-              className="w-24 shrink-0 rounded-xl border border-hairline shadow-[0_12px_30px_rgba(0,0,0,0.6)] sm:w-36"
+              className="w-24 shrink-0 rounded-xl border border-hairline shadow-[0_12px_30px_rgba(0,0,0,0.6)] sm:w-36 tv:w-28"
             />
           ) : null}
           <div className="min-w-0 flex-1 pb-0.5">

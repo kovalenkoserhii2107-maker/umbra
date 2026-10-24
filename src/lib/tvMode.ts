@@ -55,8 +55,8 @@ export function enableTvMode() {
 function backToTop() {
   const home = ["", "#", "#/", "#/games"].includes(window.location.hash);
   if (!home || window.scrollY < 100) return false;
+  defaultFocus(0)?.focus({ preventScroll: true });
   window.scrollTo({ top: 0, behavior: "smooth" });
-  defaultFocus()?.focus({ preventScroll: true });
   return true;
 }
 

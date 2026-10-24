@@ -55,7 +55,9 @@ export function useTvScreenFocus(screen: string) {
       } else target = defaultFocus();
       if (!target || target === active) return;
       placed = target;
-      if (saved) focusInto(target, "center");
+      // The screen opens at its top unless the element is out of view.
+      const box = target.getBoundingClientRect();
+      if (saved || box.bottom > window.innerHeight) focusInto(target, "center");
       else target.focus({ preventScroll: true });
     };
     // Once the remote is used, focus is the user's.

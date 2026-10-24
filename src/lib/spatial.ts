@@ -124,6 +124,8 @@ function caretCanMove(el: Element, dir: Direction) {
 /** Rows of posters remember their item, like the rows of a TV home screen. */
 const ROW = ".row-scroll, [data-tv-row]";
 const rowItems = new WeakMap<Element, HTMLElement>();
+/** The last element focused outside the top menu. */
+let lastInPage: HTMLElement | null = null;
 
 /** Entering a row from above or below: its remembered item, else the first in view. */
 function entryOf(row: Element, all: HTMLElement[]) {
@@ -159,6 +161,16 @@ export function move(dir: Direction): boolean {
     return true;
   }
   let target = all[index];
+  // Down from the top menu: back to where focus was on the page, if in view.
+  if (dir === "down" && active.closest("header") && lastInPage?.isConnected) {
+    const b = boxOf(lastInPage);
+    if (
+      all.includes(lastInPage) &&
+      b.top >= 0 &&
+      b.bottom <= window.innerHeight
+    )
+      target = lastInPage;
+  }
   const row = target.closest(ROW);
   if (vertical && row && !row.contains(active))
     target = entryOf(row, all) ?? target;
@@ -176,16 +188,17 @@ export function focusInto(el: HTMLElement, block: ScrollLogicalPosition) {
   el.scrollIntoView({ block, inline: "nearest", behavior: "smooth" });
 }
 
-/** Where focus lands on a new screen. */
-export function defaultFocus(): HTMLElement | null {
+/** Where focus lands on a new screen; `scrollTop` is where the page will be. */
+export function defaultFocus(scrollTop = window.scrollY): HTMLElement | null {
   const main = document.querySelector("main") ?? document.body;
   const marked = Array.from(
     main.querySelectorAll<HTMLElement>("[data-tv-autofocus]"),
   ).find(usable);
   if (marked) return marked;
   const list = focusables(main);
-  // The first element in view, not one scrolled away.
-  return list.find((el) => boxOf(el).bottom > 70) ?? list[0] ?? null;
+  // The first element in view, not one scrolled away (or under the header).
+  const shift = window.scrollY - scrollTop;
+  return list.find((el) => boxOf(el).bottom + shift > 70) ?? list[0] ?? null;
 }
 
 export function startSpatialNav() {
@@ -218,6 +231,7 @@ export function startSpatialNav() {
     const el = event.target as HTMLElement;
     const row = el.closest?.(ROW);
     if (row) rowItems.set(row, el);
+    if (el.closest?.("main")) lastInPage = el;
   };
   window.addEventListener("keydown", onKey);
   document.addEventListener("focusin", onFocus);

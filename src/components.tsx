@@ -295,7 +295,12 @@ function Header() {
     >
       <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6">
         <BackButton />
-        <Link to="/" className="inline-flex shrink-0 items-center">
+        <Link
+          to="/"
+          // On TV "Лента" in the menu does the same.
+          tabIndex={isTv ? -1 : undefined}
+          className="inline-flex shrink-0 items-center"
+        >
           <BrandLockup />
         </Link>
         <nav className="hidden items-center gap-5 text-sm text-mute md:flex tv:flex tv:gap-1 tv:text-base">

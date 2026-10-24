@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Umbra</string>
+    <string name="no_app">Не нашёл приложение для этой ссылки</string>
+    <string name="offline_title">Нет связи с Umbra</string>
+    <string name="offline_text">Проверьте интернет. Нажмите OK, чтобы повторить.</string>
+</resources>

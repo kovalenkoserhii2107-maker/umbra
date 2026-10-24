@@ -1,103 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ApiError, aiTonight, type AiQuestion, type AiStep } from "../lib/api";
-import {
-  QUESTIONS_PER_ROUND,
-  buildProfile,
-  resolvePicks,
-  roundAnswers,
-  roundOf,
-} from "../lib/ai";
-import { idToken } from "../lib/auth";
+import { useRef, useState } from "react";
 import type { LibraryItem } from "../lib/library";
 import type { MetaMap } from "../lib/meta";
 import type { Platform } from "../lib/providers";
-import { keyOf, watchlistEntry, withServices, type Pick } from "../lib/tonight";
+import { watchlistEntry, type Pick } from "../lib/tonight";
 import { titleOf } from "../lib/tmdb";
-import { yearOf } from "../lib/format";
+import { roundOf } from "../lib/ai";
+import { useAiTonight, type Library, type Verdict } from "../lib/useAiTonight";
 import { Option, PickCard, Question } from "./TonightCards";
-
-type Verdict = "seen" | "liked" | "disliked";
-
-/** The session survives a look at a title page and coming back. */
-type Session = {
-  profile: string;
-  steps: AiStep[];
-  /** Questions of the current round, the last one being asked now. */
-  asked: AiQuestion[];
-  intro: string;
-  /** What Claude understood about the user's taste. */
-  taste: string;
-  picks: Pick[];
-  /** Found but not shown yet: they take the place of seen or rejected cards. */
-  reserve: Pick[];
-  /** Every title shown in this session, never offered twice. */
-  shown: string[];
-  verdicts: Record<string, Verdict>;
-  /** Library entries as they were before "seen", to undo it. */
-  before: Record<string, LibraryItem | null>;
-};
-
-const KEY = "umbra.aiTonight";
-const SHOW = 6;
-const RESERVE = 6;
-
-function loadSession(): Session | null {
-  try {
-    const raw = sessionStorage.getItem(KEY);
-    if (!raw) return null;
-    const s = JSON.parse(raw) as Partial<Session>;
-    return { taste: "", reserve: [], before: {}, ...s } as Session;
-  } catch {
-    return null;
-  }
-}
-
-function saveSession(s: Session | null) {
-  try {
-    if (s) sessionStorage.setItem(KEY, JSON.stringify(s));
-    else sessionStorage.removeItem(KEY);
-  } catch {
-    /* private mode: the session just won't survive navigation */
-  }
-}
-
-function errorText(error: unknown) {
-  const code = error instanceof ApiError ? error.code : "";
-  switch (code) {
-    case "ai_limit":
-      return "Дневной лимит запросов к Claude исчерпан. Попробуй завтра или быстрый подбор.";
-    case "ai_no_credit":
-      return "На счёте Anthropic закончились средства — пополни баланс в console.anthropic.com.";
-    case "ai_key_rejected":
-      return "Anthropic не принял ключ. Проверь секрет ANTHROPIC_API_KEY.";
-    case "ai_not_configured":
-      return "Claude ещё не подключён: нужен секрет ANTHROPIC_API_KEY.";
-    case "ai_not_allowed":
-      return "Подбор с Claude не включён для этого аккаунта.";
-    case "ai_busy":
-      return "Claude сейчас перегружен. Попробуй ещё раз через минуту.";
-    case "ai_refused":
-      return "Claude не стал отвечать на этот запрос. Попробуй ответить иначе.";
-    case "sign_in_required":
-    case "bad_token":
-      return "Войди в аккаунт, чтобы подбирал Claude.";
-    case "network":
-      return "Нет связи с сервером. Проверь интернет.";
-    default:
-      return "Не получилось. Попробуй ещё раз.";
-  }
-}
-
-type Library = {
-  get: (type: Pick["type"], id: number) => LibraryItem | undefined;
-  upsert: (item: Omit<LibraryItem, "updatedAt">) => void;
-  update: (
-    type: Pick["type"],
-    id: number,
-    patch: { rating?: number | null },
-  ) => void;
-  remove: (type: Pick["type"], id: number) => void;
-};
 
 /** A card that can be swiped: right means "seen it", left "not that". */
 function Swipe({
@@ -261,219 +170,30 @@ export function AiTonight({
   /** Titles I have already watched may be offered too. */
   rewatch: boolean;
 }) {
-  const [session, setSession] = useState<Session | null>(loadSession);
-  const [busy, setBusy] = useState<"" | "ask" | "pick">("");
-  const [error, setError] = useState("");
-  const [custom, setCustom] = useState("");
-  const retry = useRef<(() => void) | null>(null);
-  const alive = useRef(true);
-  useEffect(() => {
-    alive.current = true;
-    return () => {
-      alive.current = false;
-    };
-  }, []);
-  useEffect(() => saveSession(session), [session]);
-
-  const seen = useMemo(
-    () =>
-      new Set(
-        items
-          .filter((x) => x.status !== "watchlist")
-          .map((x) => keyOf(x.type, x.id)),
-      ),
-    [items],
-  );
-  /** Never offered, even with watched titles allowed: dropped ones. */
-  const disliked = useMemo(
-    () =>
-      items
-        .filter((x) => x.status === "dropped")
-        .map((x) => keyOf(x.type, x.id)),
-    [items],
-  );
-
-  /** Sends `next` and shows the result; on failure nothing changes. */
-  async function run(next: Session, stage: "ask" | "pick") {
-    setBusy(stage);
-    setError("");
-    retry.current = () => void run(next, stage);
-    try {
-      const token = await idToken();
-      if (!token) throw new ApiError(401, "sign_in_required");
-      if (stage === "ask") {
-        const q = await aiTonight(token, {
-          stage,
-          profile: next.profile,
-          steps: next.steps,
-          rewatch,
-        });
-        if (!alive.current) return;
-        setSession({ ...next, asked: [...next.asked, q] });
-      } else {
-        const data = await aiTonight(token, {
-          stage,
-          profile: next.profile,
-          steps: next.steps,
-          rewatch,
-        });
-        const found = await resolvePicks(
-          data.picks,
-          new Set(
-            rewatch ? [...disliked, ...next.shown] : [...seen, ...next.shown],
-          ),
-          SHOW + RESERVE,
-        );
-        const annotated = await withServices(
-          found,
-          region,
-          services,
-          false,
-          found.length,
-        );
-        if (!alive.current) return;
-        const picks = annotated.slice(0, SHOW);
-        setSession({
-          ...next,
-          asked: [],
-          taste: data.taste,
-          intro: data.intro,
-          picks,
-          reserve: annotated.slice(SHOW),
-          shown: [...next.shown, ...picks.map((p) => p.key)],
-          verdicts: {},
-          before: {},
-        });
-      }
-      setCustom("");
-    } catch (e) {
-      if (alive.current) setError(errorText(e));
-    } finally {
-      if (alive.current) setBusy("");
-    }
-  }
-
-  function start() {
-    saveSession(null);
-    void run(
-      {
-        profile: buildProfile(items, meta, region, services),
-        steps: [],
-        asked: [],
-        taste: "",
-        intro: "",
-        picks: [],
-        reserve: [],
-        shown: [],
-        verdicts: {},
-        before: {},
-      },
-      "ask",
-    );
-  }
-
-  function answer(text: string) {
-    if (!session || busy) return;
-    const q = session.asked.at(-1);
-    if (!q || !text.trim()) return;
-    const steps = [...session.steps, { question: q.question, answer: text }];
-    void run(
-      { ...session, steps },
-      roundAnswers(steps) >= QUESTIONS_PER_ROUND ? "pick" : "ask",
-    );
-  }
-
-  function back() {
-    if (!session || busy || session.asked.length < 2) return;
-    setError("");
-    setSession({
-      ...session,
-      steps: session.steps.slice(0, -1),
-      asked: session.asked.slice(0, -1),
-    });
-  }
-
-  const isSaved = (p: Pick) =>
-    library.get(p.type, p.item.id)?.status === "watchlist";
-
-  /** Marks a card; a new pick from the reserve takes its place. */
-  function judge(p: Pick, verdict: Verdict) {
-    if (!session || session.verdicts[p.key]) return;
-    const before = { ...session.before };
-    if (verdict === "seen") {
-      const was = library.get(p.type, p.item.id);
-      before[p.key] = was ?? null;
-      // Already watched: keep the entry and its rating as they are.
-      if (was?.status !== "watched")
-        library.upsert({
-          ...watchlistEntry(p, "watched"),
-          rating: was?.rating ?? null,
-          note: was?.note ?? "",
-        });
-    }
-    const [next, ...reserve] = session.reserve;
-    setSession({
-      ...session,
-      verdicts: { ...session.verdicts, [p.key]: verdict },
-      before,
-      picks: next ? [...session.picks, next] : session.picks,
-      reserve,
-      shown: next ? [...session.shown, next.key] : session.shown,
-    });
-  }
-
-  function undo(p: Pick) {
-    if (!session) return;
-    const verdicts = { ...session.verdicts };
-    const before = { ...session.before };
-    if (verdicts[p.key] === "seen" && p.key in before) {
-      const was = before[p.key];
-      if (was) library.upsert(was);
-      else library.remove(p.type, p.item.id);
-      delete before[p.key];
-    }
-    delete verdicts[p.key];
-    setSession({ ...session, verdicts, before });
-  }
-
-  /** Puts the shown picks and reactions into the session, then goes on. */
-  function proceed(stage: "ask" | "pick") {
-    if (!session) return;
-    const shown: AiStep = {
-      shown: session.picks.map((p) => ({
-        title: titleOf(p.item),
-        year:
-          Number(yearOf(p.item.release_date || p.item.first_air_date)) || null,
-        type: p.type,
-        verdict:
-          session.verdicts[p.key] ??
-          (library.get(p.type, p.item.id)?.status === "watchlist"
-            ? "liked"
-            : null),
-        rating:
-          session.verdicts[p.key] === "seen"
-            ? (library.get(p.type, p.item.id)?.rating ?? null)
-            : null,
-      })),
-    };
-    void run(
-      { ...session, steps: [...session.steps, shown], asked: [] },
-      stage,
-    );
-  }
-
-  const current = session?.asked.at(-1);
-  const answered = session ? roundAnswers(session.steps) : 0;
+  const {
+    session,
+    busy,
+    error,
+    retry,
+    canRetry,
+    custom,
+    setCustom,
+    start,
+    answer,
+    back,
+    judge,
+    undo,
+    proceed,
+    isSaved,
+    current,
+    answered,
+  } = useAiTonight({ items, meta, region, services, library, rewatch });
 
   const failure = error ? (
     <div role="alert" className="mt-5 text-sm text-accent">
       {error}{" "}
-      {retry.current ? (
-        <button
-          type="button"
-          onClick={() => retry.current?.()}
-          className="underline"
-        >
+      {canRetry ? (
+        <button type="button" onClick={retry} className="underline">
           Повторить
         </button>
       ) : null}

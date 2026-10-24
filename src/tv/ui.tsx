@@ -1,6 +1,7 @@
 import { memo, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { BrandLockup } from "../components/Brand";
+import { RatingBadge } from "../components";
 import { backdropUrl } from "../lib/tmdb";
 import type { Card } from "./cards";
 
@@ -247,6 +248,8 @@ export const Poster = memo(function Poster({
         ) : (
           <p className="p-2 text-sm text-mute">{card.title}</p>
         )}
+        {/* IMDb, loaded once the poster is on screen. */}
+        <RatingBadge type={card.type} id={card.id} />
         {card.badge ? (
           <span className="absolute left-1.5 top-1.5 rounded-md bg-accent px-1.5 py-0.5 font-mono text-[11px] font-bold leading-none text-black">
             {card.badge}

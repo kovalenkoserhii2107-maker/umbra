@@ -115,12 +115,27 @@ async function tmdb(context: BrowserContext) {
           },
         },
       });
-    return route.fulfill({ json: page1([]) });
+    // Catalog rows of the home screen; searches find nothing else.
+    if (
+      url.pathname.startsWith("/3/search/") ||
+      url.pathname.startsWith("/3/discover/tv") ||
+      url.pathname.startsWith("/3/tv/")
+    )
+      return route.fulfill({ json: page1([]) });
+    return route.fulfill({ json: page1([DUNE, MATRIX]) });
   });
 }
 
 const focused = (page: Page) =>
   page.evaluate(() => document.activeElement?.textContent?.trim() ?? "");
+
+/** What has the remote on a TV screen of lanes (src/tv). */
+const onScreen = (page: Page) =>
+  page.evaluate(() =>
+    [...document.querySelectorAll("[data-focused]")]
+      .map((e) => e.textContent?.trim() ?? "")
+      .join(" | "),
+  );
 
 async function press(page: Page, ...keys: string[]) {
   for (const key of keys) await page.keyboard.press(key);
@@ -134,11 +149,9 @@ test("TV: remote types on the on-screen keyboard, opens the title, watches and g
   await tmdb(context);
   await register(page);
   await expect(page.locator("html")).toHaveClass(/\btv\b/);
-  // No mobile tab bar; the top menu is there instead.
-  await expect(page.locator("nav.fixed")).toBeHidden();
-  await expect(
-    page.getByRole("banner").getByRole("link", { name: "На вечер" }),
-  ).toBeVisible();
+  // The TV's own screens: the menu on top, no mobile tab bar.
+  await expect(page.locator("nav.fixed")).toHaveCount(0);
+  await expect(page.getByText("На вечер")).toBeVisible();
 
   await page.goto("?tv=1#/search");
   await expect.poll(() => focused(page)).toBe("а");
@@ -168,16 +181,23 @@ test("TV: remote types on the on-screen keyboard, opens the title, watches and g
   await expect(page).toHaveURL(/#\/title\/movie\/438631/);
 
   // "Смотреть" opens the installed app; the trailer goes to YouTube.
-  await expect.poll(() => focused(page)).toContain("Смотреть в Netflix");
+  await expect.poll(() => onScreen(page)).toContain("Смотреть в Netflix");
   await press(page, "Enter", "ArrowRight");
-  expect(await focused(page)).toContain("Трейлер");
+  expect(await onScreen(page)).toBe("Трейлер");
   await press(page, "Enter");
   expect(await page.evaluate(() => (window as any).__calls)).toEqual([
     ["launch", "netflix", "Dune"],
     ["open", "https://www.youtube.com/watch?v=dune-trailer"],
   ]);
   // Apple TV is not installed on this TV: no button for it.
-  await expect(page.getByRole("button", { name: /Apple TV/ })).toHaveCount(0);
+  await expect(page.getByText(/Смотреть в Apple TV/)).toHaveCount(0);
+
+  // Down to the rating: 8 marks the film as seen with that score.
+  await press(page, "ArrowDown");
+  expect(await onScreen(page)).toBe("1");
+  for (let i = 0; i < 7; i++) await press(page, "ArrowRight");
+  await press(page, "Enter");
+  await expect(page.getByText("Просмотрено · твоя оценка 8")).toBeVisible();
 
   // The remote's Back: nothing open, so the app goes back in history and
   // focus returns to the result it came from.
@@ -185,6 +205,51 @@ test("TV: remote types on the on-screen keyboard, opens the title, watches and g
   await page.goBack();
   await expect(page).toHaveURL(/#\/search/);
   await expect.poll(() => focused(page)).toContain("Дюна");
+});
+
+test("TV: home rows, the title behind a poster, Back to it, the collection", async ({
+  page,
+  context,
+}) => {
+  await bridge(context);
+  await tmdb(context);
+  await register(page);
+
+  // The focused poster's title fills the screen above the rows.
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Дюна");
+  await press(page, "ArrowRight");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Матрица");
+  await press(page, "ArrowLeft", "Enter");
+  await expect(page).toHaveURL(/#\/title\/movie\/438631/);
+  await expect.poll(() => onScreen(page)).toContain("Смотреть в Netflix");
+  // "Хочу посмотреть" is the third button.
+  await press(page, "ArrowRight", "ArrowRight");
+  expect(await onScreen(page)).toBe("＋ Хочу посмотреть");
+  await press(page, "Enter");
+  await expect(page.getByText("В «Хочу посмотреть»").first()).toBeVisible();
+
+  // Back: the home screen, on the same poster.
+  await page.goBack();
+  await expect(page).toHaveURL(/#\/$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Дюна");
+
+  // Up to the menu (past the new «Хочу посмотреть» row), over to Коллекция.
+  await press(page, "ArrowUp");
+  expect(await onScreen(page)).toBe("Дюна");
+  await press(page, "ArrowUp");
+  expect(await onScreen(page)).toBe("Лента");
+  await press(page, "ArrowRight", "ArrowRight", "ArrowRight", "Enter");
+  await expect(page).toHaveURL(/#\/library$/);
+  // The router swaps screens in a transition: wait for the collection itself.
+  await expect(page.locator('[data-screen="/library"]')).toBeVisible();
+  await expect(
+    page.getByText("Хочу посмотреть", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Дюна");
+  // Back from a row goes to the menu first (the app then leaves).
+  expect(await page.evaluate(() => (window as any).umbraTvBack())).toBe(true);
+  expect(await onScreen(page)).toBe("Коллекция");
+  expect(await page.evaluate(() => (window as any).umbraTvBack())).toBe(false);
 });
 
 test("TV: voice search through the app", async ({ page, context }) => {

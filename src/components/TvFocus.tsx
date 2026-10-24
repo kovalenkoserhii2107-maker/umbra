@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { isTv, pushTvBack } from "../lib/tvMode";
 import { defaultFocus, focusInto, focusables } from "../lib/spatial";
 
@@ -87,7 +87,8 @@ export function useTvScreenFocus(screen: string) {
 
 /** While `open`, the remote's Back calls `close` instead of leaving the screen. */
 export function useTvBack(open: boolean, close: () => void) {
-  useEffect(() => {
+  // Before the screen is painted: Back must work as soon as it is seen.
+  useLayoutEffect(() => {
     if (!isTv || !open) return;
     return pushTvBack(close);
   }, [open, close]);

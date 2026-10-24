@@ -53,8 +53,15 @@ object ExternalLinks {
         if (uri.scheme == "intent") {
             runCatching { Intent.parseUri(url, Intent.URI_INTENT_SCHEME) }.getOrNull()?.let(intents::add)
         } else {
-            appForHost(uri.host)?.let { app -> installedPackage(context, app) }?.let { pkg ->
-                intents += Intent(Intent.ACTION_VIEW, uri).setPackage(pkg)
+            val app = appForHost(uri.host)
+            app?.let { installedPackage(context, it) }?.let { pkg ->
+                val intent = Intent(Intent.ACTION_VIEW, uri).setPackage(pkg)
+                // A video in YouTube for TV: its standalone player, where one Back
+                // (or the end of the video) returns to Umbra.
+                if (app.slug == "youtube" && uri.getQueryParameter("v") != null) {
+                    intent.putExtra("force_fullscreen", true).putExtra("finish_on_ended", true)
+                }
+                intents += intent
             }
             intents += Intent(Intent.ACTION_VIEW, uri)
         }

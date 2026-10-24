@@ -24,6 +24,7 @@ import {
 } from "../lib/titleFacts";
 import type { OmdbScores } from "../lib/omdb";
 import { dateLabel } from "../lib/format";
+import { isTv, playTrailer } from "../lib/tvMode";
 
 /** Every block on the title page uses this heading and spacing. */
 export function Section({
@@ -161,7 +162,6 @@ export function Overview({ text }: { text?: string }) {
   );
 }
 
-
 export function AwardsLine({ omdb }: { omdb: OmdbScores | null }) {
   const text = awardsLabel(omdb?.awards);
   if (!text) return null;
@@ -245,6 +245,37 @@ export function Videos({ videos }: { videos: Video[] }) {
   const [current, setCurrent] = useState(0);
   if (!videos.length) return null;
   const shown = videos[Math.min(current, videos.length - 1)];
+  // On TV a remote cannot drive the embedded player: videos open in YouTube.
+  if (isTv)
+    return (
+      <Section
+        title="Видео"
+        aside={videos.length > 1 ? <Aside>{videos.length} видео</Aside> : null}
+      >
+        <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
+          {videos.slice(0, 15).map((v) => (
+            <button
+              key={v.key}
+              type="button"
+              onClick={() => playTrailer(v.key)}
+              className="w-52 shrink-0 rounded-xl text-left"
+            >
+              <img
+                src={`https://i.ytimg.com/vi/${v.key}/mqdefault.jpg`}
+                alt=""
+                loading="lazy"
+                className="aspect-video w-full rounded-xl border border-hairline object-cover"
+              />
+              <p className="mt-1 line-clamp-2 text-sm">{v.name}</p>
+              <p className="font-mono text-[10px] uppercase tracking-wider text-dim">
+                {VIDEO_TYPES[v.type] || v.type}
+                {v.iso_639_1 ? ` · ${v.iso_639_1}` : ""}
+              </p>
+            </button>
+          ))}
+        </div>
+      </Section>
+    );
   return (
     <Section
       title={VIDEO_TYPES[shown.type] || "Видео"}
@@ -318,7 +349,13 @@ export function Gallery({ item }: { item: TitleDetails }) {
   );
 }
 
-export function Fact({ label, children }: { label: string; children: ReactNode }) {
+export function Fact({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
   return (
     <div className="border-b border-hairline py-2.5 last:border-b-0 sm:grid sm:grid-cols-[11rem_1fr] sm:gap-4">
       <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-dim sm:pt-0.5">
@@ -402,7 +439,6 @@ export function Details({
     </Section>
   );
 }
-
 
 /** Photo card for cast and crew; opens the person's page. */
 export function PersonCard({

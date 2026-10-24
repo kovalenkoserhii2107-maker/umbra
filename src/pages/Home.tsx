@@ -8,6 +8,7 @@ import {
 } from "../lib/spotlight";
 import { loadFeedPage, FEEDS } from "../lib/feeds";
 import { useAppState } from "../state";
+import { isTv } from "../lib/tvMode";
 import {
   continueWatching,
   episodeLabel,
@@ -93,15 +94,17 @@ function Featured({ spotlight }: { spotlight: Spotlight }) {
         <img
           src={bg}
           alt=""
-          className="aspect-[4/3] w-full object-cover sm:aspect-[21/9]"
+          className="aspect-[4/3] w-full object-cover sm:aspect-[21/9] tv:aspect-[16/5]"
         />
       ) : (
-        <div className="aspect-[4/3] sm:aspect-[21/9]" />
+        <div className="aspect-[4/3] sm:aspect-[21/9] tv:aspect-[16/5]" />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-transparent" />
       <Link
         to={`/title/${media}/${item.id}`}
         aria-label={title}
+        // On TV the card's buttons get focus; "Подробнее" opens the title.
+        tabIndex={isTv ? -1 : undefined}
         className="absolute inset-0"
       />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 p-4 sm:p-6">
@@ -113,6 +116,14 @@ function Featured({ spotlight }: { spotlight: Spotlight }) {
         </h2>
         {note ? <p className="mt-1 text-sm text-white/70">{note}</p> : null}
         <div className="pointer-events-auto mt-3 flex flex-wrap gap-2">
+          {isTv ? (
+            <Link
+              to={`/title/${media}/${item.id}`}
+              className={`${action} bg-accent text-black`}
+            >
+              Подробнее
+            </Link>
+          ) : null}
           {mine ? null : (
             <button
               type="button"
@@ -143,7 +154,8 @@ function FeaturedPlaceholder() {
   return (
     <div
       aria-hidden="true"
-      className="mb-10 aspect-[4/3] animate-pulse rounded-2xl border border-hairline bg-card sm:aspect-[21/9]"
+      data-tv-wait
+      className="mb-10 aspect-[4/3] animate-pulse rounded-2xl border border-hairline bg-card sm:aspect-[21/9] tv:aspect-[16/5]"
     />
   );
 }

@@ -27,6 +27,8 @@ import {
 import { kindOf, posterUrl, titleOf, tmdb, type TmdbItem } from "../lib/tmdb";
 import { yearOf } from "../lib/format";
 import { useAppState } from "../state";
+import { isTv } from "../lib/tvMode";
+import { TvKeyboard } from "../components/TvKeyboard";
 import type { LibraryItem } from "../lib/library";
 
 /**
@@ -607,7 +609,13 @@ export function SearchPage() {
   const people = found?.people ?? [];
 
   return (
-    <div className="rise">
+    <div className="rise tv:grid tv:grid-cols-[288px_minmax(0,1fr)] tv:items-start tv:gap-x-6 tv:[&>*:not(aside)]:col-start-2">
+      {isTv ? (
+        // Letters and voice on the left, results on the right.
+        <aside className="sticky top-24 row-[1/span_40]">
+          <TvKeyboard value={text} onChange={setText} onSubmit={submit} />
+        </aside>
+      ) : null}
       <form
         role="search"
         className="flex items-center gap-2"
@@ -635,8 +643,11 @@ export function SearchPage() {
             onKeyDown={(e) => {
               if (e.key === "Escape") clear();
             }}
-            autoFocus={!q}
-            inputMode="search"
+            autoFocus={!q && !isTv}
+            // On TV the on-screen keyboard types here; the field only shows it.
+            readOnly={isTv}
+            tabIndex={isTv ? -1 : undefined}
+            inputMode={isTv ? "none" : "search"}
             enterKeyHint="search"
             autoComplete="off"
             autoCorrect="off"
@@ -651,7 +662,7 @@ export function SearchPage() {
               className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-hairline border-t-accent"
             />
           ) : null}
-          {text ? (
+          {text && !isTv ? (
             <button
               type="button"
               onClick={clear}
@@ -664,7 +675,7 @@ export function SearchPage() {
         </div>
         <button
           type="submit"
-          className="shrink-0 rounded-2xl bg-accent px-4 py-3 text-sm font-medium text-black"
+          className="shrink-0 rounded-2xl bg-accent px-4 py-3 text-sm font-medium text-black tv:hidden"
         >
           Найти
         </button>

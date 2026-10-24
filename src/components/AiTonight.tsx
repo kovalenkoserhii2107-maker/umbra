@@ -501,6 +501,7 @@ export function AiTonight({
         <button
           type="button"
           onClick={start}
+          data-tv-autofocus=""
           className="mt-4 rounded-full bg-accent px-5 py-2 text-sm text-black"
         >
           Начать

@@ -3,6 +3,8 @@ import { BrandLockup } from "../components/Brand";
 import { EmailAuth } from "../components/EmailAuth";
 import { GoogleSignIn } from "../components/GoogleSignIn";
 import { safeReturnPath, useAuth } from "../lib/auth";
+import { isTv } from "../lib/tvMode";
+import { TvLogin } from "../components/TvLogin";
 export function LoginPage() {
   const auth = useAuth();
   const [params] = useSearchParams();
@@ -10,6 +12,7 @@ export function LoginPage() {
   if (auth.status === "initializing")
     return <p role="status">Восстанавливаю вход…</p>;
   if (auth.account) return <Navigate to={next} replace />;
+  if (isTv) return <TvLogin error={auth.error} />;
   return (
     <div className="rise mx-auto flex min-h-[70dvh] max-w-md flex-col items-center justify-center px-2 text-center">
       <BrandLockup size="lg" />

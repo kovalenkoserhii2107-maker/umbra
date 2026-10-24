@@ -57,25 +57,9 @@ export async function verifyIdToken(
   } catch {
     throw new ApiError(401, "bad_token", "Bad token");
   }
-  if (head.alg !== "RS256" || typeof head.kid !== "string")
-    throw new ApiError(401, "bad_token", "Bad token");
-
-  const jwk = (await signingKeys(deps)).find((k) => k.kid === head.kid);
-  if (!jwk) throw new ApiError(401, "bad_token", "Unknown signing key");
-  const key = await crypto.subtle.importKey(
-    "jwk",
-    { kty: jwk.kty, n: jwk.n, e: jwk.e, alg: "RS256", ext: true },
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["verify"],
-  );
-  const valid = await crypto.subtle.verify(
-    "RSASSA-PKCS1-v1_5",
-    key,
-    fromBase64Url(parts[2]),
-    new TextEncoder().encode(`${parts[0]}.${parts[1]}`),
-  );
-  if (!valid) throw new ApiError(401, "bad_token", "Bad signature");
+  // The local Auth emulator signs nothing; allowed only in local development.
+  const emulator = deps.env.AUTH_EMULATOR === "true" && head.alg === "none";
+  if (!emulator) await checkSignature(deps, head, parts);
 
   const now = Math.floor(deps.now() / 1000);
   const skew = 300;
@@ -96,4 +80,29 @@ export async function verifyIdToken(
         ? claims.email.toLowerCase()
         : null,
   };
+}
+
+async function checkSignature(
+  deps: Deps,
+  head: Record<string, unknown>,
+  parts: string[],
+) {
+  if (head.alg !== "RS256" || typeof head.kid !== "string")
+    throw new ApiError(401, "bad_token", "Bad token");
+  const jwk = (await signingKeys(deps)).find((k) => k.kid === head.kid);
+  if (!jwk) throw new ApiError(401, "bad_token", "Unknown signing key");
+  const key = await crypto.subtle.importKey(
+    "jwk",
+    { kty: jwk.kty, n: jwk.n, e: jwk.e, alg: "RS256", ext: true },
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["verify"],
+  );
+  const valid = await crypto.subtle.verify(
+    "RSASSA-PKCS1-v1_5",
+    key,
+    fromBase64Url(parts[2]),
+    new TextEncoder().encode(`${parts[0]}.${parts[1]}`),
+  );
+  if (!valid) throw new ApiError(401, "bad_token", "Bad signature");
 }

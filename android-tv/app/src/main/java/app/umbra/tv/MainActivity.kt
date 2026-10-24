@@ -32,6 +32,7 @@ class MainActivity : Activity() {
     private lateinit var root: FrameLayout
     private lateinit var site: Uri
     private var voice: Voice? = null
+    private var google: GoogleSignIn? = null
     private var pendingVoiceLanguage: String? = null
     private var fullscreenView: View? = null
     private var fullscreenCallback: WebChromeClient.CustomViewCallback? = null
@@ -76,6 +77,7 @@ class MainActivity : Activity() {
         web.webViewClient = Client()
         web.webChromeClient = Chrome()
         voice = Voice(this) { state, text -> emit("voice", JSONObject().put("state", state).put("text", text)) }
+        google = GoogleSignIn(this) { state, text -> emit("google", JSONObject().put("state", state).put("text", text)) }
 
         if (savedInstanceState == null || web.restoreState(savedInstanceState) == null) web.loadUrl(site.toString())
         web.requestFocus()
@@ -99,6 +101,7 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
         voice?.stop()
+        google?.stop()
         web.destroy()
         super.onDestroy()
     }
@@ -148,6 +151,8 @@ class MainActivity : Activity() {
     }
 
     fun stopVoice() = voice?.stop()
+
+    fun googleSignIn() = google?.start()
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)

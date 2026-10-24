@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Deps } from "./env";
-import { ApiError, cacheKey } from "./http";
+import { ApiError, bump } from "./http";
 
 /**
  * "What to watch tonight" with Claude: it asks four questions of its own
@@ -337,23 +337,6 @@ export async function aiTonight(
 }
 
 /* ------------------------------------------------------------- limits */
-
-async function bump(deps: Deps, key: string, limit: number) {
-  if (!deps.cache || limit <= 0) return true;
-  const request = cacheKey(key);
-  const hit = await deps.cache.match(request);
-  const count = hit ? Number(await hit.text()) || 0 : 0;
-  if (count >= limit) return false;
-  deps.waitUntil(
-    deps.cache.put(
-      request,
-      new Response(String(count + 1), {
-        headers: { "Cache-Control": "public, max-age=90000" },
-      }),
-    ),
-  );
-  return true;
-}
 
 /**
  * A rough daily budget per person and in total, so a shared link cannot run

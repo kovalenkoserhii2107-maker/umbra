@@ -56,6 +56,55 @@ async function call<T>(
 
 export const apiHealth = () => call<ApiHealth>("/health");
 
+// ---- Signing in on a TV with the phone (worker/src/tvLogin.ts) ----
+
+export type TvCode = {
+  code: string;
+  /** Only this TV knows it; needed to collect the token. */
+  secret: string;
+  expiresIn: number;
+  interval: number;
+};
+export type TvTokenAnswer = {
+  status: "pending" | "approved" | "denied" | "expired" | "used";
+  token?: string;
+};
+export type TvCodeInfo = {
+  status: "pending" | "approved" | "denied" | "used";
+  device: string;
+  expiresAt: number;
+};
+
+const post = (body: unknown, headers: Record<string, string> = {}) => ({
+  method: "POST",
+  headers: { "Content-Type": "application/json", ...headers },
+  body: JSON.stringify(body),
+});
+
+/** The phone's Firebase ID token: the worker checks who answers. */
+const bearer = (token: string | null) => {
+  if (!token) throw new ApiError(401, "sign_in_required");
+  return { Authorization: `Bearer ${token}` };
+};
+
+export const tvCode = (device: string) =>
+  call<TvCode>("/tv/code", post({ device }));
+export const tvToken = (code: string, secret: string) =>
+  call<TvTokenAnswer>("/tv/token", post({ code, secret }));
+export const tvCodeInfo = async (code: string, token: string | null) =>
+  call<TvCodeInfo>(`/tv/code/${encodeURIComponent(code)}`, {
+    headers: bearer(token),
+  });
+export const tvAnswer = async (
+  code: string,
+  approve: boolean,
+  token: string | null,
+) =>
+  call<{ status: string }>(
+    "/tv/confirm",
+    post({ code, approve }, bearer(token)),
+  );
+
 const memory = new Map<string, { until: number; value: Promise<unknown> }>();
 
 /** IGDB query through the worker; identical queries share one request for 10 min. */

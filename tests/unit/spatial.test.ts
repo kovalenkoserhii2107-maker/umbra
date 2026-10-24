@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { nextIndex, type Box } from "../../src/lib/spatial";
-import { appForProvider, detectTvMode, watchApps } from "../../src/lib/tvMode";
+import {
+  appForProvider,
+  detectTvMode,
+  tvDeviceName,
+  watchApps,
+} from "../../src/lib/tvMode";
 
 const box = (left: number, top: number, w = 100, h = 150): Box => ({
   left,
@@ -116,5 +121,19 @@ describe("watch on TV", () => {
       { app: "prime", name: "Amazon Video", offer: "аренда" },
     ]);
     expect(watchApps(undefined, installed)).toEqual([]);
+  });
+});
+
+describe("TV name for the phone", () => {
+  it("comes from the WebView user agent", () => {
+    expect(
+      tvDeviceName(
+        "Mozilla/5.0 (Linux; Android 12; BRAVIA 4K VH21 Build/STT2.230505.001.S136; wv) AppleWebKit/537.36 Chrome/156.0 Mobile Safari/537.36 UmbraTV/1.0.5",
+      ),
+    ).toBe("BRAVIA 4K VH21");
+    expect(
+      tvDeviceName("Mozilla/5.0 (Linux; Android 10; K) Chrome/156.0 Mobile"),
+    ).toBe("Телевизор");
+    expect(tvDeviceName("Mozilla/5.0 (Macintosh)")).toBe("Телевизор");
   });
 });

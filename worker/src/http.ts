@@ -92,3 +92,21 @@ export async function cached(
     );
   return { body, hit: false };
 }
+
+/** A rough counter in the edge cache: false once `limit` is reached. */
+export async function bump(deps: Deps, key: string, limit: number) {
+  if (!deps.cache || limit <= 0) return true;
+  const request = cacheKey(key);
+  const hit = await deps.cache.match(request);
+  const count = hit ? Number(await hit.text()) || 0 : 0;
+  if (count >= limit) return false;
+  deps.waitUntil(
+    deps.cache.put(
+      request,
+      new Response(String(count + 1), {
+        headers: { "Cache-Control": "public, max-age=90000" },
+      }),
+    ),
+  );
+  return true;
+}

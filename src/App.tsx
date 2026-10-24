@@ -74,6 +74,9 @@ const InvitePage = lazy(() =>
 const TonightPage = lazy(() =>
   import("./pages/Tonight").then((m) => ({ default: m.TonightPage })),
 );
+const TvLinkPage = lazy(() =>
+  import("./pages/TvLink").then((m) => ({ default: m.TvLinkPage })),
+);
 const TitlePage = lazy(() =>
   import("./pages/Title").then((m) => ({ default: m.TitlePage })),
 );
@@ -132,6 +135,7 @@ export default function App() {
         <Route path="/search" element={<SearchPage />} />
         <Route path="/cabinet" element={<Navigate replace to="/settings" />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/tv-link" element={<TvLinkPage />} />
         <Route path="/title/:type/:id" element={<TitlePage />} />
         <Route path="/person/:id" element={<PersonPage />} />
         <Route

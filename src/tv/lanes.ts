@@ -81,7 +81,8 @@ export function screenKey(pathname: string) {
 }
 
 export function useLanes(
-  lanes: Lane[],
+  /** Or built from the focus, when a lane depends on the item in focus. */
+  lanesOrBuild: Lane[] | ((state: LanesState) => Lane[]),
   initial: {
     lane?: string;
     cols?: Record<string, number>;
@@ -102,6 +103,8 @@ export function useLanes(
       if (initial.remember) memory.set(initial.remember, value);
       return value;
     });
+  const lanes =
+    typeof lanesOrBuild === "function" ? lanesOrBuild(state) : lanesOrBuild;
   const current = settle(state, lanes);
   const ref = useRef({ state: current, lanes });
   ref.current = { state: current, lanes };
@@ -146,6 +149,11 @@ export function useLanes(
       const lane = lanes.find((l) => l.key === key);
       return Boolean(lane) && colOf(current, lane!) === index;
     },
+    /** Moves a lane's remembered position without taking the focus there. */
+    setCol: (lane: string, col: number) =>
+      setState((s) =>
+        s.cols[lane] === col ? s : { ...s, cols: { ...s.cols, [lane]: col } },
+      ),
     focus: (lane: string, col?: number) =>
       setState((s) => ({
         lane,

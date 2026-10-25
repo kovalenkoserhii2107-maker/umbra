@@ -8,15 +8,13 @@ import { useTvScreenFocus } from "../components/TvFocus";
 import { Tabs } from "./ui";
 import { TvCollection, TvHome, TvPerson } from "./screens";
 import { TvTitle } from "./TvTitle";
+import { TvTonight } from "./TvTonight";
 
 const LoginPage = lazy(() =>
   import("../pages/Login").then((m) => ({ default: m.LoginPage })),
 );
 const SearchPage = lazy(() =>
   import("../pages/Search").then((m) => ({ default: m.SearchPage })),
-);
-const TonightPage = lazy(() =>
-  import("../pages/Tonight").then((m) => ({ default: m.TonightPage })),
 );
 const SettingsPage = lazy(() =>
   import("../pages/Settings").then((m) => ({ default: m.SettingsPage })),
@@ -79,14 +77,7 @@ export default function TvApp() {
             </TvPage>
           }
         />
-        <Route
-          path="/tonight"
-          element={
-            <TvPage tab="/tonight">
-              <TonightPage />
-            </TvPage>
-          }
-        />
+        <Route path="/tonight" element={<TvTonight />} />
         <Route
           path="/settings"
           element={

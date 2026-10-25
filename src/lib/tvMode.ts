@@ -81,9 +81,12 @@ export function tvBridge(): Bridge | null {
   return (window as unknown as { UmbraTV?: Bridge }).UmbraTV ?? null;
 }
 
-let installed: Partial<Record<TvApp, boolean>> | null = null;
+/** Installed apps; `lampa` is reported by app versions that know it. */
+type Installed = Partial<Record<TvApp | "lampa", boolean>>;
 
-export function installedApps(): Partial<Record<TvApp, boolean>> {
+let installed: Installed | null = null;
+
+export function installedApps(): Installed {
   if (installed) return installed;
   try {
     installed = JSON.parse(tvBridge()?.installedApps() ?? "{}");
@@ -106,6 +109,23 @@ export function openOnTv(url: string) {
   const bridge = tvBridge();
   if (bridge) bridge.openExternal(url);
   else window.open(url, "_blank", "noopener");
+}
+
+/**
+ * Lampa (top.rootu.lampa) opens a title's card by its TMDB address; the
+ * intent sends it to Lampa alone, not to a browser.
+ */
+export function lampaLink(type: "movie" | "tv", id: number) {
+  return `intent://www.themoviedb.org/${type}/${id}#Intent;scheme=https;action=android.intent.action.VIEW;package=top.rootu.lampa;end`;
+}
+
+/** On a TV with Lampa; app versions that do not report it are given a try. */
+export function hasLampa() {
+  return Boolean(tvBridge()) && installedApps().lampa !== false;
+}
+
+export function openInLampa(type: "movie" | "tv", id: number) {
+  openOnTv(lampaLink(type, id));
 }
 
 export function playTrailer(youtubeKey: string) {

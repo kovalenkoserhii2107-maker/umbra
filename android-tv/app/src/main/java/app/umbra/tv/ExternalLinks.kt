@@ -7,7 +7,7 @@ import android.net.Uri
 
 /**
  * Ссылки, которые уходят из Umbra в приложения телевизора: трейлеры — в YouTube,
- * «Смотреть» — в Netflix, Prime Video, Apple TV, MEGOGO и т. п.
+ * «Смотреть» — в Netflix, Prime Video, Apple TV, MEGOGO и т. п., карточка фильма — в Lampa.
  * Предпочитаем ТВ-версии приложений; если их нет — любое, что откроет ссылку.
  */
 object ExternalLinks {
@@ -33,6 +33,8 @@ object ExternalLinks {
         App("disney", listOf("disneyplus.com"), listOf("com.disney.disneyplus"), null),
         App("max", listOf("max.com", "hbomax.com"), listOf("com.wbd.stream"), null),
         App("megogo", listOf("megogo.net"), listOf("com.megogo.application", "net.megogo.tv"), null),
+        // Lampa открывает карточку по ссылке themoviedb.org (intent: с её пакетом, см. сайт).
+        App("lampa", emptyList(), listOf("top.rootu.lampa"), null),
     )
 
     fun appForHost(host: String?): App? {

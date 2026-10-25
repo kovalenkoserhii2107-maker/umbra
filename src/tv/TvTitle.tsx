@@ -22,8 +22,10 @@ import {
 } from "../lib/tracking";
 import { tvApi } from "../lib/tv";
 import {
+  hasLampa,
   installedApps,
   launchTvApp,
+  openInLampa,
   playTrailer,
   watchApps,
 } from "../lib/tvMode";
@@ -107,6 +109,16 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
       accent: i === 0,
       run: () => launchTvApp(a.app, original || title),
     })),
+    ...(hasLampa()
+      ? [
+          {
+            key: "lampa",
+            label: "Открыть в Lampa",
+            accent: !apps.length,
+            run: () => openInLampa(media, item.id),
+          },
+        ]
+      : []),
     ...(videos[0]
       ? [
           {

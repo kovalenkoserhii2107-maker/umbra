@@ -192,10 +192,17 @@ test("TV: remote types on the on-screen keyboard, opens the title, watches and g
   // "Смотреть" opens the installed app; the trailer goes to YouTube.
   await expect.poll(() => onScreen(page)).toContain("Смотреть в Netflix");
   await press(page, "Enter", "ArrowRight");
+  // Lampa opens the same title's card (this app does not report it: try).
+  expect(await onScreen(page)).toBe("Открыть в Lampa");
+  await press(page, "Enter", "ArrowRight");
   expect(await onScreen(page)).toBe("Трейлер");
   await press(page, "Enter");
   expect(await page.evaluate(() => (window as any).__calls)).toEqual([
     ["launch", "netflix", "Dune"],
+    [
+      "open",
+      "intent://www.themoviedb.org/movie/438631#Intent;scheme=https;action=android.intent.action.VIEW;package=top.rootu.lampa;end",
+    ],
     ["open", "https://www.youtube.com/watch?v=dune-trailer"],
   ]);
   // Apple TV is not installed on this TV: no button for it.
@@ -237,8 +244,8 @@ test("TV: home rows, the title behind a poster, Back to it, the collection", asy
   await press(page, "ArrowLeft", "Enter");
   await expect(page).toHaveURL(/#\/title\/movie\/438631/);
   await expect.poll(() => onScreen(page)).toContain("Смотреть в Netflix");
-  // "Хочу посмотреть" is the third button.
-  await press(page, "ArrowRight", "ArrowRight");
+  // "Хочу посмотреть" comes after Netflix, Lampa and the trailer.
+  await press(page, "ArrowRight", "ArrowRight", "ArrowRight");
   expect(await onScreen(page)).toBe("＋ Хочу посмотреть");
   await press(page, "Enter");
   await expect(page.getByText("В «Хочу посмотреть»").first()).toBeVisible();

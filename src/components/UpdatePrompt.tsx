@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { useAppState } from "../state";
+import { isTv } from "../lib/tvMode";
 export function UpdatePrompt() {
   const { sync } = useAppState();
   const [error, setError] = useState(false);
@@ -28,6 +29,13 @@ export function UpdatePrompt() {
       window.removeEventListener("online", check);
     };
   }, []);
+  // On the TV nobody taps «Обновить»: a new version applies by itself, once
+  // nothing is waiting to be saved.
+  useEffect(() => {
+    if (isTv && ready && sync !== "pending")
+      void updateServiceWorker(true).catch(() => undefined);
+  }, [ready, sync]);
+  if (isTv) return null;
   if (!ready && !error) return null;
   return (
     <aside

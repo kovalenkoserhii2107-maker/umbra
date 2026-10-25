@@ -34,7 +34,7 @@ android {
 
     // Постоянный ключ подписи из секретов GitHub (см. android-tv/README.md);
     // без него релиз подписывается debug-ключом — годится только для проверки.
-    val keystore = System.getenv("UMBRA_TV_KEYSTORE")?.let { file(it) }?.takeIf { it.exists() }
+    val keystore = System.getenv("UMBRA_TV_KEYSTORE")?.takeIf { it.isNotBlank() }?.let { file(it) }?.takeIf { it.isFile }
     signingConfigs {
         if (keystore != null) {
             create("release") {

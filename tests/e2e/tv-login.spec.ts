@@ -61,8 +61,13 @@ async function tvApp(context: BrowserContext, google: "token" | "cancelled") {
   }, google);
 }
 
+/** The element with the remote; the page body when nothing has it. */
 const focused = (page: Page) =>
-  page.evaluate(() => document.activeElement?.textContent?.trim() ?? "");
+  page.evaluate(() =>
+    document.activeElement === document.body
+      ? ""
+      : (document.activeElement?.textContent?.trim() ?? ""),
+  );
 
 test.describe("TV sign-in screen", () => {
   test.use({ viewport: { width: 960, height: 540 } });

@@ -1,6 +1,5 @@
 import { lazy, Suspense, type ReactNode } from "react";
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
-import { Layout } from "../components";
 import { RequireAccount } from "../components/RequireAccount";
 import { FriendsIndexProvider } from "../components/FriendsIndex";
 import { UpdatePrompt } from "../components/UpdatePrompt";
@@ -38,7 +37,19 @@ function TvPage({ tab, children }: { tab: string; children: ReactNode }) {
           </Suspense>
         </FriendsIndexProvider>
       </main>
-      <UpdatePrompt />
+    </div>
+  );
+}
+
+/** The sign-in screen: no menu, focus on its first button. */
+function TvBare({ children }: { children: ReactNode }) {
+  const location = useLocation();
+  useTvScreenFocus(`${location.key} ${location.pathname}`);
+  return (
+    <div className="min-h-dvh bg-canvas px-4 pb-16 pt-6 text-ink">
+      <main className="mx-auto w-full max-w-6xl">
+        <Suspense fallback={null}>{children}</Suspense>
+      </main>
     </div>
   );
 }
@@ -46,14 +57,22 @@ function TvPage({ tab, children }: { tab: string; children: ReactNode }) {
 /** The TV app: its own screens for the remote; the site keeps its pages. */
 export default function TvApp() {
   return (
+    <>
+      {/* New versions of the site apply by themselves on the TV. */}
+      <UpdatePrompt />
+      <TvRoutes />
+    </>
+  );
+}
+
+function TvRoutes() {
+  return (
     <Routes>
       <Route
         element={
-          <Layout bare>
-            <Suspense fallback={null}>
-              <Outlet />
-            </Suspense>
-          </Layout>
+          <TvBare>
+            <Outlet />
+          </TvBare>
         }
       >
         <Route path="/login" element={<LoginPage />} />

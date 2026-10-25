@@ -43,6 +43,23 @@ Release подписывается постоянным ключом (сейча
 
 Баннер и иконки генерируются из `public/brand-mark.webp` (macOS): `swift android-tv/tools/make-art.swift` из корня репозитория.
 
+## Релизы
+
+`.github/workflows/android-tv.yml` собирает APK на каждый PR с изменениями в `android-tv/` (файл — в артефактах запуска). При слиянии в `main` выпускает релиз `tv-1.0.<номер запуска>` с файлом `umbra-tv.apk`. Постоянная ссылка на свежую версию:
+
+```
+https://github.com/kovalenkoserhii2107-maker/umbra/releases/latest/download/umbra-tv.apk
+```
+
+Установка на телевизоре: Downloader → вставить ссылку → «Установить». Обновление — так же, поверх установленной версии.
+
+Подпись — секреты репозитория (Settings → Secrets and variables → Actions):
+
+- `UMBRA_TV_KEYSTORE_BASE64` — файл ключа `umbra-tv.jks` в base64 (`base64 -i umbra-tv.jks`);
+- `UMBRA_TV_KEYSTORE_PASSWORD` — его пароль (он же пароль ключа, алиас `umbra-tv`).
+
+Без них APK подписывается временным ключом и релиз не выпускается: такая версия не встала бы поверх установленной.
+
 ## Проверка на телевизоре
 
 ```sh

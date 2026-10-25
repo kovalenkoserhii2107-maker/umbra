@@ -126,8 +126,13 @@ async function tmdb(context: BrowserContext) {
   });
 }
 
+/** The element with the remote; the page body when nothing has it. */
 const focused = (page: Page) =>
-  page.evaluate(() => document.activeElement?.textContent?.trim() ?? "");
+  page.evaluate(() =>
+    document.activeElement === document.body
+      ? ""
+      : (document.activeElement?.textContent?.trim() ?? ""),
+  );
 
 /** What has the remote on a TV screen of lanes (src/tv). */
 const onScreen = (page: Page) =>

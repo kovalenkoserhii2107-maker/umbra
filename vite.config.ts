@@ -28,6 +28,7 @@ export default defineConfig({
         "apple-touch-icon.png",
         "icon-192.png",
         "icon-512.png",
+        "icon-maskable-512.png",
         "brand-mark.webp",
       ],
       manifest: {
@@ -54,7 +55,8 @@ export default defineConfig({
             purpose: "any",
           },
           {
-            src: "icon-512.png",
+            // The eclipse smaller, so a phone's round or squircle crop keeps all its glow.
+            src: "icon-maskable-512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",

@@ -1,4 +1,5 @@
 import { dateLabel, plural } from "./format";
+import type { OmdbScores } from "./omdb";
 import type {
   MediaType,
   PersonRef,
@@ -108,6 +109,68 @@ export function money(value?: number | string | null) {
   if (n >= 1e9) return `$${fmt(n / 1e9, 1)} млрд`;
   if (n >= 1e6) return `$${fmt(n / 1e6, 0)} млн`;
   return `$${fmt(n / 1e3, 0)} тыс.`;
+}
+
+/**
+ * Dates, countries, languages, studios, budget and box office: the facts
+ * under «Подробности», as [label, value] rows.
+ */
+export function detailRows(
+  item: TitleDetails,
+  media: MediaType,
+  omdb: OmdbScores | null,
+  region: string,
+): Array<[string, string]> {
+  const countries = [
+    ...new Set(
+      (item.production_countries?.length
+        ? item.production_countries.map(
+            (c) => countryName(c.iso_3166_1) || c.name,
+          )
+        : (item.origin_country ?? []).map((c) => countryName(c) || c)
+      ).filter(Boolean),
+    ),
+  ];
+  const languages = (item.spoken_languages ?? [])
+    .map((l) => languageName(l.iso_639_1) || l.name)
+    .filter(Boolean);
+  const rows: Array<[string, string]> = [];
+  // Dates first: they answer "when can I watch it".
+  if (media === "movie")
+    for (const d of regionalDates(item, region))
+      rows.push([`${d.label} · ${region}`, d.date]);
+  if (media === "tv" && item.first_air_date)
+    rows.push(["Первый эпизод", dateLabel(item.first_air_date)]);
+  const lastAir = (item as { last_air_date?: string }).last_air_date;
+  if (media === "tv" && lastAir && item.status !== "Returning Series")
+    rows.push(["Последний эпизод", dateLabel(lastAir)]);
+  if (media === "tv" && item.networks?.length)
+    rows.push(["Канал", item.networks.map((n) => n.name).join(", ")]);
+  if (countries.length)
+    rows.push([
+      countries.length > 1 ? "Страны" : "Страна",
+      countries.join(", "),
+    ]);
+  const lang = languageName(item.original_language);
+  if (lang) rows.push(["Язык оригинала", lang]);
+  if (languages.length > 1) rows.push(["Языки", languages.join(", ")]);
+  if (item.production_companies?.length)
+    rows.push([
+      "Студии",
+      item.production_companies
+        .slice(0, 6)
+        .map((c) => c.name)
+        .join(", "),
+    ]);
+  const budget = money(item.budget);
+  if (budget) rows.push(["Бюджет", budget]);
+  const world = money(item.revenue);
+  if (world) rows.push(["Сборы в мире", world]);
+  const us = money(omdb?.boxOffice);
+  if (us) rows.push(["Сборы в США", us]);
+  if (omdb?.rated && omdb.rated !== "Not Rated" && omdb.rated !== "Unrated")
+    rows.push(["Рейтинг MPA", omdb.rated]);
+  return rows;
 }
 
 /** "828 тыс. голосов", "1,2 млн голосов". */

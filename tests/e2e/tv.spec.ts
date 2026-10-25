@@ -86,10 +86,32 @@ async function tmdb(context: BrowserContext) {
       if (query === "дюна") return route.fulfill({ json: page1([DUNE]) });
       if (query === "матрица") return route.fulfill({ json: page1([MATRIX]) });
     }
+    if (url.pathname === "/3/movie/438631/reviews")
+      return route.fulfill({
+        json: {
+          ...page1([]),
+          total_results: 1,
+          results: [
+            {
+              id: "r1",
+              author: "Sand Critic",
+              content: "Spice must flow. ".repeat(80),
+              author_details: { rating: 9 },
+            },
+          ],
+        },
+      });
     if (url.pathname === "/3/movie/438631")
       return route.fulfill({
         json: {
           ...DUNE,
+          tagline: "Час настал",
+          budget: 165_000_000,
+          revenue: 411_000_000,
+          credits: {
+            cast: [{ id: 1, name: "Тимоти Шаламе", character: "Пол" }],
+            crew: [{ id: 2, name: "Дени Вильнёв", job: "Director" }],
+          },
           overview: "Пустынная планета.",
           genres: [],
           videos: {
@@ -214,6 +236,22 @@ test("TV: remote types on the on-screen keyboard, opens the title, watches and g
   for (let i = 0; i < 7; i++) await press(page, "ArrowRight");
   await press(page, "Enter");
   await expect(page.getByText("Просмотрено · твоя оценка 8")).toBeVisible();
+
+  // What the phone shows is here too: the director, the facts, reviews to read.
+  await expect(page.getByText("Дени Вильнёв").first()).toBeVisible();
+  await expect(page.getByText("$165 млн")).toBeVisible();
+  for (
+    let i = 0;
+    i < 10 && !(await onScreen(page)).includes("Sand Critic");
+    i++
+  )
+    await press(page, "ArrowDown");
+  expect(await onScreen(page)).toContain("Sand Critic");
+  await press(page, "Enter");
+  const reader = page.getByRole("dialog", { name: "Sand Critic" });
+  await expect(reader).toBeVisible();
+  expect(await page.evaluate(() => (window as any).umbraTvBack())).toBe(true);
+  await expect(reader).toHaveCount(0);
 
   // The remote's Back: nothing open, so the app goes back in history and
   // focus returns to the result it came from.

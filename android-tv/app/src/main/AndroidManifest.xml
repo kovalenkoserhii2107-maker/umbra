@@ -29,6 +29,7 @@
         <package android:name="com.wbd.stream" />
         <package android:name="com.megogo.application" />
         <package android:name="net.megogo.tv" />
+        <package android:name="top.rootu.lampa" />
     </queries>
 
     <application

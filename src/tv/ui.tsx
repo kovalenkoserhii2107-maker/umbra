@@ -1,9 +1,17 @@
-import { memo, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import {
+  memo,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { BrandLockup } from "../components/Brand";
 import { RatingBadge } from "../components";
 import { backdropUrl } from "../lib/tmdb";
 import type { Card } from "./cards";
+import type { Lane } from "./lanes";
 
 /**
  * Building blocks of the TV screens. The WebView is 960×540 CSS px; nothing
@@ -71,9 +79,79 @@ export const TABS = [
 ] as const;
 
 /**
- * The top menu. On screens of lanes `focus` says which tab has the remote;
- * on ordinary pages (`links`) the tabs are links the spatial navigation
- * moves between.
+ * The menu as a lane of a tab's screen: left/right opens the next tab with
+ * no OK, and that screen starts with the remote on the menu.
+ */
+export function useMenu(tab: string) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const index = Math.max(
+    0,
+    TABS.findIndex((t) => t.to === tab),
+  );
+  const lane: Lane = {
+    key: "tabs",
+    size: TABS.length,
+    onMove: (i) => (i === index ? openNone() : openSoon(navigate, i)),
+    onLeave: openNow,
+  };
+  useEffect(() => openNone, []);
+  const arrived = Boolean((location.state as { menu?: boolean } | null)?.menu);
+  // Only this time: Back to the screen later finds it as it was left.
+  useEffect(() => {
+    const entry = window.history.state as { usr?: unknown } | null;
+    if (arrived && entry?.usr)
+      window.history.replaceState({ ...entry, usr: null }, "");
+  }, []);
+  return {
+    lane,
+    index,
+    /** Opened from the menu (not by Back to it): the remote stays there. */
+    arrived,
+  };
+}
+
+const go = (navigate: ReturnType<typeof useNavigate>, i: number) =>
+  navigate(TABS[i].to, { replace: true, state: { menu: true } });
+
+/**
+ * The tab the remote went to opens once the blob has flowed there: a new
+ * screen keeps the TV busy for a moment, and the blob would stall on its
+ * way. Quick presses skip the tabs in between.
+ */
+let pending: { timer: number; open: () => void } | null = null;
+
+function openSoon(navigate: ReturnType<typeof useNavigate>, i: number) {
+  openNone();
+  const open = () => {
+    pending = null;
+    go(navigate, i);
+  };
+  pending = { timer: window.setTimeout(open, 260), open };
+}
+
+/** Down from the menu: the chosen tab opens right away. */
+function openNow() {
+  if (!pending) return;
+  window.clearTimeout(pending.timer);
+  pending.open();
+}
+
+function openNone() {
+  if (pending) window.clearTimeout(pending.timer);
+  pending = null;
+}
+
+/** Where the blob was when the last menu left the screen: the next one flows on from there. */
+let lastBlob: Edges | null = null;
+type Edges = { left: number; right: number };
+
+/**
+ * The top menu. A drop of light marks the tab: it flows to the next one,
+ * stretching ahead and pulling its tail after (no blur filter: the TV's GPU
+ * drops frames on it), and lights up while the remote is on the menu. On screens of lanes `focus` says which tab has the
+ * remote; on ordinary pages (`links`) the tabs are links the spatial
+ * navigation moves between, and a tab opens as soon as it gets focus.
  */
 export function Tabs({
   active,
@@ -84,14 +162,81 @@ export function Tabs({
   focus?: number | null;
   links?: boolean;
 }) {
-  const tab = (i: number, to: string) =>
-    `rounded-full px-4 py-1.5 text-[15px] transition-colors duration-150 ${
-      focus === i
-        ? "bg-ink text-canvas"
-        : to === active
-          ? "text-ink"
-          : "text-mute"
-    } ${links ? "focus:bg-ink focus:text-canvas focus:outline-none" : ""}`;
+  const navigate = useNavigate();
+  const location = useLocation();
+  const nav = useRef<HTMLElement>(null);
+  const [linkFocus, setLinkFocus] = useState<number | null>(null);
+  const at = links ? linkFocus : focus;
+  const target = at ?? TABS.findIndex((t) => t.to === active);
+  const lit = at !== null;
+  const [edges, setEdges] = useState<Edges[]>([]);
+  const [blob, setBlob] = useState<Edges | null>(null);
+  const [moves, setMoves] = useState(0);
+  const toRight = useRef(true);
+  const drop = useRef<HTMLSpanElement>(null);
+
+  // Where each tab is: read once (and when the font arrives), not per key.
+  useLayoutEffect(() => {
+    const measure = () => {
+      const items = nav.current?.querySelectorAll<HTMLElement>("[data-tab]");
+      if (items)
+        setEdges(
+          Array.from(items, (el) => ({
+            left: el.offsetLeft,
+            right: el.offsetLeft + el.offsetWidth,
+          })),
+        );
+    };
+    measure();
+    void document.fonts?.ready.then(measure);
+    // The menu of the screen before has just gone: start where it was.
+    setBlob(lastBlob);
+  }, []);
+
+  useEffect(() => {
+    const next = edges[target];
+    if (!next) return;
+    const frame = requestAnimationFrame(() => {
+      // Styles settle where the blob is now, so the move below transitions.
+      if (drop.current) void getComputedStyle(drop.current).left;
+      setBlob((b) => {
+        if (b && b.left === next.left && b.right === next.right) return b;
+        toRight.current = !b || next.left >= b.left;
+        if (b) setMoves((n) => n + 1);
+        return next;
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [edges, target]);
+
+  // Leaving, the blob may be on its way: the next menu starts from where
+  // it is seen, not from where it was going.
+  useLayoutEffect(
+    () => () => {
+      const el = drop.current;
+      if (!el) return;
+      const style = getComputedStyle(el);
+      lastBlob = {
+        left: parseFloat(style.left),
+        right: el.parentElement!.clientWidth - parseFloat(style.right),
+      };
+    },
+    [],
+  );
+
+  // A tab page opened from the menu: the remote stays on its tab.
+  useLayoutEffect(() => {
+    if (!links || !(location.state as { menu?: boolean } | null)?.menu) return;
+    nav.current
+      ?.querySelector<HTMLElement>(`[data-tab="${active}"]`)
+      ?.focus({ preventScroll: true });
+  }, []);
+
+  // The edge ahead runs, the one behind follows: the drop stretches and
+  // gathers again at the new tab.
+  const fast = "220ms cubic-bezier(0.3, 0.9, 0.3, 1)";
+  const slow = "300ms cubic-bezier(0.5, 0, 0.2, 1) 30ms";
+  const [l, r] = toRight.current ? [slow, fast] : [fast, slow];
   return (
     <header
       className={`${links ? "relative" : "absolute inset-x-0 top-0"} z-20 flex h-16 items-center gap-6 px-12`}
@@ -101,22 +246,68 @@ export function Tabs({
           <BrandLockup />
         </span>
       </span>
-      <nav className="flex items-center gap-1">
-        {TABS.map((t, i) =>
-          links ? (
-            <Link key={t.to} to={t.to} replace className={tab(i, t.to)}>
+      <nav ref={nav} className="relative isolate flex items-center gap-1">
+        {blob ? (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 transition-opacity duration-300"
+            style={{ opacity: lit ? 1 : 0.16 }}
+          >
+            <span
+              ref={drop}
+              className={`absolute inset-y-0 rounded-full bg-ink ${
+                moves ? (moves % 2 ? "tv-blob-a" : "tv-blob-b") : ""
+              }`}
+              style={{
+                left: blob.left,
+                right: `calc(100% - ${blob.right}px)`,
+                transition: `left ${l}, right ${r}`,
+              }}
+            />
+          </div>
+        ) : null}
+        {TABS.map((t, i) => {
+          const on = at === i;
+          const className = `relative rounded-full px-4 py-1.5 text-[15px] outline-none ${
+            on || t.to === active ? "text-ink" : "text-mute"
+          }`;
+          // Light letters turn dark exactly where the blob runs under them.
+          const style = { mixBlendMode: "difference" as const };
+          return links ? (
+            <Link
+              key={t.to}
+              to={t.to}
+              replace
+              data-tab={t.to}
+              className={className}
+              style={style}
+              onFocus={() => {
+                setLinkFocus(i);
+                if (t.to === active) openNone();
+                else openSoon(navigate, i);
+              }}
+              onBlur={() => {
+                setLinkFocus(null);
+                // Off the menu (not to the next tab): open the chosen one now.
+                window.setTimeout(() => {
+                  if (!nav.current?.contains(document.activeElement)) openNow();
+                }, 0);
+              }}
+            >
               {t.label}
             </Link>
           ) : (
             <span
               key={t.to}
-              data-focused={focus === i || undefined}
-              className={tab(i, t.to)}
+              data-tab={t.to}
+              data-focused={on || undefined}
+              className={className}
+              style={style}
             >
               {t.label}
             </span>
-          ),
-        )}
+          );
+        })}
       </nav>
     </header>
   );
@@ -226,7 +417,7 @@ export const Poster = memo(function Poster({
   card: Card;
   focused: boolean;
   /** Title under the poster (screens without the big title on top). */
-  caption?: boolean;
+  caption?: boolean | "year";
 }) {
   return (
     <div className="w-[104px] shrink-0" data-focused={focused || undefined}>
@@ -261,6 +452,9 @@ export const Poster = memo(function Poster({
           className={`mt-2.5 line-clamp-2 text-[13px] leading-tight ${focused ? "text-ink" : "text-mute"}`}
         >
           {card.title}
+          {caption === "year" && card.year ? (
+            <span className="text-dim"> · {card.year}</span>
+          ) : null}
         </p>
       ) : null}
     </div>

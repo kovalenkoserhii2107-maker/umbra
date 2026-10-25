@@ -1,8 +1,16 @@
 import { requestJson } from "./http";
-import { tmdbKey, type MediaType, type TmdbItem, type TmdbPage } from "./tmdb";
+import {
+  tmdb,
+  tmdbKey,
+  type MediaType,
+  type TmdbItem,
+  type TmdbPage,
+} from "./tmdb";
 import {
   RUNTIME_RANGE,
   genreIds,
+  splitYear,
+  switchLayout,
   yearRange,
   type SearchFilters,
 } from "./search";
@@ -141,3 +149,39 @@ export const catalog = {
     };
   },
 };
+
+export type Found = {
+  /** What was actually searched: the query, or its layout-switched twin. */
+  used: string;
+  /** "дюна 2021": the year to keep. */
+  year: string;
+  items: TmdbItem[];
+  people: PersonHit[];
+  page: number;
+  pages: number;
+};
+
+/** Titles and people by a query; a wrong keyboard layout is tried as a fallback. */
+export async function findTitles(query: string): Promise<Found> {
+  const { text: core, year } = splitYear(query);
+  const ask = (s: string) =>
+    Promise.all([tmdb.searchCatalog(s, 1), catalog.people(s, 1)]);
+  let used = core;
+  let [data, persons] = await ask(core);
+  const alt = switchLayout(core);
+  if (!data.results.length && !persons.results.length && alt) {
+    const [d2, p2] = await ask(alt);
+    if (d2.results.length || p2.results.length) {
+      [data, persons] = [d2, p2];
+      used = alt;
+    }
+  }
+  return {
+    used,
+    year,
+    items: data.results,
+    people: persons.results,
+    page: 1,
+    pages: data.total_pages,
+  };
+}

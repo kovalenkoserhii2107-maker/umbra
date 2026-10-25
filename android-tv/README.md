@@ -65,13 +65,13 @@ https://github.com/kovalenkoserhii2107-maker/umbra/releases/latest/download/umbr
 ```sh
 adb connect 192.168.1.175:5555
 adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb shell am start -n app.umbra.tv/.MainActivity
+adb shell am start -n app.umbra.tv.dev/app.umbra.tv.MainActivity
 ```
 
-Debug-сборка открывает другой адрес по `-e url` (например, локальный dev-сервер) и разрешает отладку WebView:
+Debug-сборка — отдельное приложение «Umbra Dev» (`app.umbra.tv.dev`): ставится рядом с релизом, не трогая его. Она открывает другой адрес по `-e url` (например, локальный dev-сервер) и разрешает отладку WebView:
 
 ```sh
-adb shell am start -n app.umbra.tv/.MainActivity -e url "http://192.168.1.10:5187/umbra/?tv=1"
+adb shell am start -n app.umbra.tv.dev/app.umbra.tv.MainActivity -e url "http://192.168.1.10:5187/umbra/?tv=1"
 node tools/tv-eval.mjs "location.href"
 ```
 

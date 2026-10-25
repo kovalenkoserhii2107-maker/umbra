@@ -39,4 +39,23 @@ describe("TV lanes", () => {
     expect(settle({ lane: "top", cols: {} }, last).lane).toBe("new");
     expect(settle({ lane: "x", cols: {} }, []).lane).toBeNull();
   });
+
+  it("keeps the column between lanes of a grid, wide keys included", () => {
+    const keys: Lane[] = [
+      { key: "tabs", size: 5 },
+      { key: "k0", size: 7, grid: "kb", pane: "kb" },
+      { key: "edit", size: 3, span: [2, 3, 2], grid: "kb", pane: "kb" },
+      { key: "r0", size: 4, pane: "res" },
+    ];
+    // «д» (fifth) is above the space bar, which spans columns 2–4.
+    const down = moveFocus({ lane: "k0", cols: { k0: 4 } }, keys, "down")!;
+    expect(down).toEqual({ lane: "edit", cols: { k0: 4, edit: 1 } });
+    // The space bar up again: its first column.
+    const up = moveFocus(down, keys, "up")!;
+    expect(up.lane).toBe("k0");
+    expect(up.cols.k0).toBe(2);
+    // The keyboard does not lead down into the results; the menu is above both.
+    expect(moveFocus(down, keys, "down")).toBeNull();
+    expect(moveFocus({ lane: "r0", cols: {} }, keys, "up")!.lane).toBe("tabs");
+  });
 });

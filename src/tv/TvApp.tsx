@@ -8,21 +8,18 @@ import { Tabs } from "./ui";
 import { TvCollection, TvHome, TvPerson } from "./screens";
 import { TvTitle } from "./TvTitle";
 import { TvTonight } from "./TvTonight";
+import { TvSearch } from "./TvSearch";
 
 const LoginPage = lazy(() =>
   import("../pages/Login").then((m) => ({ default: m.LoginPage })),
-);
-const SearchPage = lazy(() =>
-  import("../pages/Search").then((m) => ({ default: m.SearchPage })),
 );
 const SettingsPage = lazy(() =>
   import("../pages/Settings").then((m) => ({ default: m.SettingsPage })),
 );
 
 /**
- * An ordinary page of the site on the TV (search, the evening picker,
- * settings): the TV menu on top, the page below, moved through with the
- * page-wide spatial navigation.
+ * An ordinary page of the site on the TV (settings): the TV menu on top,
+ * the page below, moved through with the page-wide spatial navigation.
  */
 function TvPage({ tab, children }: { tab: string; children: ReactNode }) {
   const location = useLocation();
@@ -88,14 +85,7 @@ function TvRoutes() {
         <Route path="/library" element={<TvCollection />} />
         <Route path="/title/:type/:id" element={<TvTitle />} />
         <Route path="/person/:id" element={<TvPerson />} />
-        <Route
-          path="/search"
-          element={
-            <TvPage tab="/search">
-              <SearchPage />
-            </TvPage>
-          }
-        />
+        <Route path="/search" element={<TvSearch />} />
         <Route path="/tonight" element={<TvTonight />} />
         <Route
           path="/settings"

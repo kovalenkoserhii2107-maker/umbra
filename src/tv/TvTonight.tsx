@@ -43,7 +43,7 @@ import { useAppState } from "../state";
 import { fromLibrary } from "./cards";
 import { useLanes, type Lane } from "./lanes";
 import { spaceTextures } from "./space";
-import { Backdrop, Pill, PillLane, Rail, Stage, TABS, Tabs } from "./ui";
+import { Backdrop, Pill, PillLane, Rail, Stage, Tabs, useMenu } from "./ui";
 
 /*
  * «Что посмотреть вечером» on the TV: the same pickers as on the phone
@@ -55,7 +55,6 @@ import { Backdrop, Pill, PillLane, Rail, Stage, TABS, Tabs } from "./ui";
 
 const MODE = "umbra.tonightMode";
 const REWATCH = "umbra.tonightRewatch";
-const TAB = TABS.findIndex((t) => t.to === "/tonight");
 
 type Option = { label: string; hint?: string; voice?: boolean };
 
@@ -141,7 +140,7 @@ function Intro({
   onResume: () => void;
   onRewatch: () => void;
 }) {
-  const navigate = useNavigate();
+  const menu = useMenu("/tonight");
   const cards = [
     ...(resume
       ? [
@@ -177,18 +176,15 @@ function Intro({
     },
   ];
   const lanes: Lane[] = [
-    {
-      key: "tabs",
-      size: TABS.length,
-      onSelect: (n) => {
-        if (n !== TAB) navigate(TABS[n].to, { replace: true });
-      },
-    },
+    menu.lane,
     { key: "modes", size: cards.length, onSelect: (n) => cards[n]?.run() },
     { key: "rewatch", size: 1, onSelect: onRewatch },
   ];
-  const nav = useLanes(lanes, { lane: "modes", cols: { tabs: TAB } });
-  useTvBack(nav.lane !== "tabs", () => nav.focus("tabs", TAB));
+  const nav = useLanes(lanes, {
+    lane: menu.arrived ? "tabs" : "modes",
+    cols: { tabs: menu.index },
+  });
+  useTvBack(nav.lane !== "tabs", () => nav.focus("tabs", menu.index));
   const at = (lane: string, n: number) =>
     nav.lane === lane && nav.col(lane) === n;
   return (

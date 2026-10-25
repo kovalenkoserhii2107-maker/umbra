@@ -50,7 +50,7 @@ class MainActivity : Activity() {
         // Отладка WebView через chrome://inspect — только в debug-сборке.
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
 
-        // Debug-сборку можно направить на dev-сервер: adb shell am start -n app.umbra.tv/.MainActivity -e url http://…
+        // Debug-сборку можно направить на dev-сервер: adb shell am start -n app.umbra.tv.dev/app.umbra.tv.MainActivity -e url http://…
         val override = if (BuildConfig.DEBUG) intent.getStringExtra(EXTRA_URL) else null
         site = Uri.parse(override ?: BuildConfig.SITE_URL)
 

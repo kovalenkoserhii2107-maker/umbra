@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ErrorBox } from "../components";
-import { catalog, profileUrl, type PersonHit } from "../lib/catalog";
+import {
+  catalog,
+  findTitles,
+  profileUrl,
+  type Found,
+  type PersonHit,
+} from "../lib/catalog";
 import {
   ERAS,
   FAMES,
@@ -20,15 +26,12 @@ import {
   recentSearches,
   rememberSearch,
   splitYear,
-  switchLayout,
   type SearchFilters,
   type SearchSort,
 } from "../lib/search";
 import { kindOf, posterUrl, titleOf, tmdb, type TmdbItem } from "../lib/tmdb";
 import { yearOf } from "../lib/format";
 import { useAppState } from "../state";
-import { isTv } from "../lib/tvMode";
-import { TvKeyboard } from "../components/TvKeyboard";
 import type { LibraryItem } from "../lib/library";
 
 /**
@@ -55,16 +58,6 @@ const YEARS = Array.from({ length: 60 }, (_, i) =>
   String(new Date().getFullYear() - i),
 );
 const DELAY = 300;
-
-type Found = {
-  /** What was actually searched: the query, or its layout-switched twin. */
-  used: string;
-  year: string;
-  items: TmdbItem[];
-  people: PersonHit[];
-  page: number;
-  pages: number;
-};
 
 const STATUS: Record<LibraryItem["status"], string> = {
   watchlist: "Хочу посмотреть",
@@ -438,32 +431,10 @@ export function SearchPage() {
       setFound(null);
       return;
     }
-    const { text: core, year } = splitYear(q);
     setLoading(true);
     setError(null);
-    const ask = (s: string) =>
-      Promise.all([tmdb.searchCatalog(s, 1), catalog.people(s, 1)]);
-    (async () => {
-      let used = core;
-      let [data, persons] = await ask(core);
-      const alt = switchLayout(core);
-      if (!data.results.length && !persons.results.length && alt) {
-        const [d2, p2] = await ask(alt);
-        if (d2.results.length || p2.results.length) {
-          [data, persons] = [d2, p2];
-          used = alt;
-        }
-      }
-      if (run !== generation.current) return;
-      setFound({
-        used,
-        year,
-        items: data.results,
-        people: persons.results,
-        page: 1,
-        pages: data.total_pages,
-      });
-    })()
+    findTitles(q)
+      .then((next) => run === generation.current && setFound(next))
       .catch((e: Error) => run === generation.current && setError(e.message))
       .finally(() => run === generation.current && setLoading(false));
   }, [q]);
@@ -609,13 +580,7 @@ export function SearchPage() {
   const people = found?.people ?? [];
 
   return (
-    <div className="rise tv:grid tv:grid-cols-[288px_minmax(0,1fr)] tv:items-start tv:gap-x-6 tv:[&>*:not(aside)]:col-start-2">
-      {isTv ? (
-        // Letters and voice on the left, results on the right.
-        <aside className="sticky top-24 row-[1/span_40]">
-          <TvKeyboard value={text} onChange={setText} onSubmit={submit} />
-        </aside>
-      ) : null}
+    <div className="rise">
       <form
         role="search"
         className="flex items-center gap-2"
@@ -643,11 +608,8 @@ export function SearchPage() {
             onKeyDown={(e) => {
               if (e.key === "Escape") clear();
             }}
-            autoFocus={!q && !isTv}
-            // On TV the on-screen keyboard types here; the field only shows it.
-            readOnly={isTv}
-            tabIndex={isTv ? -1 : undefined}
-            inputMode={isTv ? "none" : "search"}
+            autoFocus={!q}
+            inputMode="search"
             enterKeyHint="search"
             autoComplete="off"
             autoCorrect="off"
@@ -662,7 +624,7 @@ export function SearchPage() {
               className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-hairline border-t-accent"
             />
           ) : null}
-          {text && !isTv ? (
+          {text ? (
             <button
               type="button"
               onClick={clear}
@@ -675,7 +637,7 @@ export function SearchPage() {
         </div>
         <button
           type="submit"
-          className="shrink-0 rounded-2xl bg-accent px-4 py-3 text-sm font-medium text-black tv:hidden"
+          className="shrink-0 rounded-2xl bg-accent px-4 py-3 text-sm font-medium text-black"
         >
           Найти
         </button>

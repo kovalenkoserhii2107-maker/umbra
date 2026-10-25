@@ -12,6 +12,18 @@ export type Lane = {
   size: number;
   /** OK on item `index`. */
   onSelect?: (index: number) => void;
+  /** Left/right landed on item `index` (the menu switches screens). */
+  onMove?: (index: number) => void;
+  /** The remote went from this lane to another. */
+  onLeave?: () => void;
+  /** Lanes of one grid (a keyboard): up/down keeps the column. */
+  grid?: string;
+  /** Width of each item in grid columns (a wide key); 1 by default. */
+  span?: number[];
+  /** Side of the screen (keyboard | results): up/down stay on their side. */
+  pane?: string;
+  /** Pressed past the lane's end: where the remote goes from there. */
+  exit?: Partial<Record<Direction, () => void>>;
 };
 
 export type LanesState = { lane: string | null; cols: Record<string, number> };
@@ -39,6 +51,23 @@ export function colOf(state: LanesState, lane: Lane) {
   return clamp(state.cols[lane.key] ?? 0, lane.size);
 }
 
+/** Grid column where item `col` starts. */
+function slotOf(lane: Lane, col: number) {
+  let x = 0;
+  for (let i = 0; i < col; i++) x += lane.span?.[i] ?? 1;
+  return x;
+}
+
+/** The item of a grid lane that covers column `x`. */
+function itemAt(lane: Lane, x: number) {
+  let start = 0;
+  for (let i = 0; i < lane.size; i++) {
+    start += lane.span?.[i] ?? 1;
+    if (x < start) return i;
+  }
+  return lane.size - 1;
+}
+
 /** Where `dir` leads; null when there is nowhere to go. */
 export function moveFocus(
   state: LanesState,
@@ -55,8 +84,17 @@ export function moveFocus(
     return { ...state, cols: { ...state.cols, [lane.key]: next } };
   }
   const step = dir === "down" ? 1 : -1;
-  for (let i = index + step; i >= 0 && i < lanes.length; i += step)
-    if (lanes[i].size > 0) return { ...state, lane: lanes[i].key };
+  for (let i = index + step; i >= 0 && i < lanes.length; i += step) {
+    const next = lanes[i];
+    if (next.size === 0) continue;
+    if (lane.pane && next.pane && next.pane !== lane.pane) continue;
+    if (lane.grid && next.grid === lane.grid)
+      return {
+        lane: next.key,
+        cols: { ...state.cols, [next.key]: itemAt(next, slotOf(lane, col)) },
+      };
+    return { ...state, lane: next.key };
+  }
   return null;
 }
 
@@ -88,11 +126,13 @@ export function useLanes(
     cols?: Record<string, number>;
     /** The screen in history (location key): focus returns there with Back. */
     remember?: string;
+    /** Opened anew (from the menu): what was remembered does not count. */
+    fresh?: boolean;
   } = {},
 ) {
   const [state, setRaw] = useState<LanesState>(
     () =>
-      (initial.remember && memory.get(initial.remember)) || {
+      (!initial.fresh && initial.remember && memory.get(initial.remember)) || {
         lane: initial.lane ?? null,
         cols: initial.cols ?? {},
       },
@@ -122,7 +162,15 @@ export function useLanes(
         event.preventDefault();
         event.stopPropagation();
         const next = moveFocus(state, lanes, dir);
-        if (next) setState(next);
+        const lane = lanes.find((l) => l.key === state.lane);
+        if (!next) {
+          lane?.exit?.[dir]?.();
+          return;
+        }
+        setState(next);
+        if (lane?.onMove && next.lane === lane.key)
+          lane.onMove(colOf(next, lane));
+        if (next.lane !== state.lane) lane?.onLeave?.();
         return;
       }
       if (event.key === "Enter") {

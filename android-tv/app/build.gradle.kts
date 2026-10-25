@@ -47,6 +47,10 @@ android {
     }
 
     buildTypes {
+        // «Umbra Dev» ставится рядом с релизом: проверка не трогает приложение и вход на телевизоре.
+        debug {
+            applicationIdSuffix = ".dev"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true

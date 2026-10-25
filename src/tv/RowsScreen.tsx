@@ -16,8 +16,8 @@ import {
   Poster,
   Rail,
   Stage,
-  TABS,
   Tabs,
+  useMenu,
 } from "./ui";
 
 /** Library cards have no picture or plot: those come from TMDB once. */
@@ -103,24 +103,11 @@ export function RowsScreen({
   const shown = rows.filter((r) => r.cards.length);
   const navigate = useNavigate();
   const location = useLocation();
-  const tabIndex = Math.max(
-    0,
-    TABS.findIndex((t) => t.to === tab),
-  );
+  const menu = useMenu(tab ?? "");
   const focusRef = useRef<(lane: string, col?: number) => void>(() => {});
   const bar = toolbar?.((lane, col) => focusRef.current(lane, col));
   const lanes: Lane[] = [
-    ...(tab === null
-      ? []
-      : [
-          {
-            key: "tabs",
-            size: TABS.length,
-            onSelect: (i: number) => {
-              if (TABS[i].to !== tab) navigate(TABS[i].to, { replace: true });
-            },
-          },
-        ]),
+    ...(tab === null ? [] : [menu.lane]),
     ...(bar?.lanes ?? []),
     ...rows.map((row) => ({
       key: row.key,
@@ -132,9 +119,11 @@ export function RowsScreen({
     })),
   ];
   const nav = useLanes(lanes, {
-    lane: rows[0]?.key,
-    cols: { tabs: tabIndex },
+    // A tab's screen starts on the menu (the app opens on «Лента»).
+    lane: tab !== null ? "tabs" : rows[0]?.key,
+    cols: { tabs: menu.index },
     remember: screenKey(location.pathname),
+    fresh: menu.arrived,
   });
   focusRef.current = nav.focus;
   const onTabs = nav.lane === "tabs";
@@ -144,7 +133,16 @@ export function RowsScreen({
   const hero = useHero(card);
 
   // Back from the rows returns to the menu first; from the menu it leaves.
-  useTvBack(tab !== null && !onTabs, () => nav.focus("tabs", tabIndex));
+  useTvBack(tab !== null && !onTabs, () => nav.focus("tabs", menu.index));
+
+  // The first rows come at once, the rest a moment later: a screen opened
+  // from the menu appears without stalling the blob on its way.
+  const [all, setAll] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setAll(true), 400);
+    return () => window.clearTimeout(timer);
+  }, []);
+  const drawn = all ? shown : shown.slice(0, Math.max(3, rowIndex + 2));
 
   const imdb = hero ? cachedRating(hero.type, hero.id).imdb : null;
   return (
@@ -180,7 +178,7 @@ export function RowsScreen({
       </div>
       {shown.length ? (
         <LaneStack focus={focusedRow?.key ?? null} anchor={292} top={292}>
-          {shown.map((row, i) => (
+          {drawn.map((row, i) => (
             <Rail
               key={row.key}
               lane={row.key}

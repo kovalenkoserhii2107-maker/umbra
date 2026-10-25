@@ -155,6 +155,54 @@ html.tv {
   }
 }
 
+/* The menu's blob: once it has flowed to a tab it settles with a wobble
+   (two names, so each move restarts it). */
+.tv-blob-a {
+  animation: tv-blob-a 0.5s ease-out 0.18s;
+}
+.tv-blob-b {
+  animation: tv-blob-b 0.5s ease-out 0.18s;
+}
+@keyframes tv-blob-a {
+  30% {
+    transform: scale(1.05, 0.82);
+  }
+  60% {
+    transform: scale(0.98, 1.06);
+  }
+}
+@keyframes tv-blob-b {
+  30% {
+    transform: scale(1.05, 0.82);
+  }
+  60% {
+    transform: scale(0.98, 1.06);
+  }
+}
+
+/* TV search: the caret of the line, the rings of the listening microphone. */
+.tv-caret {
+  animation: tv-caret 1.05s steps(1) infinite;
+}
+@keyframes tv-caret {
+  50% {
+    opacity: 0;
+  }
+}
+.tv-listen {
+  animation: tv-listen 1.3s ease-out infinite;
+}
+@keyframes tv-listen {
+  from {
+    opacity: 0.55;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+
 /* ---- TV «На вечер»: motion (transform and opacity only — cheap on a TV) ---- */
 
 /* Slowly drifting light behind the evening picker. */

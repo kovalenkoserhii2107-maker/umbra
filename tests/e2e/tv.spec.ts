@@ -126,14 +126,6 @@ async function tmdb(context: BrowserContext) {
   });
 }
 
-/** The element with the remote; the page body when nothing has it. */
-const focused = (page: Page) =>
-  page.evaluate(() =>
-    document.activeElement === document.body
-      ? ""
-      : (document.activeElement?.textContent?.trim() ?? ""),
-  );
-
 /** What has the remote on a TV screen of lanes (src/tv). */
 const onScreen = (page: Page) =>
   page.evaluate(() =>
@@ -158,30 +150,42 @@ test("TV: remote types on the on-screen keyboard, opens the title, watches and g
   await expect(page.locator("nav.fixed")).toHaveCount(0);
   await expect(page.getByText("На вечер")).toBeVisible();
 
-  await page.goto("?tv=1#/search");
-  await expect.poll(() => focused(page)).toBe("а");
-  const field = page.getByLabel("Поиск фильмов, сериалов и людей");
-  await expect(field).toHaveAttribute("readonly", "");
+  // The app opens with the remote on «Лента»; each tab opens as the remote
+  // reaches it in the menu: no OK needed.
+  await expect.poll(() => onScreen(page)).toBe("Лента");
+  await press(page, "ArrowRight");
+  await expect(page).toHaveURL(/#\/search$/);
+  await expect(page.locator('[data-screen="/search"]')).toBeVisible();
+  expect(await onScreen(page)).toBe("Поиск");
+  await press(page, "ArrowDown", "ArrowDown");
+  expect(await onScreen(page)).toBe("а");
+  const field = page.getByRole("textbox", {
+    name: "Поиск фильмов, сериалов и людей",
+  });
 
-  // Letters in alphabetical rows of seven: д, ю, н, а.
+  // A keyboard plugged into the TV types too.
+  await page.keyboard.type("dun");
+  await expect(field).toHaveAttribute("data-value", "dun");
+  await press(page, "Backspace", "Backspace", "Backspace");
+  await expect(field).toHaveAttribute("data-value", "");
+
+  // Letters in alphabetical rows of seven: д, ю, н, а; up/down keep the column.
   await press(page, "ArrowRight", "ArrowRight", "ArrowRight", "ArrowRight");
-  expect(await focused(page)).toBe("д");
+  expect(await onScreen(page)).toBe("д");
   await press(page, "Enter", "ArrowDown", "ArrowDown", "ArrowDown");
-  await press(page, "ArrowDown", "ArrowLeft", "Enter");
-  await press(page, "ArrowUp", "ArrowUp", "ArrowLeft", "ArrowLeft");
-  await press(page, "ArrowLeft", "Enter", "ArrowUp", "ArrowUp", "Enter");
-  await expect(field).toHaveValue("дюна");
+  await press(page, "ArrowDown", "ArrowLeft");
+  expect(await onScreen(page)).toBe("ю");
+  await press(page, "Enter", "ArrowUp", "ArrowUp", "ArrowLeft", "ArrowLeft");
+  await press(page, "ArrowLeft");
+  expect(await onScreen(page)).toBe("н");
+  await press(page, "Enter", "ArrowUp", "ArrowUp", "Enter");
+  await expect(field).toHaveAttribute("data-value", "дюна");
   await expect(page).toHaveURL(/q=%D0%B4%D1%8E%D0%BD%D0%B0/);
-  const result = page.getByRole("link", { name: /Дюна/ }).first();
-  await expect(result).toBeVisible();
+  await expect(page.getByText("Дюна").first()).toBeVisible();
 
-  // To the results on the right, then into the title.
-  for (let i = 0; i < 12 && !(await focused(page)).includes("Дюна"); i++)
-    await press(
-      page,
-      (await focused(page)).length === 1 ? "ArrowRight" : "ArrowDown",
-    );
-  expect(await focused(page)).toContain("Дюна");
+  // Off the right end of the keys to the results, then into the title.
+  for (let i = 0; i < 7; i++) await press(page, "ArrowRight");
+  expect(await onScreen(page)).toContain("Дюна");
   await press(page, "Enter");
   await expect(page).toHaveURL(/#\/title\/movie\/438631/);
 
@@ -209,7 +213,10 @@ test("TV: remote types on the on-screen keyboard, opens the title, watches and g
   expect(await page.evaluate(() => (window as any).umbraTvBack())).toBe(false);
   await page.goBack();
   await expect(page).toHaveURL(/#\/search/);
-  await expect.poll(() => focused(page)).toContain("Дюна");
+  await expect.poll(() => onScreen(page)).toContain("Дюна");
+  // Left goes back to the letters, where the remote left them (the row's end).
+  await press(page, "ArrowLeft");
+  expect(await onScreen(page)).toBe("ё");
 });
 
 test("TV: home rows, the title behind a poster, Back to it, the collection", async ({
@@ -220,7 +227,10 @@ test("TV: home rows, the title behind a poster, Back to it, the collection", asy
   await tmdb(context);
   await register(page);
 
-  // The focused poster's title fills the screen above the rows.
+  // The app opens on the menu; down to the rows, the focused poster's title
+  // fills the screen above them.
+  await expect.poll(() => onScreen(page)).toBe("Лента");
+  await press(page, "ArrowDown");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Дюна");
   await press(page, "ArrowRight");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Матрица");
@@ -243,7 +253,7 @@ test("TV: home rows, the title behind a poster, Back to it, the collection", asy
   expect(await onScreen(page)).toBe("Дюна");
   await press(page, "ArrowUp");
   expect(await onScreen(page)).toBe("Лента");
-  await press(page, "ArrowRight", "ArrowRight", "ArrowRight", "Enter");
+  await press(page, "ArrowRight", "ArrowRight", "ArrowRight");
   await expect(page).toHaveURL(/#\/library$/);
   // The router swaps screens in a transition: wait for the collection itself.
   await expect(page.locator('[data-screen="/library"]')).toBeVisible();
@@ -252,8 +262,10 @@ test("TV: home rows, the title behind a poster, Back to it, the collection", asy
   ).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Дюна");
 
-  // Filters: up to them, «Тип» → «Сериалы» hides the film; «Сбросить» brings it back.
-  await press(page, "ArrowUp");
+  // Opened from the menu, the remote is still on it; filters are just below.
+  expect(await onScreen(page)).toBe("Коллекция");
+  // Filters: down to them, «Тип» → «Сериалы» hides the film; «Сбросить» brings it back.
+  await press(page, "ArrowDown");
   expect(await onScreen(page)).toBe("Тип:все");
   await press(page, "Enter");
   expect(await onScreen(page)).toBe("Фильмы и сериалы");
@@ -279,17 +291,15 @@ test("TV: voice search through the app", async ({ page, context }) => {
   await tmdb(context);
   await register(page);
   await page.goto("?tv=1#/search");
-  await expect.poll(() => focused(page)).toBe("а");
+  await expect.poll(() => onScreen(page)).toBe("а");
   await press(page, "ArrowUp");
-  expect(await focused(page)).toBe("Сказать голосом");
+  expect(await onScreen(page)).toBe("Голосом");
   await press(page, "Enter");
   await expect(page).toHaveURL(/q=%D0%BC%D0%B0%D1%82%D1%80%D0%B8%D1%86%D0%B0/);
-  await expect(page.getByLabel("Поиск фильмов, сериалов и людей")).toHaveValue(
-    "матрица",
-  );
   await expect(
-    page.getByRole("link", { name: /Матрица/ }).first(),
-  ).toBeVisible();
+    page.getByRole("textbox", { name: "Поиск фильмов, сериалов и людей" }),
+  ).toHaveAttribute("data-value", "матрица");
+  await expect(page.getByText("Матрица").first()).toBeVisible();
   expect(await page.evaluate(() => (window as any).__calls)).toEqual([
     ["voice", "ru-RU"],
   ]);

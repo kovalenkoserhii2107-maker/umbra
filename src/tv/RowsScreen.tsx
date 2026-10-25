@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTvBack } from "../components/TvFocus";
 import {
@@ -75,11 +75,19 @@ function useHero(card: Card | null) {
  * posters below; the top menu when `tab` is set. Used by the feed, the
  * collection and a person's films.
  */
+/** Lanes of controls between the menu and the rows (the collection's filters). */
+export type Toolbar = {
+  lanes: Lane[];
+  /** Drawn under the menu; `at` says which item has the remote. */
+  node: (at: (lane: string, i: number) => boolean) => ReactNode;
+};
+
 export function RowsScreen({
   tab,
   rows,
   heading,
   empty,
+  toolbar,
 }: {
   /** Path of the active tab; null — no menu (Back leaves the screen). */
   tab: string | null;
@@ -87,6 +95,8 @@ export function RowsScreen({
   heading?: ReactNode;
   /** Shown when there are no rows at all. */
   empty?: ReactNode;
+  /** Built with `focus`, to move the remote between the toolbar's lanes. */
+  toolbar?: (focus: (lane: string, col?: number) => void) => Toolbar;
 }) {
   // Rows still loading stay in the list (empty), so focus can wait for the
   // first one instead of settling on the menu.
@@ -97,6 +107,8 @@ export function RowsScreen({
     0,
     TABS.findIndex((t) => t.to === tab),
   );
+  const focusRef = useRef<(lane: string, col?: number) => void>(() => {});
+  const bar = toolbar?.((lane, col) => focusRef.current(lane, col));
   const lanes: Lane[] = [
     ...(tab === null
       ? []
@@ -109,6 +121,7 @@ export function RowsScreen({
             },
           },
         ]),
+    ...(bar?.lanes ?? []),
     ...rows.map((row) => ({
       key: row.key,
       size: row.cards.length,
@@ -123,6 +136,7 @@ export function RowsScreen({
     cols: { tabs: tabIndex },
     remember: screenKey(location.pathname),
   });
+  focusRef.current = nav.focus;
   const onTabs = nav.lane === "tabs";
   const rowIndex = shown.findIndex((r) => r.key === nav.lane);
   const focusedRow = shown[rowIndex] ?? shown[0];
@@ -135,13 +149,18 @@ export function RowsScreen({
   const imdb = hero ? cachedRating(hero.type, hero.id).imdb : null;
   return (
     <Stage screen={tab ?? undefined}>
-      <Backdrop path={hero?.backdrop} />
+      <Backdrop path={shown.length ? hero?.backdrop : null} />
       {tab !== null ? (
         <Tabs active={tab} focus={onTabs ? nav.col("tabs") : null} />
       ) : null}
-      <div className="absolute left-12 top-[84px] w-[540px]">
+      {bar
+        ? bar.node((lane, i) => nav.lane === lane && nav.col(lane) === i)
+        : null}
+      <div
+        className={`absolute left-12 w-[540px] ${bar ? "top-[132px]" : "top-[84px]"}`}
+      >
         {heading}
-        {hero ? (
+        {hero && shown.length ? (
           <div key={`${hero.type}-${hero.id}`} className="tv-fade">
             <h1 className="line-clamp-2 text-[34px] leading-[1.1] tracking-tight">
               {hero.title}
@@ -150,7 +169,9 @@ export function RowsScreen({
               {metaLine(hero, imdb)}
             </p>
             {hero.overview ? (
-              <p className="mt-3 line-clamp-3 text-[15px] leading-snug text-white/80">
+              <p
+                className={`mt-3 text-[15px] leading-snug text-white/80 ${bar ? "line-clamp-2" : "line-clamp-3"}`}
+              >
                 {hero.overview}
               </p>
             ) : null}

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAsync } from "../components";
 import { FEEDS, loadFeedPage, type FeedId } from "../lib/feeds";
@@ -13,6 +13,17 @@ import { byCatalogRank } from "../lib/rank";
 import { useAppState, type LibraryItem } from "../state";
 import { cardsOf, fromLibrary, type CardRow } from "./cards";
 import { RowsScreen } from "./RowsScreen";
+import { Pill } from "./ui";
+import { useTvBack } from "../components/TvFocus";
+import { useLibraryMeta } from "../lib/meta";
+import {
+  DECADES,
+  RATING_BANDS,
+  SORTS,
+  filterCollection,
+  genresOf,
+  type CollectionFilters,
+} from "../lib/collection";
 
 const recent = (a: LibraryItem, b: LibraryItem) => b.updatedAt - a.updatedAt;
 
@@ -105,13 +116,81 @@ export function TvHome() {
   );
 }
 
-/** Коллекция: the library as rows by status. */
+type Filters = Omit<CollectionFilters, "q" | "status">;
+
+const NO_FILTERS: Filters = {
+  type: "all",
+  genre: "",
+  rating: "all",
+  decade: "all",
+  sort: "recent",
+};
+
+/** The filters stay while the app is open, like on a TV's own screens. */
+let kept: Filters = NO_FILTERS;
+
+type Group = {
+  key: keyof Filters;
+  label: string;
+  options: Array<{ id: string; label: string }>;
+};
+
+/** Коллекция: the library as rows by status, with filters on top. */
 export function TvCollection() {
   const { items } = useAppState();
-  const by = (status: LibraryItem["status"]) =>
-    items.filter((x) => x.status === status).sort(recent);
-  const rows: CardRow[] = useMemo(
-    () => [
+  const { meta } = useLibraryMeta(items);
+  const [filters, setFilters] = useState<Filters>(kept);
+  const [open, setOpen] = useState<keyof Filters | null>(null);
+  const genres = useMemo(() => genresOf(items, meta), [items, meta]);
+
+  const groups: Group[] = [
+    {
+      key: "type",
+      label: "Тип",
+      options: [
+        { id: "all", label: "Фильмы и сериалы" },
+        { id: "movie", label: "Фильмы" },
+        { id: "tv", label: "Сериалы" },
+      ],
+    },
+    {
+      key: "genre",
+      label: "Жанр",
+      options: [
+        { id: "", label: "Все жанры" },
+        ...genres.map((g) => ({ id: g, label: g })),
+      ],
+    },
+    { key: "rating", label: "Оценка", options: RATING_BANDS },
+    { key: "decade", label: "Годы", options: DECADES },
+    { key: "sort", label: "Порядок", options: SORTS },
+  ];
+  /** Short labels for the chips; the full ones are in the list of choices. */
+  const SHORT: Partial<Record<keyof Filters, string>> = {
+    type: "все",
+    genre: "все",
+    rating: "любая",
+    decade: "любые",
+    sort: "недавние",
+  };
+  const valueOf = (g: Group) => {
+    if (filters[g.key] === NO_FILTERS[g.key]) return SHORT[g.key];
+    const label = g.options.find((o) => o.id === filters[g.key])?.label ?? "";
+    return g.key === "sort"
+      ? label.replace(/^По |^Сначала /, "").toLowerCase()
+      : label;
+  };
+  const openGroup = groups.find((g) => g.key === open);
+
+  const rows: CardRow[] = useMemo(() => {
+    const list = filterCollection(
+      items,
+      { ...filters, q: "", status: "all" },
+      meta,
+    );
+    const by = (status: LibraryItem["status"]) =>
+      list.filter((x) => x.status === status);
+    return [
       {
         key: "watching",
         title: "Смотрю",
@@ -139,15 +218,129 @@ export function TvCollection() {
         title: "Брошено",
         cards: by("dropped").map((x) => fromLibrary(x)),
       },
-    ],
-    [items],
-  );
+    ];
+  }, [items, meta, filters]);
+
+  const filtered = JSON.stringify(filters) !== JSON.stringify(NO_FILTERS);
+  // Back with a list of options open closes it first.
+  useTvBack(open !== null, () => setOpen(null));
+
   return (
     <RowsScreen
       tab="/library"
       rows={rows}
-      empty="Коллекция пока пуста. Открой фильм и нажми «Хочу посмотреть»."
+      empty={
+        filtered
+          ? "Под эти фильтры ничего нет. Поменяй их наверху."
+          : "Коллекция пока пуста. Открой фильм и нажми «Хочу посмотреть»."
+      }
+      toolbar={(focus) => ({
+        lanes: [
+          {
+            key: "filters",
+            size: groups.length + (filtered ? 1 : 0),
+            onSelect: (i) => {
+              const g = groups[i];
+              if (!g) {
+                kept = NO_FILTERS;
+                setFilters(NO_FILTERS);
+                return;
+              }
+              setOpen(g.key);
+              focus(
+                "options",
+                Math.max(
+                  0,
+                  g.options.findIndex((o) => o.id === filters[g.key]),
+                ),
+              );
+            },
+          },
+          {
+            key: "options",
+            size: openGroup?.options.length ?? 0,
+            onSelect: (i) => {
+              const option = openGroup?.options[i];
+              if (!openGroup || !option) return;
+              const next = { ...filters, [openGroup.key]: option.id };
+              kept = next;
+              setFilters(next);
+              setOpen(null);
+              focus(
+                "filters",
+                groups.findIndex((g) => g.key === openGroup.key),
+              );
+            },
+          },
+        ],
+        node: (at) => (
+          <div className="absolute inset-x-0 top-[66px] z-10">
+            <div data-lane="filters" className="flex gap-2 px-12">
+              {groups.map((g, i) => {
+                const changed = filters[g.key] !== NO_FILTERS[g.key];
+                return (
+                  <Pill key={g.key} focused={at("filters", i)}>
+                    <span className="text-[13px] opacity-60">{g.label}:</span>
+                    <span
+                      className={
+                        changed && !at("filters", i) ? "text-accent" : ""
+                      }
+                    >
+                      {valueOf(g)}
+                    </span>
+                  </Pill>
+                );
+              })}
+              {filtered ? (
+                <Pill focused={at("filters", groups.length)}>Сбросить</Pill>
+              ) : null}
+            </div>
+            {openGroup ? (
+              <div className="tv-rise mt-2 bg-black/70 py-2">
+                <div className="-mx-0 overflow-hidden">
+                  <OptionRail
+                    options={openGroup.options}
+                    current={filters[openGroup.key]}
+                    at={at}
+                  />
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ),
+      })}
     />
+  );
+}
+
+/** The open filter's choices, the chosen one in the accent colour. */
+function OptionRail({
+  options,
+  current,
+  at,
+}: {
+  options: Array<{ id: string; label: string }>;
+  current: string;
+  at: (lane: string, i: number) => boolean;
+}) {
+  const col = Math.max(
+    0,
+    options.findIndex((_, i) => at("options", i)),
+  );
+  // Long lists (genres) slide so the focused choice stays in view.
+  const shift = Math.max(0, col - 4) * 150;
+  return (
+    <div
+      data-lane="options"
+      className="flex gap-2 px-12 transition-transform duration-200"
+      style={{ transform: `translate3d(${-shift}px,0,0)` }}
+    >
+      {options.map((o, i) => (
+        <Pill key={o.id} focused={at("options", i)} accent={o.id === current}>
+          {o.label}
+        </Pill>
+      ))}
+    </div>
   );
 }
 

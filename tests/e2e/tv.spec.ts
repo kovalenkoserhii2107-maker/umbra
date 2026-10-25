@@ -246,9 +246,26 @@ test("TV: home rows, the title behind a poster, Back to it, the collection", asy
     page.getByText("Хочу посмотреть", { exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Дюна");
+
+  // Filters: up to them, «Тип» → «Сериалы» hides the film; «Сбросить» brings it back.
+  await press(page, "ArrowUp");
+  expect(await onScreen(page)).toBe("Тип:все");
+  await press(page, "Enter");
+  expect(await onScreen(page)).toBe("Фильмы и сериалы");
+  await press(page, "ArrowRight", "ArrowRight", "Enter");
+  expect(await onScreen(page)).toBe("Тип:Сериалы");
+  await expect(
+    page.getByText("Под эти фильтры ничего нет.", { exact: false }),
+  ).toBeVisible();
+  for (let i = 0; i < 5; i++) await press(page, "ArrowRight");
+  expect(await onScreen(page)).toBe("Сбросить");
+  await press(page, "Enter");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Дюна");
+  await press(page, "ArrowDown");
+
   // Back from a row goes to the menu first (the app then leaves).
   expect(await page.evaluate(() => (window as any).umbraTvBack())).toBe(true);
-  expect(await onScreen(page)).toBe("Коллекция");
+  await expect.poll(() => onScreen(page)).toBe("Коллекция");
   expect(await page.evaluate(() => (window as any).umbraTvBack())).toBe(false);
 });
 

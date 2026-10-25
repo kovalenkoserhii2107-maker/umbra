@@ -224,13 +224,28 @@ test("TV evening with Claude: questions fly into the trail, picks are dealt, «�
   await press(page, "ArrowRight", "Enter");
   await expect(page.getByText("✓ В «Хочу посмотреть»")).toBeVisible();
 
+  // «Смотрел» asks for a score right away, starting from 5.
+  const seen = await page.getByRole("heading", { level: 1 }).textContent();
+  await press(page, "ArrowRight");
+  expect(await onScreen(page)).toBe("✓ Смотрел");
+  await press(page, "Enter");
+  await expect(page.getByText(`Как тебе «${seen}»?`)).toBeVisible();
+  expect(await onScreen(page)).toBe("5");
+  await press(page, "ArrowRight", "ArrowRight", "ArrowRight");
+  expect(await onScreen(page)).toBe("8");
+  await press(page, "Enter");
+  await expect(page.getByRole("heading", { level: 1 })).not.toHaveText(seen!);
+
   // More: the next round goes to Claude with what was shown.
-  await press(page, "ArrowDown");
+  await press(page, "ArrowDown", "ArrowDown");
   expect(await onScreen(page)).toBe("Ещё варианты");
   await press(page, "Enter");
   await expect.poll(() => asked.length).toBe(6);
   expect(asked[5].stage).toBe("pick");
   expect(JSON.stringify(asked[5].steps)).toContain('"verdict":"disliked"');
+  expect(JSON.stringify(asked[5].steps)).toContain(
+    '"verdict":"seen","rating":8',
+  );
 });
 
 test("TV quick evening: four questions, Back goes to the previous one, picks are shown", async ({

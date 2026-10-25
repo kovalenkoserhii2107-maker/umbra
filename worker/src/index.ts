@@ -24,6 +24,12 @@ import {
   steamProfile,
 } from "./steamUser";
 import { topGames } from "./twitch";
+import {
+  durableDevices,
+  listDevices,
+  openOnTv,
+  registerDevice,
+} from "./tvRemote";
 import { customToken, parseServiceAccount } from "./customToken";
 import {
   answerCode,
@@ -34,6 +40,7 @@ import {
 } from "./tvLogin";
 
 export { TvPairing } from "./tvLogin";
+export { TvRemote } from "./tvRemote";
 
 function origins(env: Env) {
   return (env.ALLOWED_ORIGINS || "")
@@ -304,6 +311,28 @@ async function route(
       ),
     );
 
+  // Commands from the phone to the account's TVs (tvRemote.ts).
+  if (path === "/tv/device" && request.method === "POST") {
+    const user = await signedIn(request, deps);
+    return json(
+      await registerDevice(
+        deps,
+        user.uid,
+        await request.json().catch(() => null),
+      ),
+    );
+  }
+  if (path === "/tv/devices" && request.method === "GET") {
+    const user = await signedIn(request, deps);
+    return json(await listDevices(deps, user.uid));
+  }
+  if (path === "/tv/open" && request.method === "POST") {
+    const user = await signedIn(request, deps);
+    return json(
+      await openOnTv(deps, user.uid, await request.json().catch(() => null)),
+    );
+  }
+
   if (path === "/ai/tonight" && request.method === "POST") {
     if (!deps.env.ANTHROPIC_API_KEY)
       throw new ApiError(503, "ai_not_configured", "No ANTHROPIC_API_KEY");
@@ -389,6 +418,7 @@ export default {
     return handle(request, {
       env,
       pairing: env.TV_PAIRING ? durableStore(env.TV_PAIRING) : undefined,
+      devices: env.TV_REMOTE ? durableDevices(env.TV_REMOTE) : undefined,
       fetch: (input, init) => fetch(input, init),
       cache: cache ?? null,
       now: () => Date.now(),

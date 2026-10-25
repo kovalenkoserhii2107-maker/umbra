@@ -78,6 +78,9 @@ class MainActivity : Activity() {
         web.webChromeClient = Chrome()
         voice = Voice(this) { state, text -> emit("voice", JSONObject().put("state", state).put("text", text)) }
         google = GoogleSignIn(this) { state, text -> emit("google", JSONObject().put("state", state).put("text", text)) }
+        // Токен push для команд с телефона: когда он готов, сайт регистрирует телевизор.
+        Remote.onToken = { runOnUiThread { emit("remote", JSONObject().put("state", "token").put("text", "")) } }
+        Remote.start()
 
         if (savedInstanceState == null || web.restoreState(savedInstanceState) == null) web.loadUrl(site.toString())
         web.requestFocus()
@@ -100,6 +103,7 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        Remote.onToken = null
         voice?.stop()
         google?.stop()
         web.destroy()

@@ -1,4 +1,5 @@
 import type { PairingStore } from "./tvLogin";
+import type { DeviceStore } from "./tvRemote";
 
 /** Bindings from wrangler.toml [vars] and the secrets set by the deploy workflow. */
 export type Env = {
@@ -32,6 +33,13 @@ export type Env = {
       fetch(url: string, init: RequestInit): Promise<Response>;
     };
   };
+  /** Durable Object namespace for each account's TVs (tvRemote.ts). */
+  TV_REMOTE?: {
+    idFromName(name: string): unknown;
+    get(id: unknown): {
+      fetch(url: string, init: RequestInit): Promise<Response>;
+    };
+  };
   /**
    * Local development only (worker/.dev.vars): accept the Firebase Auth
    * emulator's unsigned tokens. Never set in wrangler.toml.
@@ -49,6 +57,8 @@ export type Deps = {
   env: Env;
   /** TV sign-in codes; missing when the namespace is not bound. */
   pairing?: PairingStore;
+  /** Each account's TVs for commands from the phone; missing when not bound. */
+  devices?: DeviceStore;
   fetch: typeof fetch;
   cache: CacheLike | null;
   now: () => number;

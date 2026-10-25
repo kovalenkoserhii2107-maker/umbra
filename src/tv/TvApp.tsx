@@ -1,8 +1,11 @@
-import { lazy, Suspense, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { RequireAccount } from "../components/RequireAccount";
 import { FriendsIndexProvider } from "../components/FriendsIndex";
 import { UpdatePrompt } from "../components/UpdatePrompt";
+import { tvRegister, type TvRemoteInfo } from "../lib/api";
+import { idToken, useAuth } from "../lib/auth";
+import { onTvEvent, tvBridge } from "../lib/tvMode";
 import { useTvScreenFocus } from "../components/TvFocus";
 import { Tabs } from "./ui";
 import { TvCollection, TvHome, TvPerson } from "./screens";
@@ -52,7 +55,42 @@ function TvBare({ children }: { children: ReactNode }) {
 }
 
 /** The TV app: its own screens for the remote; the site keeps its pages. */
+/**
+ * This TV, signed in, can be reached from the phone («На телевизоре в
+ * Lampa»): the app's push token goes to the worker, again when it changes.
+ */
+function useRemoteRegistration() {
+  const { account } = useAuth();
+  const uid = account?.sub;
+  useEffect(() => {
+    if (!uid) return;
+    let sent = "";
+    const register = () => {
+      let info: TvRemoteInfo;
+      try {
+        info = JSON.parse(tvBridge()?.remoteInfo?.() || "{}");
+      } catch {
+        return;
+      }
+      if (!info.token || !info.id) return;
+      const key = JSON.stringify(info);
+      if (key === sent) return;
+      sent = key;
+      void idToken()
+        .then((token) => tvRegister(info, token))
+        .catch(() => {
+          sent = "";
+        });
+    };
+    register();
+    return onTvEvent((e) => {
+      if (e.type === "remote") register();
+    });
+  }, [uid]);
+}
+
 export default function TvApp() {
+  useRemoteRegistration();
   return (
     <>
       {/* New versions of the site apply by themselves on the TV. */}

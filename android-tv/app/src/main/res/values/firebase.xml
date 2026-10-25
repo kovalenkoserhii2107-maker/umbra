@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Firebase-проект Umbra (то, что генерирует плагин google-services): push-команды с телефона. -->
+<resources>
+    <string name="google_app_id" translatable="false">1:930734450482:android:b7815c9f902963e946992b</string>
+    <string name="gcm_defaultSenderId" translatable="false">930734450482</string>
+    <string name="google_api_key" translatable="false">AIzaSyB937mD56i2frR986FrWSJmm9EgWWOZ0uI</string>
+    <string name="project_id" translatable="false">umbra-18ba8</string>
+</resources>

@@ -30,6 +30,7 @@ import {
 } from "../lib/titleFacts";
 import { CollectionMark } from "../components/CollectionMark";
 import { ShareButton } from "../components/ShareButton";
+import { SendToTv } from "../components/SendToTv";
 import { useAuth } from "../lib/auth";
 import { loadFriendsOn, useFriendList } from "../lib/friends";
 import { Avatar, byInterest, sharedStatus } from "../components/FriendsIndex";
@@ -402,7 +403,9 @@ export function TitlePage() {
               offers={region}
               videos={sortedVideos(item.videos?.results)}
             />
-          ) : null}
+          ) : (
+            <SendToTv type={media} id={item.id} />
+          )}
         </div>
       </header>
 

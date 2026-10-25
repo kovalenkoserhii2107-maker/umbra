@@ -4,6 +4,10 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Голосовой поиск с микрофона пульта (SpeechRecognizer); спрашивается при первом нажатии -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- «На телевизоре в Lampa» с телефона: открыть Lampa, когда Umbra в фоне
+         (Android 10+ иначе не даёт). Выдаётся в настройках или через adb:
+         appops set app.umbra.tv SYSTEM_ALERT_WINDOW allow -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <!-- Телевизор без тачскрина; leanback не обязателен — ставится и на обычный Android -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
@@ -53,5 +57,21 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Команды с телефона (Remote.kt): push → разбудить экран → Lampa. -->
+        <service
+            android:name=".PushService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <activity
+            android:name=".RemoteOpenActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
     </application>
 </manifest>

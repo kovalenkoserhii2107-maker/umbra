@@ -43,6 +43,22 @@ Release подписывается постоянным ключом (сейча
 
 Баннер и иконки генерируются из `public/brand-mark.webp` (macOS): `swift android-tv/tools/make-art.swift` из корня репозитория.
 
+## Команды с телефона: «На телевизоре в Lampa»
+
+На странице фильма или сериала на телефоне есть кнопка «На телевизоре в Lampa». Она открывает этот фильм в Lampa на телевизоре того же аккаунта, даже если Umbra закрыта, а телевизор спит.
+
+1. Приложение получает push-токен Firebase (FCM, `Remote.kt`). Сайт на телевизоре после входа отправляет его воркеру (`POST /tv/device`), и воркер хранит телевизоры аккаунта в Durable Object `TvRemote` (`worker/src/tvRemote.ts`).
+2. Телефон вызывает `POST /tv/open {type, id}`. Воркер отправляет телевизорам аккаунта, на которых есть Lampa, push `{action: "lampa", type, id}`. Ничего другого так передать нельзя.
+3. `PushService` получает push и запускает `RemoteOpenActivity`. Она будит экран (`setTurnScreenOn`) и открывает карточку в Lampa по адресу themoviedb.org.
+
+Android 10+ разрешает приложению в фоне открывать окна только с разрешением «Поверх других приложений». На телевизоре его выдают один раз в настройках или через adb:
+
+```sh
+adb shell appops set app.umbra.tv SYSTEM_ALERT_WINDOW allow
+```
+
+Настройки Firebase-проекта лежат в `app/src/main/res/values/firebase.xml`; плагин google-services не нужен. Push отправляет воркер от имени сервисного аккаунта `FIREBASE_SERVICE_ACCOUNT`.
+
 ## Релизы
 
 `.github/workflows/android-tv.yml` собирает APK на каждый PR с изменениями в `android-tv/` (файл — в артефактах запуска). При слиянии в `main` выпускает релиз `tv-1.0.<номер запуска>` с файлом `umbra-tv.apk`. Постоянная ссылка на свежую версию:

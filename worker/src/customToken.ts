@@ -8,7 +8,7 @@ import { ApiError } from "./http";
 const AUDIENCE =
   "https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit";
 
-type ServiceAccount = { client_email: string; private_key: string };
+export type ServiceAccount = { client_email: string; private_key: string };
 
 export function parseServiceAccount(json: string | undefined): ServiceAccount {
   try {
@@ -54,16 +54,30 @@ function signingKey(pem: string) {
   return key;
 }
 
+/** An RS256 JWT signed with the service account's key. */
+export async function signJwt(
+  account: ServiceAccount,
+  payload: Record<string, unknown>,
+) {
+  const head = encodeJson({ alg: "RS256", typ: "JWT" });
+  const body = encodeJson(payload);
+  const signature = await crypto.subtle.sign(
+    "RSASSA-PKCS1-v1_5",
+    await signingKey(account.private_key),
+    new TextEncoder().encode(`${head}.${body}`),
+  );
+  return `${head}.${body}.${base64Url(new Uint8Array(signature))}`;
+}
+
 /** A one-hour custom token for `uid`; `claims` end up in the ID token. */
-export async function customToken(
+export function customToken(
   account: ServiceAccount,
   uid: string,
   now: number,
   claims: Record<string, unknown> = {},
 ) {
   const iat = Math.floor(now / 1000);
-  const head = encodeJson({ alg: "RS256", typ: "JWT" });
-  const body = encodeJson({
+  return signJwt(account, {
     iss: account.client_email,
     sub: account.client_email,
     aud: AUDIENCE,
@@ -72,10 +86,4 @@ export async function customToken(
     uid,
     claims,
   });
-  const signature = await crypto.subtle.sign(
-    "RSASSA-PKCS1-v1_5",
-    await signingKey(account.private_key),
-    new TextEncoder().encode(`${head}.${body}`),
-  );
-  return `${head}.${body}.${base64Url(new Uint8Array(signature))}`;
 }

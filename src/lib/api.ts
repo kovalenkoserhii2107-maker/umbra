@@ -105,6 +105,28 @@ export const tvAnswer = async (
     post({ code, approve }, bearer(token)),
   );
 
+// ---- «На телевизоре в Lampa» (worker/src/tvRemote.ts) ----
+
+/** What the TV app tells about itself (window.UmbraTV.remoteInfo). */
+export type TvRemoteInfo = {
+  token: string;
+  id: string;
+  device: string;
+  lampa: boolean;
+  background: boolean;
+};
+export type TvDevice = Omit<TvRemoteInfo, "token">;
+
+export const tvRegister = (info: TvRemoteInfo, token: string | null) =>
+  call<{ devices: number }>("/tv/device", post(info, bearer(token)));
+export const tvDevices = (token: string | null) =>
+  call<{ devices: TvDevice[] }>("/tv/devices", { headers: bearer(token) });
+export const tvOpen = (
+  type: "movie" | "tv",
+  id: number,
+  token: string | null,
+) => call<{ sent: number }>("/tv/open", post({ type, id }, bearer(token)));
+
 const memory = new Map<string, { until: number; value: Promise<unknown> }>();
 
 /** IGDB query through the worker; identical queries share one request for 10 min. */

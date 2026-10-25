@@ -41,6 +41,13 @@ class TvBridge(private val activity: MainActivity) {
         return ExternalLinks.launch(activity, slug, query)
     }
 
+    /** Для команд с телефона: токен push, id и модель телевизора, Lampa, запуск из фона. */
+    @JavascriptInterface
+    fun remoteInfo(): String {
+        if (!activity.isTrustedPage) return "{}"
+        return Remote.info(activity)
+    }
+
     @JavascriptInterface
     fun voiceAvailable(): Boolean = activity.voiceAvailable
 

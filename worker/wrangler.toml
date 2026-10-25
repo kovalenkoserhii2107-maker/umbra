@@ -26,3 +26,12 @@ class_name = "TvPairing"
 [[migrations]]
 tag = "tv-pairing"
 new_sqlite_classes = ["TvPairing"]
+
+# Each account's TVs for «На телевизоре в Lampa» (worker/src/tvRemote.ts).
+[[durable_objects.bindings]]
+name = "TV_REMOTE"
+class_name = "TvRemote"
+
+[[migrations]]
+tag = "tv-remote"
+new_sqlite_classes = ["TvRemote"]

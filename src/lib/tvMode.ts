@@ -73,6 +73,8 @@ type Bridge = {
   startVoice(language: string): void;
   /** Since the sign-in update of the app; older versions lack it. */
   googleSignIn?(): void;
+  /** Since «На телевизоре в Lampa»: JSON of TvRemoteInfo. */
+  remoteInfo?(): string;
   stopVoice(): void;
 };
 
@@ -136,11 +138,17 @@ export function launchTvApp(app: TvApp, title: string) {
   tvBridge()?.launchApp(app, title);
 }
 
-/** Events from the app: voice input and Google sign-in. */
+/** Events from the app: voice input, Google sign-in, the push token. */
 export type TvEvent =
   | {
       type: "voice";
       state: "listening" | "partial" | "result" | "error" | "end";
+      text: string;
+    }
+  | {
+      /** The push token is ready: the TV can be registered for the phone. */
+      type: "remote";
+      state: "token";
       text: string;
     }
   | {

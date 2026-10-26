@@ -46,6 +46,7 @@ async function bridge(context: BrowserContext) {
         setTimeout(() => send("end", ""), 350);
       },
       stopVoice: () => calls.push(["stopVoice"]),
+      exitApp: () => calls.push(["exit"]),
     };
   });
 }
@@ -325,10 +326,26 @@ test("TV: home rows, the title behind a poster, Back to it, the collection", asy
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Дюна");
   await press(page, "ArrowDown");
 
-  // Back from a row goes to the menu first (the app then leaves).
-  expect(await page.evaluate(() => (window as any).umbraTvBack())).toBe(true);
+  // Back from a row goes to the menu first; from another tab — to «Лента»,
+  // never out of the app.
+  const back = () => page.evaluate(() => (window as any).umbraTvBack());
+  expect(await back()).toBe(true);
   await expect.poll(() => onScreen(page)).toBe("Коллекция");
-  expect(await page.evaluate(() => (window as any).umbraTvBack())).toBe(false);
+  expect(await back()).toBe(true);
+  await expect(page).toHaveURL(/#\/$/);
+  await expect.poll(() => onScreen(page)).toBe("Лента");
+  // On «Лента»: the first Back says how to leave, a second one soon closes.
+  const exits = () =>
+    page.evaluate(() =>
+      (window as any).__calls.filter((c: string[]) => c[0] === "exit"),
+    );
+  expect(await back()).toBe(true);
+  await expect(
+    page.getByText("Нажмите «Назад» ещё раз, чтобы выйти"),
+  ).toBeVisible();
+  expect(await exits()).toHaveLength(0);
+  expect(await back()).toBe(true);
+  expect(await exits()).toHaveLength(1);
 });
 
 test("TV: voice search through the app", async ({ page, context }) => {

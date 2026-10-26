@@ -68,6 +68,13 @@ class TvBridge(private val activity: MainActivity) {
         main.post { if (activity.isTrustedPage) activity.googleSignIn() }
     }
 
+    /** Закрыть приложение: сайт решает когда («Назад» дважды на «Ленте»). */
+    @JavascriptInterface
+    fun exitApp() {
+        if (!activity.isTrustedPage) return
+        main.post { if (activity.isTrustedPage) activity.finish() }
+    }
+
     @JavascriptInterface
     fun stopVoice() {
         if (!activity.isTrustedPage) return

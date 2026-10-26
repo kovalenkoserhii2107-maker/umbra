@@ -30,6 +30,7 @@ import {
   listDevices,
   openOnTv,
   registerDevice,
+  unregisterDevice,
 } from "./tvRemote";
 import { customToken, parseServiceAccount } from "./customToken";
 import {
@@ -321,6 +322,16 @@ async function route(
     const user = await signedIn(request, deps);
     return json(
       await registerDevice(
+        deps,
+        user.uid,
+        await request.json().catch(() => null),
+      ),
+    );
+  }
+  if (path === "/tv/device/remove" && request.method === "POST") {
+    const user = await signedIn(request, deps);
+    return json(
+      await unregisterDevice(
         deps,
         user.uid,
         await request.json().catch(() => null),

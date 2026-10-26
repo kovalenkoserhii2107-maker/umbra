@@ -3,6 +3,13 @@ import { ApiError } from "./http";
 
 const OPENID = "https://steamcommunity.com/openid/login";
 const CLAIMED = /^https:\/\/steamcommunity\.com\/openid\/id\/(\d{17})$/;
+const REQUIRED_SIGNED = [
+  "op_endpoint",
+  "claimed_id",
+  "identity",
+  "return_to",
+  "response_nonce",
+];
 
 /**
  * Confirms a Steam sign-in. Steam sends the browser back to the app with
@@ -29,6 +36,18 @@ export async function verifySteamLogin(
   const match = (p["openid.claimed_id"] || "").match(CLAIMED);
   if (!match || p["openid.identity"] !== p["openid.claimed_id"])
     throw new ApiError(400, "steam_invalid", "No Steam account in the answer");
+  const signed = new Set(
+    (p["openid.signed"] || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+  );
+  if (
+    !p["openid.sig"] ||
+    !p["openid.response_nonce"] ||
+    REQUIRED_SIGNED.some((field) => !signed.has(field))
+  )
+    throw new ApiError(400, "steam_invalid", "Incomplete OpenID signature");
   let returnOrigin = "";
   try {
     returnOrigin = new URL(p["openid.return_to"] || "").origin;

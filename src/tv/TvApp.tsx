@@ -3,8 +3,8 @@ import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { RequireAccount } from "../components/RequireAccount";
 import { FriendsIndexProvider } from "../components/FriendsIndex";
 import { UpdatePrompt } from "../components/UpdatePrompt";
-import { tvRegister, type TvRemoteInfo } from "../lib/api";
-import { idToken, useAuth } from "../lib/auth";
+import { tvRegister, tvUnregister, type TvRemoteInfo } from "../lib/api";
+import { idToken, onBeforeSignOut, useAuth } from "../lib/auth";
 import { onTvEvent, tvBridge } from "../lib/tvMode";
 import { useTvScreenFocus } from "../components/TvFocus";
 import { Tabs } from "./ui";
@@ -65,17 +65,23 @@ function useRemoteRegistration() {
   useEffect(() => {
     if (!uid) return;
     let sent = "";
-    const register = () => {
-      let info: TvRemoteInfo;
+    let registeredId = "";
+    const readInfo = (): TvRemoteInfo | null => {
       try {
-        info = JSON.parse(tvBridge()?.remoteInfo?.() || "{}");
+        return JSON.parse(
+          tvBridge()?.remoteInfo?.() || "null",
+        ) as TvRemoteInfo | null;
       } catch {
-        return;
+        return null;
       }
-      if (!info.token || !info.id) return;
+    };
+    const register = () => {
+      const info = readInfo();
+      if (!info?.token || !info.id) return;
       const key = JSON.stringify(info);
       if (key === sent) return;
       sent = key;
+      registeredId = info.id;
       void idToken()
         .then((token) => tvRegister(info, token))
         .catch(() => {
@@ -83,9 +89,19 @@ function useRemoteRegistration() {
         });
     };
     register();
-    return onTvEvent((e) => {
+    const stopEvent = onTvEvent((e) => {
       if (e.type === "remote") register();
     });
+    const stopSignOut = onBeforeSignOut(async () => {
+      const id = registeredId || readInfo()?.id;
+      if (!id) return;
+      const token = await idToken();
+      if (token) await tvUnregister(id, token).catch(() => undefined);
+    });
+    return () => {
+      stopEvent();
+      stopSignOut();
+    };
   }, [uid]);
 }
 

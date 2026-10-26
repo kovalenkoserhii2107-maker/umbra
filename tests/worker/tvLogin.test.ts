@@ -3,8 +3,10 @@ import { handle } from "../../worker/src/index";
 import {
   CODE_RE,
   CODE_TTL,
+  TvPairing,
   applyPairing,
   newCode,
+  takeToken,
   type Pairing,
   type PairingOp,
   type PairingStore,
@@ -386,5 +388,87 @@ describe("TV sign-in API", () => {
     const token = (await local.send("/tv/token", tv)).data.token;
     expect(token.endsWith(".")).toBe(true);
     expect(claimsOf(token).uid).toBe("emulated");
+  });
+
+  it("resets the cleanup alarm when replacing an expired code and keeps approved codes if minting fails", async () => {
+    const data = new Map<string, unknown>();
+    const alarms: number[] = [];
+    const doInstance = new TvPairing({
+      storage: {
+        async get<T>(key: string) {
+          return data.get(key) as T | undefined;
+        },
+        async put<T>(key: string, value: T) {
+          data.set(key, value);
+        },
+        async deleteAll() {
+          data.clear();
+        },
+        async setAlarm(time: number) {
+          alarms.push(time);
+        },
+      },
+    });
+    const runDo = (op: PairingOp) =>
+      doInstance.fetch(
+        new Request("https://tv-pairing/run", {
+          method: "POST",
+          body: JSON.stringify(op),
+        }),
+      );
+    await runDo({ op: "create", secretHash: "h1", device: "TV 1" });
+    expect(alarms).toHaveLength(1);
+    // Simulate the 60 s window where the first code expired before its alarm fired.
+    data.set("pairing", {
+      ...(data.get("pairing") as Pairing),
+      expiresAt: Date.now() - 1_000,
+    });
+    const recreated = await (
+      await runDo({ op: "create", secretHash: "h2", device: "TV 2" })
+    ).json();
+    expect(recreated).toEqual({ ok: true, status: "pending" });
+    expect(alarms).toHaveLength(2);
+    expect(alarms[1]).toBeGreaterThan(Date.now() + CODE_TTL);
+
+    // A transient mint failure must not burn an approved code.
+    const clock = { now: NOW };
+    const pairing = memoryStore(clock);
+    const deps: Deps = {
+      env: {},
+      pairing,
+      cache: memoryCache(),
+      now: () => clock.now,
+      waitUntil: () => undefined,
+      fetch,
+    };
+    const secret = "s".repeat(43);
+    const hashBuf = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(secret),
+    );
+    const secretHash = [...new Uint8Array(hashBuf)]
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    await pairing("ABCDEFGH").run({
+      op: "create",
+      secretHash,
+      device: "BRAVIA",
+    });
+    await pairing("ABCDEFGH").run({
+      op: "answer",
+      approve: true,
+      uid: "u1",
+    });
+    await expect(
+      takeToken(deps, { code: "ABCDEFGH", secret }, async () => {
+        throw new Error("mint failed");
+      }),
+    ).rejects.toThrow("mint failed");
+    await expect(
+      takeToken(deps, { code: "ABCDEFGH", secret }, async (u) => `tok:${u}`),
+    ).resolves.toEqual({ status: "approved", token: "tok:u1" });
+    await expect(
+      takeToken(deps, { code: "ABCDEFGH", secret }, async (u) => `tok:${u}`),
+    ).resolves.toEqual({ status: "used" });
   });
 });

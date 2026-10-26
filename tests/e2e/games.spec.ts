@@ -740,9 +740,20 @@ test("Steam sign-in imports the library, wishlist, play time and achievements", 
     "href",
     /steamcommunity\.com\/openid\/login\?.*return_to=http%3A%2F%2F127\.0\.0\.1%3A5187%2Fumbra%2F%3Fsteam%3D1/,
   );
-  // Steam sends the browser back to the site root with openid.* parameters.
+  // An unsolicited OpenID callback without the tab's state token is ignored.
   await page.goto(
     "http://127.0.0.1:5187/umbra/?steam=1&openid.mode=id_res&openid.claimed_id=https%3A%2F%2Fsteamcommunity.com%2Fopenid%2Fid%2F76561198000000001&openid.sig=x",
+  );
+  await expect(page).toHaveURL(/\/umbra\/#\/settings$/);
+  await expect(page.getByText("Steam · Geralt")).toHaveCount(0);
+
+  // Steam sends the browser back to openid.return_to with openid.* parameters.
+  const steamHref = (await page
+    .getByRole("link", { name: "Войти через Steam" })
+    .getAttribute("href"))!;
+  const returnTo = new URL(steamHref).searchParams.get("openid.return_to")!;
+  await page.goto(
+    `${returnTo}&openid.mode=id_res&openid.claimed_id=https%3A%2F%2Fsteamcommunity.com%2Fopenid%2Fid%2F76561198000000001&openid.sig=x`,
   );
   await expect(page).toHaveURL(/\/umbra\/#\/settings$/);
   await expect(page.getByText("Steam · Geralt")).toBeVisible();

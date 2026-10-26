@@ -15,7 +15,7 @@ class TvBridge(private val activity: MainActivity) {
     private val main = Handler(Looper.getMainLooper())
 
     @JavascriptInterface
-    fun version(): String = BuildConfig.VERSION_NAME
+    fun version(): String = if (activity.isTrustedPage) BuildConfig.VERSION_NAME else ""
 
     /** Какие стриминги установлены: {"youtube":true,"netflix":false,…}. */
     @JavascriptInterface
@@ -30,7 +30,7 @@ class TvBridge(private val activity: MainActivity) {
     @JavascriptInterface
     fun openExternal(url: String): Boolean {
         if (!activity.isTrustedPage) return false
-        main.post { activity.openExternal(url) }
+        main.post { if (activity.isTrustedPage) activity.openExternal(url) }
         return true
     }
 
@@ -38,7 +38,10 @@ class TvBridge(private val activity: MainActivity) {
     @JavascriptInterface
     fun launchApp(slug: String, query: String?): Boolean {
         if (!activity.isTrustedPage) return false
-        return ExternalLinks.launch(activity, slug, query)
+        val app = ExternalLinks.APPS.firstOrNull { it.slug == slug } ?: return false
+        if (ExternalLinks.installedPackage(activity, app) == null) return false
+        main.post { if (activity.isTrustedPage) ExternalLinks.launch(activity, slug, query) }
+        return true
     }
 
     /** Для команд с телефона: токен push, id и модель телевизора, Lampa, запуск из фона. */
@@ -49,24 +52,25 @@ class TvBridge(private val activity: MainActivity) {
     }
 
     @JavascriptInterface
-    fun voiceAvailable(): Boolean = activity.voiceAvailable
+    fun voiceAvailable(): Boolean = activity.isTrustedPage && activity.voiceAvailable
 
     /** Начать голосовой ввод; результат придёт событием `umbratv` (type: "voice"). */
     @JavascriptInterface
     fun startVoice(language: String?) {
         if (!activity.isTrustedPage) return
-        main.post { activity.startVoice(language) }
+        main.post { if (activity.isTrustedPage) activity.startVoice(language) }
     }
 
     /** Вход через Google-аккаунт телевизора; ответ — событие `umbratv` (type: "google"). */
     @JavascriptInterface
     fun googleSignIn() {
         if (!activity.isTrustedPage) return
-        main.post { activity.googleSignIn() }
+        main.post { if (activity.isTrustedPage) activity.googleSignIn() }
     }
 
     @JavascriptInterface
     fun stopVoice() {
+        if (!activity.isTrustedPage) return
         main.post { activity.stopVoice() }
     }
 }

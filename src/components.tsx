@@ -10,11 +10,7 @@ import {
 } from "./lib/tmdb";
 import { yearOf } from "./lib/format";
 import { premiereLabel } from "./lib/upcoming";
-import {
-  cachedRating,
-  ensureImdbRating,
-  subscribeRatings,
-} from "./lib/ratings";
+import { cachedRating, ensureImdbRating, subscribeRating } from "./lib/ratings";
 import { PLATFORMS } from "./lib/providers";
 import { SyncStatus } from "./components/SyncStatus";
 import { UpdatePrompt } from "./components/UpdatePrompt";
@@ -326,7 +322,10 @@ function Header() {
 
 export function RatingBadge({ type, id }: { type: MediaType; id: number }) {
   const [, setTick] = useState(0);
-  useEffect(() => subscribeRatings(() => setTick((n) => n + 1)), []);
+  useEffect(
+    () => subscribeRating(type, id, () => setTick((n) => n + 1)),
+    [type, id],
+  );
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const observer = new IntersectionObserver(

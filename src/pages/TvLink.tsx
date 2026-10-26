@@ -25,8 +25,7 @@ function problem(e: unknown) {
 }
 
 /** Typing the code by hand, when the QR cannot be scanned. */
-function CodeForm() {
-  const navigate = useNavigate();
+function CodeForm({ onSubmitCode }: { onSubmitCode: (code: string) => void }) {
   const [text, setText] = useState("");
   const code = clean(text);
   return (
@@ -34,7 +33,7 @@ function CodeForm() {
       className="mt-6 space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
-        if (code.length === 8) navigate(`/tv-link?code=${code}`);
+        if (code.length === 8) onSubmitCode(code);
       }}
     >
       <label className="block text-sm text-mute" htmlFor="tv-code">
@@ -67,10 +66,17 @@ function CodeForm() {
  * the person signed in here lets the TV into the same account, or refuses.
  */
 export function TvLinkPage() {
+  const navigate = useNavigate();
   const [params] = useSearchParams();
   const code = clean(params.get("code"));
   const { account } = useAuth();
+  const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<State>({ stage: "loading" });
+
+  function openCode(next: string) {
+    if (next === code) setAttempt((n) => n + 1);
+    else navigate(`/tv-link?code=${next}`);
+  }
 
   useEffect(() => {
     if (!code) return;
@@ -91,7 +97,7 @@ export function TvLinkPage() {
     return () => {
       alive = false;
     };
-  }, [code]);
+  }, [code, attempt]);
 
   async function answer(info: TvCodeInfo, approve: boolean) {
     setState({ stage: "sending", info, approve });
@@ -115,7 +121,7 @@ export function TvLinkPage() {
             Открой Umbra на телевизоре и отсканируй QR-код камерой телефона —
             или введи код с экрана.
           </p>
-          <CodeForm />
+          <CodeForm onSubmitCode={openCode} />
         </>
       ) : state.stage === "loading" ? (
         <p role="status" className="mt-8 text-sm text-mute">
@@ -176,7 +182,7 @@ export function TvLinkPage() {
           <p role="alert" className="text-accent">
             {state.message}
           </p>
-          <CodeForm />
+          <CodeForm onSubmitCode={openCode} />
         </div>
       )}
     </div>

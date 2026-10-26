@@ -262,7 +262,9 @@ export async function aiTonight(
     fetch: deps.fetch,
     // One attempt that ends before the app stops waiting (150 s): a retry
     // after a slow first try would bill an answer nobody sees. The app has
-    // "Повторить" for a quick second go.
+    // "Повторить" for a quick second go. (The 100 s cut-off, 524, is for
+    // Cloudflare proxying to an origin, not for a worker's own fetch; a
+    // careful pick can take longer than that.)
     maxRetries: 0,
     timeout: 135_000,
   });
@@ -302,6 +304,8 @@ export async function aiTonight(
       ],
     });
   } catch (error) {
+    if (error instanceof Anthropic.APIConnectionTimeoutError)
+      throw new ApiError(504, "ai_busy", "AI took too long, try again");
     if (error instanceof Anthropic.APIError) {
       const status = error.status ?? 0;
       if (status === 401 || status === 403)
@@ -338,17 +342,26 @@ export async function aiTonight(
 
 /* ------------------------------------------------------------- limits */
 
+function parseLimit(raw: string | undefined, fallback: number) {
+  if (raw === undefined || raw.trim() === "") return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
+}
+
 /**
  * A daily budget per person and in total, so a shared link cannot run up
  * the bill. Counted in a Durable Object (usage.ts).
  */
 export async function checkAiLimits(deps: Deps, uid: string) {
   const day = new Date(deps.now()).toISOString().slice(0, 10);
-  const perUser = Number(deps.env.AI_DAILY_LIMIT) || 60;
-  const total = Number(deps.env.AI_GLOBAL_LIMIT) || 400;
-  if (!(await bump(deps, `ai/count/${day}/user/${uid}`, perUser)))
-    throw new ApiError(429, "ai_limit", "Daily AI limit reached");
-  if (!(await bump(deps, `ai/count/${day}/all`, total)))
+  const perUser = parseLimit(deps.env.AI_DAILY_LIMIT, 60);
+  const total = parseLimit(deps.env.AI_GLOBAL_LIMIT, 400);
+  if (
+    perUser <= 0 ||
+    total <= 0 ||
+    !(await bump(deps, `ai/count/${day}/user/${uid}`, perUser)) ||
+    !(await bump(deps, `ai/count/${day}/all`, total))
+  )
     throw new ApiError(429, "ai_limit", "Daily AI limit reached");
 }
 

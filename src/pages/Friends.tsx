@@ -17,6 +17,7 @@ import {
   friendsError,
   loadFriendRatings,
   loadProfile,
+  mirrorLibrary,
   myInviteToken,
   removeFriend,
   sendRequest,
@@ -33,16 +34,21 @@ const button =
 
 export function FriendsPage() {
   const { account } = useAuth();
+  const { items } = useAppState();
   const uid = account?.sub || null;
   const friends = useFriendList(uid);
   const requests = useRequests(uid);
   const [message, setMessage] = useState("");
+  const [tokenEpoch, setTokenEpoch] = useState(0);
   // The key in my link lets a friend join at once; without it (rules not
   // published yet) the link still works through a friend request.
   const token = useAsync(
     () => (uid ? myInviteToken() : Promise.resolve("")),
-    [uid],
+    [uid, tokenEpoch],
   );
+  useEffect(() => {
+    if (uid && items.length) void mirrorLibrary(uid, items);
+  }, [uid, items]);
   if (!account) return null;
   const invitePath = `/friends/invite/${account.sub}?${new URLSearchParams({
     ...(token.data ? { t: token.data } : {}),
@@ -157,7 +163,10 @@ export function FriendsPage() {
                   type="button"
                   onClick={() => {
                     if (window.confirm(`Удалить ${p.name} из друзей?`))
-                      void run(() => removeFriend(p.uid));
+                      void run(async () => {
+                        await removeFriend(p.uid);
+                        setTokenEpoch((n) => n + 1);
+                      });
                   }}
                   className={button}
                 >
@@ -177,6 +186,7 @@ export function InvitePage() {
   const [params] = useSearchParams();
   const token = params.get("t") || "";
   const { account } = useAuth();
+  const { items } = useAppState();
   const navigate = useNavigate();
   const friends = useFriendList(account?.sub || null);
   const profile = useAsync(() => loadProfile(uid), [uid]);
@@ -194,9 +204,10 @@ export function InvitePage() {
       name: account.name,
       picture: account.picture,
     })
-      .then(() =>
-        navigate(`/friends/${uid}`, { replace: true, state: { joined: true } }),
-      )
+      .then(() => {
+        if (items.length) void mirrorLibrary(account.sub, items);
+        navigate(`/friends/${uid}`, { replace: true, state: { joined: true } });
+      })
       .catch(() => {
         setMessage(
           "Не получилось добавить сразу — отправь заявку, и друг её примет.",
@@ -217,6 +228,7 @@ export function InvitePage() {
         name: account.name,
         picture: account.picture,
       });
+      if (items.length) void mirrorLibrary(account.sub, items);
       navigate(`/friends/${uid}`, { replace: true });
     } catch (error) {
       setMessage(

@@ -61,6 +61,12 @@ export function SteamPanel() {
     started.current = true;
     const params = takeSteamReturn();
     if (!params) return;
+    if (params.error === "state") {
+      setError(
+        "Вход через Steam не подтвердился: он открылся в другой вкладке или окне. Нажми «Войти через Steam» ещё раз здесь же.",
+      );
+      return;
+    }
     void (async () => {
       setBusy("Проверяю вход через Steam…");
       setError("");

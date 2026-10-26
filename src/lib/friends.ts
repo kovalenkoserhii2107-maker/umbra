@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   collection,
   deleteDoc,
@@ -94,8 +94,14 @@ export const INVITE_TOKEN = /^[A-Za-z0-9]{24}$/;
 
 function newInviteToken() {
   const abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  const bytes = crypto.getRandomValues(new Uint8Array(24));
-  return Array.from(bytes, (b) => abc[b % abc.length]).join("");
+  let out = "";
+  while (out.length < 24) {
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    for (const b of bytes) {
+      if (b < 248 && out.length < 24) out += abc[b % 62];
+    }
+  }
+  return out;
 }
 
 /**
@@ -155,9 +161,19 @@ export async function declineRequest(fromUid: string) {
   await deleteDoc(doc(firebaseDb, "users", me(), "requests", fromUid));
 }
 
-/** Stops sharing with this person; they also disappear from my list. */
+/** Stops sharing with this person and rotates invite keys so an old link cannot re-add them. */
 export async function removeFriend(friendUid: string) {
-  await deleteDoc(doc(firebaseDb, "users", me(), "friends", friendUid));
+  const uid = me();
+  const invites = await getDocs(
+    collection(firebaseDb, "users", uid, "invites"),
+  );
+  const batch = writeBatch(firebaseDb);
+  batch.delete(doc(firebaseDb, "users", uid, "friends", friendUid));
+  for (const d of invites.docs) batch.delete(d.ref);
+  batch.set(doc(firebaseDb, "users", uid, "invites", newInviteToken()), {
+    createdAt: serverTimestamp(),
+  });
+  await batch.commit();
 }
 
 function useCollection(path: "friends" | "requests", uid: string | null) {
@@ -276,25 +292,29 @@ function canon(r: SharedRating | null) {
   ]);
 }
 
-export function useShareWithFriends(uid: string | null, items: LibraryItem[]) {
-  const { list: friends } = useFriendList(uid);
-  const mirrored = useRef<Map<string, string> | null>(null);
-  const hasFriends = Boolean(friends?.length);
-  useEffect(() => {
-    mirrored.current = null;
-  }, [uid]);
-  useEffect(() => {
-    if (!uid || !hasFriends) return;
-    const timer = window.setTimeout(async () => {
+const mirroredCache = new Map<string, Map<string, string>>();
+const mirrorQueues = new Map<string, Promise<void>>();
+
+/** Mirrors the owner's library (without notes) into profiles/{uid}/ratings, serialized per uid. */
+export function mirrorLibrary(
+  uid: string,
+  items: LibraryItem[],
+): Promise<void> {
+  const prev = mirrorQueues.get(uid) ?? Promise.resolve();
+  const next = prev
+    .catch(() => undefined)
+    .then(async () => {
+      if (firebaseAuth.currentUser?.uid !== uid) return;
       try {
         const ref = collection(firebaseDb, "profiles", uid, "ratings");
-        if (!mirrored.current) {
+        let known = mirroredCache.get(uid);
+        if (!known) {
           const snap = await getDocs(ref);
-          mirrored.current = new Map(
+          known = new Map(
             snap.docs.map((d) => [d.id, canon(shared(d.data()))]),
           );
+          mirroredCache.set(uid, known);
         }
-        const known = mirrored.current;
         const rows = new Map(items.map((x) => [itemKey(x), toShared(x)]));
         const ops: Array<[string, SharedRating | null]> = [];
         for (const [key, row] of rows)
@@ -315,8 +335,20 @@ export function useShareWithFriends(uid: string | null, items: LibraryItem[]) {
           }
         }
       } catch {
-        mirrored.current = null;
+        mirroredCache.delete(uid);
       }
+    });
+  mirrorQueues.set(uid, next);
+  return next;
+}
+
+export function useShareWithFriends(uid: string | null, items: LibraryItem[]) {
+  const { list: friends } = useFriendList(uid);
+  const hasFriends = Boolean(friends?.length);
+  useEffect(() => {
+    if (!uid || !hasFriends) return;
+    const timer = window.setTimeout(() => {
+      void mirrorLibrary(uid, items);
     }, 2000);
     return () => window.clearTimeout(timer);
   }, [uid, hasFriends, items]);

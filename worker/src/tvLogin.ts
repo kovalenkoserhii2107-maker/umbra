@@ -34,6 +34,7 @@ export type Pairing = {
 export type PairingOp =
   | { op: "create"; secretHash: string; device: string }
   | { op: "peek" }
+  | { op: "check"; secretHash: string }
   | { op: "answer"; approve: boolean; uid: string }
   | { op: "take"; secretHash: string };
 
@@ -90,16 +91,21 @@ export function applyPairing(
       : { ...live, status: "denied" };
     return { record, result: { ok: true, status: record.status } };
   }
-  // take: only the TV that asked for the code, and only once.
   if (op.secretHash !== live.secretHash)
     return { record: live, result: { ok: false, error: "not_found" } };
+  if (live.status === "used")
+    return { record: live, result: { ok: false, error: "answered" } };
+  if (op.op === "check")
+    return {
+      record: live,
+      result: { ok: true, status: live.status, uid: live.uid },
+    };
+  // take: only the TV that asked for the code, and only once.
   if (live.status === "approved")
     return {
       record: { ...live, status: "used" },
       result: { ok: true, status: "approved", uid: live.uid },
     };
-  if (live.status === "used")
-    return { record: live, result: { ok: false, error: "answered" } };
   return { record: live, result: { ok: true, status: live.status } };
 }
 
@@ -216,17 +222,21 @@ export async function takeToken(
   const { code, secret } = (body ?? {}) as { code?: unknown; secret?: unknown };
   if (typeof secret !== "string" || secret.length < 20)
     throw new ApiError(400, "bad_request", "secret is required");
-  const result = await store(deps)(codeOf(code)).run({
-    op: "take",
-    secretHash: await sha256(secret),
-  });
-  if (!result.ok) {
-    if (result.error === "answered") return { status: "used" };
+  const cleanCode = codeOf(code);
+  const secretHash = await sha256(secret);
+  const checked = await store(deps)(cleanCode).run({ op: "check", secretHash });
+  if (!checked.ok) {
+    if (checked.error === "answered") return { status: "used" };
     return { status: "expired" };
   }
-  if (result.status === "approved" && result.uid)
-    return { status: "approved", token: await mint(result.uid) };
-  return { status: result.status };
+  if (checked.status !== "approved" || !checked.uid)
+    return { status: checked.status };
+  const token = await mint(checked.uid);
+  const taken = await store(deps)(cleanCode).run({ op: "take", secretHash });
+  if (!taken.ok)
+    return { status: taken.error === "answered" ? "used" : "expired" };
+  if (taken.status !== "approved") return { status: taken.status };
+  return { status: "approved", token };
 }
 
 // ---- Durable Object ----
@@ -252,9 +262,9 @@ export class TvPairing {
     const current = (await this.state.storage.get<Pairing>("pairing")) ?? null;
     const { record, result } = applyPairing(current, op, Date.now());
     if (record) {
-      await this.state.storage.put("pairing", record);
-      // Forget the code once it expires.
-      if (!current)
+      if (record !== current) await this.state.storage.put("pairing", record);
+      // Forget the code once it expires (reset when a fresh code replaces an expired one).
+      if (op.op === "create" && result.ok)
         await this.state.storage.setAlarm(record.expiresAt + 60_000);
     } else if (current) await this.state.storage.deleteAll();
     return Response.json(result);

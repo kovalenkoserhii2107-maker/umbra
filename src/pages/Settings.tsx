@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { authError, signOutAccount, useAuth, verifyEmail } from "../lib/auth";
 import { PLATFORMS, REGIONS } from "../lib/providers";
+import { isTv } from "../lib/tvMode";
 import { useAppState } from "../state";
 import { APP_VERSION } from "../version";
 import { plural } from "../lib/format";
@@ -181,7 +182,7 @@ export function SettingsPage() {
         </Card>
       ) : null}
 
-      <SteamPanel />
+      {isTv ? null : <SteamPanel />}
 
       <Card title="Фильмы и сериалы">
         <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
@@ -222,40 +223,46 @@ export function SettingsPage() {
         </div>
       </Card>
 
-      {account ? (
+      {account && (!isTv || localGames > 0) ? (
         <Card title="Резервная копия">
-          <p className="mt-2 text-sm text-mute">
-            {items.length} фильмов и сериалов и {games.length}{" "}
-            {plural(games.length, "игра", "игры", "игр")} в аккаунте. Файл можно
-            загрузить обратно: совпадающие записи обновятся, остальные
-            останутся.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              onClick={download}
-              disabled={busy}
-              className="rounded-full border border-hairline px-4 py-2 text-sm"
-            >
-              Скачать
-            </button>
-            <label className="cursor-pointer rounded-full border border-hairline px-4 py-2 text-sm">
-              Загрузить
-              <input
-                disabled={busy}
-                type="file"
-                accept="application/json"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void onImport(file);
-                }}
-              />
-            </label>
-          </div>
+          {isTv ? null : (
+            <>
+              <p className="mt-2 text-sm text-mute">
+                {items.length} фильмов и сериалов и {games.length}{" "}
+                {plural(games.length, "игра", "игры", "игр")} в аккаунте. Файл
+                можно загрузить обратно: совпадающие записи обновятся, остальные
+                останутся.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  onClick={download}
+                  disabled={busy}
+                  className="rounded-full border border-hairline px-4 py-2 text-sm"
+                >
+                  Скачать
+                </button>
+                <label className="cursor-pointer rounded-full border border-hairline px-4 py-2 text-sm">
+                  Загрузить
+                  <input
+                    disabled={busy}
+                    type="file"
+                    accept="application/json"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void onImport(file);
+                    }}
+                  />
+                </label>
+              </div>
+            </>
+          )}
           {localGames ? (
             // Games saved on this device before the cloud: whose they are is
             // unknown, so they move only when the owner asks.
-            <div className="mt-5 border-t border-hairline pt-4">
+            <div
+              className={isTv ? "mt-3" : "mt-5 border-t border-hairline pt-4"}
+            >
               <p className="text-sm text-mute">
                 На этом устройстве остались игры из старой версии: {localGames}.
                 Если они твои, перенеси их в аккаунт.
@@ -277,18 +284,20 @@ export function SettingsPage() {
         </Card>
       ) : null}
 
-      <Card title="Телевизор">
-        <p className="mt-2 text-sm text-mute">
-          Umbra для Android TV: войди на телевизоре через этот аккаунт — по
-          QR-коду или коду с экрана.
-        </p>
-        <Link
-          to="/tv-link"
-          className="mt-4 inline-block rounded-full border border-hairline px-4 py-2 text-sm"
-        >
-          Войти на телевизоре
-        </Link>
-      </Card>
+      {isTv ? null : (
+        <Card title="Телевизор">
+          <p className="mt-2 text-sm text-mute">
+            Umbra для Android TV: войди на телевизоре через этот аккаунт — по
+            QR-коду или коду с экрана.
+          </p>
+          <Link
+            to="/tv-link"
+            className="mt-4 inline-block rounded-full border border-hairline px-4 py-2 text-sm"
+          >
+            Войти на телевизоре
+          </Link>
+        </Card>
+      )}
 
       <Card title="Приложение">
         <p className="mt-2 text-sm text-mute">

@@ -7,7 +7,7 @@ import {
   roundAnswers,
   roundOf,
 } from "./ai";
-import { idToken } from "./auth";
+import { idToken, useAuth } from "./auth";
 import type { LibraryItem } from "./library";
 import type { MetaMap } from "./meta";
 import type { Platform } from "./providers";
@@ -45,21 +45,24 @@ const KEY = "umbra.aiTonight";
 const SHOW = 6;
 const RESERVE = 6;
 
-function loadSession(): Session | null {
+function loadSession(uid: string | undefined): Session | null {
+  if (!uid) return null;
   try {
     const raw = sessionStorage.getItem(KEY);
     if (!raw) return null;
-    const s = JSON.parse(raw) as Partial<Session>;
+    const s = JSON.parse(raw) as Partial<Session> & { uid?: string };
+    if (s.uid !== uid) return null;
+    delete s.uid;
     return { taste: "", reserve: [], before: {}, ...s } as Session;
   } catch {
     return null;
   }
 }
 
-function saveSession(s: Session | null) {
+function saveSession(s: Session | null, uid: string | undefined) {
   try {
-    if (s) sessionStorage.setItem(KEY, JSON.stringify(s));
-    else sessionStorage.removeItem(KEY);
+    if (s && uid) sessionStorage.setItem(KEY, JSON.stringify({ ...s, uid }));
+    else if (!s) sessionStorage.removeItem(KEY);
   } catch {
     /* private mode: the session just won't survive navigation */
   }
@@ -119,19 +122,34 @@ export function useAiTonight({
   /** Titles I have already watched may be offered too. */
   rewatch: boolean;
 }) {
-  const [session, setSession] = useState<Session | null>(loadSession);
+  const { account } = useAuth();
+  const uid = account?.sub;
+  const [session, setSession] = useState<Session | null>(() =>
+    loadSession(uid),
+  );
   const [busy, setBusy] = useState<"" | "ask" | "pick">("");
   const [error, setError] = useState("");
   const [custom, setCustom] = useState("");
   const retry = useRef<(() => void) | null>(null);
   const alive = useRef(true);
+  const lastUid = useRef(uid);
   useEffect(() => {
     alive.current = true;
     return () => {
       alive.current = false;
     };
   }, []);
-  useEffect(() => saveSession(session), [session]);
+  useEffect(() => {
+    if (lastUid.current !== uid) {
+      lastUid.current = uid;
+      setSession(loadSession(uid));
+      setError("");
+      setCustom("");
+      retry.current = null;
+      return;
+    }
+    saveSession(session, uid);
+  }, [session, uid]);
 
   const seen = useMemo(
     () =>
@@ -212,7 +230,7 @@ export function useAiTonight({
   }
 
   function start() {
-    saveSession(null);
+    saveSession(null, uid);
     void run(
       {
         profile: buildProfile(items, meta, region, services),

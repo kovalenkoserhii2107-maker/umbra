@@ -298,4 +298,8 @@ test("TV quick evening: four questions, Back goes to the previous one, picks are
     "Мальчишник в Вегасе",
   );
   await expect(page.getByText("есть на Netflix")).toBeVisible();
+  expect(await page.evaluate(() => (window as any).umbraTvBack())).toBe(true);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Что посмотреть вечером?",
+  );
 });

@@ -7,15 +7,24 @@ type Entry = { imdb?: string; tmdb?: number; imdbId?: string; at?: number };
 type Cache = Record<string, Entry>;
 
 const CACHE_KEY = "umbra.ratings";
+const MAX_ENTRIES = 2_500;
 const listeners = new Set<() => void>();
+const keyedListeners = new Map<string, Set<() => void>>();
 const inflight = new Map<string, Promise<string | null>>();
 
+let lastRaw: string | null | undefined = undefined;
+let memory: Cache = {};
+
 function readCache(): Cache {
+  const raw = readStorage(CACHE_KEY);
+  if (raw === lastRaw) return memory;
+  lastRaw = raw;
   try {
-    return JSON.parse(readStorage(CACHE_KEY) || "{}") as Cache;
+    memory = JSON.parse(raw || "{}") as Cache;
   } catch {
-    return {};
+    memory = {};
   }
+  return memory;
 }
 
 function keyOf(type: MediaType, id: number) {
@@ -29,7 +38,26 @@ export function subscribeRatings(listener: () => void) {
   };
 }
 
-function notify() {
+export function subscribeRating(
+  type: MediaType,
+  id: number,
+  listener: () => void,
+) {
+  const key = keyOf(type, id);
+  let set = keyedListeners.get(key);
+  if (!set) {
+    set = new Set();
+    keyedListeners.set(key, set);
+  }
+  set.add(listener);
+  return () => {
+    set.delete(listener);
+    if (!set.size) keyedListeners.delete(key);
+  };
+}
+
+function notify(key: string) {
+  keyedListeners.get(key)?.forEach((fn) => fn());
   listeners.forEach((fn) => fn());
 }
 
@@ -38,10 +66,21 @@ export function cachedRating(type: MediaType, id: number): Entry {
 }
 
 export function rememberRating(type: MediaType, id: number, patch: Entry) {
-  const all = readCache();
-  all[keyOf(type, id)] = { ...all[keyOf(type, id)], ...patch, at: Date.now() };
-  writeStorage(CACHE_KEY, JSON.stringify(all));
-  notify();
+  const key = keyOf(type, id);
+  const all = { ...readCache() };
+  all[key] = { ...all[key], ...patch, at: Date.now() };
+  const keys = Object.keys(all);
+  if (keys.length > MAX_ENTRIES) {
+    keys
+      .sort((a, b) => (all[a]?.at || 0) - (all[b]?.at || 0))
+      .slice(0, keys.length - MAX_ENTRIES)
+      .forEach((k) => delete all[k]);
+  }
+  const raw = JSON.stringify(all);
+  const saved = writeStorage(CACHE_KEY, raw);
+  memory = all;
+  lastRaw = saved ? raw : readStorage(CACHE_KEY);
+  notify(key);
 }
 
 function formatScore(value: number | string) {

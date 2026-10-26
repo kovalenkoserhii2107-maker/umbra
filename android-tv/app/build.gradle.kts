@@ -71,6 +71,7 @@ android {
     }
     lint {
         abortOnError = false
+        fatal += "NewApi"
     }
 }
 

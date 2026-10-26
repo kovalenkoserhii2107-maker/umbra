@@ -60,11 +60,21 @@ export function htmlToText(html: string) {
     .replace(/<\/(p|h\d|li|ul|div)>/gi, "\n")
     .replace(/<li[^>]*>/gi, "• ")
     .replace(/<[^>]+>/g, "")
-    .replace(/&(#\d+|[a-z]+);/gi, (match, code: string) =>
-      code.startsWith("#")
-        ? String.fromCodePoint(Number(code.slice(1)))
-        : (ENTITIES[code.toLowerCase()] ?? match),
-    )
+    .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, code: string) => {
+      if (code.startsWith("#")) {
+        const cp =
+          code[1]?.toLowerCase() === "x"
+            ? Number.parseInt(code.slice(2), 16)
+            : Number(code.slice(1));
+        return Number.isInteger(cp) &&
+          cp > 0 &&
+          cp <= 0x10ffff &&
+          (cp < 0xd800 || cp > 0xdfff)
+          ? String.fromCodePoint(cp)
+          : match;
+      }
+      return ENTITIES[code.toLowerCase()] ?? match;
+    })
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();

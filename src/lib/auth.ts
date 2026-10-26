@@ -163,7 +163,21 @@ export async function verifyEmail() {
   if (firebaseAuth.currentUser)
     await sendEmailVerification(firebaseAuth.currentUser);
 }
+const beforeSignOut = new Set<() => Promise<void> | void>();
+export function onBeforeSignOut(fn: () => Promise<void> | void) {
+  beforeSignOut.add(fn);
+  return () => {
+    beforeSignOut.delete(fn);
+  };
+}
 export async function signOutAccount() {
+  if (beforeSignOut.size)
+    await Promise.race([
+      Promise.allSettled(
+        [...beforeSignOut].map((fn) => Promise.resolve().then(fn)),
+      ),
+      new Promise((resolve) => setTimeout(resolve, 3_000)),
+    ]);
   await signOut(firebaseAuth);
 }
 export function safeReturnPath(value: string | null) {

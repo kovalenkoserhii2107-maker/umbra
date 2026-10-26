@@ -273,7 +273,7 @@ describe("«На телевизоре в Lampa»", () => {
     expect(api.pushes).toHaveLength(0);
   });
 
-  it("forgets a TV that no longer has the app", async () => {
+  it("forgets a TV that no longer has the app or signs out", async () => {
     const api = setup();
     const owner = await idToken("owner");
     await api.send("/tv/device", tv("sony"), owner);
@@ -285,5 +285,12 @@ describe("«На телевизоре в Lampa»", () => {
       sent: 1,
     });
     expect(api.accounts.get("owner")!.map((d) => d.id)).toEqual(["bedroom"]);
+
+    expect(
+      (await api.send("/tv/device/remove", { id: "bedroom" }, owner)).data,
+    ).toEqual({ devices: 0 });
+    expect((await api.send("/tv/devices", undefined, owner)).data).toEqual({
+      devices: [],
+    });
   });
 });

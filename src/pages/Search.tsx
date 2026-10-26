@@ -545,17 +545,24 @@ export function SearchPage() {
   const canMore = found
     ? found.page < found.pages && tab !== "person"
     : Boolean(browse && browse.page < browse.pages);
+  const pageKey = found
+    ? `q:${found.used}:${found.page}:${tab}`
+    : browse
+      ? `b:${browse.page}`
+      : "";
+  const loadMoreRef = useRef(loadMore);
+  loadMoreRef.current = loadMore;
   useEffect(() => {
     if (!canMore || !more.current) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((e) => e.isIntersecting)) void loadMore();
+        if (entries.some((e) => e.isIntersecting)) void loadMoreRef.current();
       },
       { rootMargin: "400px" },
     );
     observer.observe(more.current);
     return () => observer.disconnect();
-  });
+  }, [canMore, pageKey]);
 
   function submit(value = text) {
     const next = value.trim();

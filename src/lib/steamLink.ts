@@ -7,16 +7,36 @@ import { readStorage, writeStorage } from "./storage";
  * string and is parked here until the library page picks it up.
  */
 const KEY = "umbra.steamReturn";
+const STATE_KEY = "umbra.steamState";
 
 function home() {
   return `${window.location.origin}${import.meta.env.BASE_URL}`;
 }
 
+function steamState() {
+  try {
+    const existing = sessionStorage.getItem(STATE_KEY);
+    if (existing && /^[a-f0-9]{32}$/.test(existing)) return existing;
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    const created = Array.from(bytes, (b) =>
+      b.toString(16).padStart(2, "0"),
+    ).join("");
+    sessionStorage.setItem(STATE_KEY, created);
+    return created;
+  } catch {
+    return "";
+  }
+}
+
 export function steamLoginUrl() {
+  const state = steamState();
+  const returnTo = state
+    ? `${home()}?steam=1&state=${state}`
+    : `${home()}?steam=1`;
   const params = new URLSearchParams({
     "openid.ns": "http://specs.openid.net/auth/2.0",
     "openid.mode": "checkid_setup",
-    "openid.return_to": `${home()}?steam=1`,
+    "openid.return_to": returnTo,
     "openid.realm": window.location.origin,
     "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
     "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
@@ -29,11 +49,25 @@ export function captureSteamReturn() {
   if (typeof window === "undefined") return;
   const search = new URLSearchParams(window.location.search);
   if (!search.has("steam") || !search.has("openid.mode")) return;
-  const params: Record<string, string> = {};
-  search.forEach((v, k) => {
-    if (k.startsWith("openid.")) params[k] = v;
-  });
-  writeStorage(KEY, JSON.stringify(params));
+  let expected = "";
+  try {
+    expected = sessionStorage.getItem(STATE_KEY) || "";
+    sessionStorage.removeItem(STATE_KEY);
+  } catch {
+    /* private mode */
+  }
+  const given = search.get("state") || "";
+  if (expected && given === expected) {
+    const params: Record<string, string> = {};
+    search.forEach((v, k) => {
+      if (k.startsWith("openid.")) params[k] = v;
+    });
+    writeStorage(KEY, JSON.stringify(params));
+  } else {
+    // Not the sign-in this tab started (another tab or window, or someone
+    // else's link): nothing is linked; Settings says so.
+    writeStorage(KEY, JSON.stringify({ error: "state" }));
+  }
   window.history.replaceState(null, "", `${home()}#/settings`);
 }
 

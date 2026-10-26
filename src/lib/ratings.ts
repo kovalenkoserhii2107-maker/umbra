@@ -109,7 +109,9 @@ export async function fetchImdbRatings(
     try {
       const data = await requestJson<
         Array<{ imdbId?: string; rating?: number | null }>
-      >(`https://api.agregarr.org/api/ratings?${qs}`, 3600_000);
+      >(`https://api.agregarr.org/api/ratings?${qs}`, 3600_000, {
+        priority: "low",
+      });
       const rows = Array.isArray(data) ? data : [data];
       rows.forEach((row) => {
         const score = formatScore(row?.rating ?? "");

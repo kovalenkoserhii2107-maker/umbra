@@ -433,15 +433,40 @@ export function Row({
   items,
   type,
   to,
+  loading = false,
+  animate = true,
 }: {
   title: string;
   items: TmdbItem[];
   type?: MediaType;
   to?: string;
+  loading?: boolean;
+  animate?: boolean;
 }) {
-  if (!items.length) return null;
+  const visible = items.filter((i) => i.media_type !== "person");
+  if (!visible.length) {
+    if (!loading) return null;
+    return (
+      <section aria-hidden="true" data-tv-wait className="mb-10">
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <div className="h-7 w-48 animate-pulse rounded-lg bg-card" />
+        </div>
+        <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
+          {Array.from({ length: 6 }, (_, idx) => (
+            <div key={idx} className="w-[42vw] shrink-0 sm:w-40">
+              <div className="aspect-[2/3] w-full animate-pulse rounded-xl border border-hairline bg-card" />
+              <div className="mt-2 space-y-1">
+                <div className="h-4 w-4/5 animate-pulse rounded bg-card" />
+                <div className="h-3.5 w-1/2 animate-pulse rounded bg-card" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
   return (
-    <section className="rise mb-10">
+    <section className={`${animate ? "rise " : ""}mb-10`}>
       <div className="mb-3 flex items-end justify-between gap-3">
         <h2 className="text-lg font-medium tracking-tight">{title}</h2>
         {to ? (
@@ -455,15 +480,13 @@ export function Row({
         ) : null}
       </div>
       <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
-        {items
-          .filter((i) => i.media_type !== "person")
-          .map((item) => (
-            <PosterCard
-              key={`${mediaOf(item, type)}-${item.id}`}
-              item={item}
-              type={type}
-            />
-          ))}
+        {visible.map((item) => (
+          <PosterCard
+            key={`${mediaOf(item, type)}-${item.id}`}
+            item={item}
+            type={type}
+          />
+        ))}
         {to ? (
           <Link
             to={to}
@@ -518,31 +541,88 @@ export function PlatformChip({ id }: { id: number }) {
   );
 }
 
-export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+/**
+ * Answers of keyed useAsync calls, kept while the app is open: a screen
+ * opened again (Back to the feed) shows them at once instead of reloading.
+ */
+const WARM_TTL = 5 * 60_000;
+const MAX_WARM = 64;
+const warmCache = new Map<string, { at: number; value: unknown }>();
+
+export function hasWarmCache(key: string): boolean {
+  return warmCache.has(key);
+}
+
+function writeWarmCache(key: string, value: unknown) {
+  warmCache.delete(key);
+  warmCache.set(key, { at: Date.now(), value });
+  if (warmCache.size > MAX_WARM) {
+    const oldest = warmCache.keys().next().value;
+    if (oldest !== undefined) warmCache.delete(oldest);
+  }
+}
+
+function sameDeps(a: unknown[], b: unknown[]) {
+  return a.length === b.length && a.every((v, i) => Object.is(v, b[i]));
+}
+
+export function useAsync<T>(
+  fn: () => Promise<T>,
+  deps: unknown[],
+  cacheKey?: string,
+) {
+  const warm = cacheKey ? warmCache.get(cacheKey) : undefined;
+  const [state, setState] = useState<{
+    deps: unknown[] | null;
+    data: T | null;
+    error: string | null;
+  }>(() =>
+    warm !== undefined
+      ? { deps, data: warm.value as T, error: null }
+      : { deps: null, data: null, error: null },
+  );
+
+  const matched = state.deps !== null && sameDeps(state.deps, deps);
+
   useEffect(() => {
     let alive = true;
-    setLoading(true);
-    setError(null);
-    setData(null);
+    const hit = cacheKey ? warmCache.get(cacheKey) : undefined;
+    if (hit !== undefined && Date.now() - hit.at < WARM_TTL) {
+      if (!matched) {
+        setState({ deps, data: hit.value as T, error: null });
+      }
+      return () => {
+        alive = false;
+      };
+    }
     Promise.resolve()
       .then(fn)
       .then((res) => {
-        if (alive) setData(res);
+        if (cacheKey) writeWarmCache(cacheKey, res);
+        if (alive) setState({ deps, data: res, error: null });
       })
       .catch((err: Error) => {
-        if (alive) setError(err.message);
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
+        if (!alive) return;
+        if (hit !== undefined) {
+          setState({ deps, data: hit.value as T, error: null });
+        } else {
+          setState({ deps, data: null, error: err.message });
+        }
       });
     return () => {
       alive = false;
     };
   }, deps);
-  return { data, error, loading };
+
+  return {
+    data: matched
+      ? state.data
+      : warm !== undefined
+        ? (warm.value as T)
+        : null,
+    error: matched ? state.error : null,
+    loading: !matched && warm === undefined,
+  };
 }
 
 export function ErrorBox({

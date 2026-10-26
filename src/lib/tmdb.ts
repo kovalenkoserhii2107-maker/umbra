@@ -1,5 +1,5 @@
 import { readStorage, writeStorage } from "./storage";
-import { requestJson } from "./http";
+import { requestJson, type RequestPriority } from "./http";
 import { byCatalogRank } from "./rank";
 const BASE = "https://api.themoviedb.org/3";
 const IMG = "https://image.tmdb.org/t/p";
@@ -261,6 +261,7 @@ async function request<T>(
   path: string,
   params: Record<string, string | number | undefined> = {},
   ttl?: number,
+  priority?: RequestPriority,
 ): Promise<T> {
   const key = tmdbKey();
   if (!key) throw new Error("NO_KEY");
@@ -271,7 +272,88 @@ async function request<T>(
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== "") url.searchParams.set(k, String(v));
   }
-  return requestJson<T>(url.toString(), ttl);
+  return requestJson<T>(
+    url.toString(),
+    ttl,
+    priority ? { priority } : undefined,
+  );
+}
+
+type TimedMap<T> = Record<string, { at: number; value: T }>;
+const SHOW_DATES_CACHE = "umbra.showAirDates.v1";
+const MOVIE_RELEASES_CACHE = "umbra.movieReleases.v1";
+const CHART_PAGE_CACHE = "umbra.imdbChartPages.v1";
+const SUPPORTED_REGIONS = new Set(["UA", "US", "GB", "DE", "PL"]);
+const storageMirrors = new Map<
+  string,
+  { raw: string | null; parsed: TimedMap<unknown> }
+>();
+
+function readTimedCache<T>(storageKey: string, ttl: number): TimedMap<T> {
+  const raw = readStorage(storageKey);
+  const mirror = storageMirrors.get(storageKey);
+  if (mirror && mirror.raw === raw) return mirror.parsed as TimedMap<T>;
+  let parsed: TimedMap<unknown> = {};
+  try {
+    parsed = JSON.parse(raw || "{}") as TimedMap<unknown>;
+  } catch {
+    parsed = {};
+  }
+  const now = Date.now();
+  for (const k of Object.keys(parsed)) {
+    if (!parsed[k] || now - parsed[k].at > ttl) delete parsed[k];
+  }
+  storageMirrors.set(storageKey, { raw, parsed });
+  return parsed as TimedMap<T>;
+}
+
+function writeTimedEntry<T>(
+  storageKey: string,
+  entryKey: string,
+  value: T,
+  ttl: number,
+  maxEntries: number,
+) {
+  const map = { ...readTimedCache<T>(storageKey, ttl) };
+  map[entryKey] = { at: Date.now(), value };
+  const keys = Object.keys(map);
+  if (keys.length > maxEntries) {
+    keys
+      .sort((a, b) => (map[a]?.at || 0) - (map[b]?.at || 0))
+      .slice(0, keys.length - maxEntries)
+      .forEach((k) => delete map[k]);
+  }
+  try {
+    const raw = JSON.stringify(map);
+    const saved = writeStorage(storageKey, raw);
+    storageMirrors.set(storageKey, {
+      raw: saved ? raw : readStorage(storageKey),
+      parsed: map as TimedMap<unknown>,
+    });
+  } catch {
+    /* ignore storage quota */
+  }
+}
+
+function slimItem(item: TmdbItem): TmdbItem {
+  return {
+    id: item.id,
+    title: item.title,
+    name: item.name,
+    original_title: item.original_title,
+    original_name: item.original_name,
+    overview: item.overview ? item.overview.slice(0, 320) : undefined,
+    poster_path: item.poster_path,
+    backdrop_path: item.backdrop_path,
+    release_date: item.release_date,
+    first_air_date: item.first_air_date,
+    vote_average: item.vote_average,
+    vote_count: item.vote_count,
+    media_type: item.media_type,
+    genre_ids: item.genre_ids,
+    popularity: item.popularity,
+    original_language: item.original_language,
+  };
 }
 
 const CHART_CACHE = "umbra.imdbCharts";
@@ -345,31 +427,48 @@ function dayOffset(days: number) {
 
 export const tmdb = {
   trending: (window: "day" | "week" = "week", page = 1) =>
-    request<TmdbPage<TmdbItem>>(`/trending/all/${window}`, { page }).then(
-      (data) => asPage(data),
-    ),
+    request<TmdbPage<TmdbItem>>(
+      `/trending/all/${window}`,
+      { page },
+      undefined,
+      page === 1 ? "high" : "normal",
+    ).then((data) => asPage(data)),
   nowPlaying: (page = 1, region = "UA") =>
-    request<TmdbPage<TmdbItem>>("/movie/now_playing", { page, region }).then(
-      (data) => asPage(data, "movie"),
-    ),
+    request<TmdbPage<TmdbItem>>(
+      "/movie/now_playing",
+      { page, region },
+      undefined,
+      page === 1 ? "high" : "normal",
+    ).then((data) => asPage(data, "movie")),
   fresh: async (page = 1): Promise<TmdbPage<TmdbItem>> => {
     const from = dayOffset(-75);
     const to = dayOffset(0);
+    const prio: RequestPriority = page === 1 ? "high" : "normal";
     const [movies, shows] = await Promise.all([
-      request<TmdbPage<TmdbItem>>("/discover/movie", {
-        page,
-        sort_by: "popularity.desc",
-        "vote_count.gte": 80,
-        "primary_release_date.gte": from,
-        "primary_release_date.lte": to,
-      }),
-      request<TmdbPage<TmdbItem>>("/discover/tv", {
-        page,
-        sort_by: "popularity.desc",
-        "vote_count.gte": 80,
-        "first_air_date.gte": from,
-        "first_air_date.lte": to,
-      }),
+      request<TmdbPage<TmdbItem>>(
+        "/discover/movie",
+        {
+          page,
+          sort_by: "popularity.desc",
+          "vote_count.gte": 80,
+          "primary_release_date.gte": from,
+          "primary_release_date.lte": to,
+        },
+        undefined,
+        prio,
+      ),
+      request<TmdbPage<TmdbItem>>(
+        "/discover/tv",
+        {
+          page,
+          sort_by: "popularity.desc",
+          "vote_count.gte": 80,
+          "first_air_date.gte": from,
+          "first_air_date.lte": to,
+        },
+        undefined,
+        prio,
+      ),
     ]);
     const results = byCatalogRank([
       ...movies.results.map((item) => ({
@@ -450,9 +549,12 @@ export const tmdb = {
       asPage(data, type),
     ),
   recommendations: (type: MediaType, id: number, page = 1) =>
-    request<TmdbPage<TmdbItem>>(`/${type}/${id}/recommendations`, {
-      page,
-    }).then((data) => asPage(data, type)),
+    request<TmdbPage<TmdbItem>>(
+      `/${type}/${id}/recommendations`,
+      { page },
+      undefined,
+      page === 1 ? "high" : "normal",
+    ).then((data) => asPage(data, type)),
   search: (query: string, page = 1) =>
     request<TmdbPage<TmdbItem>>("/search/multi", { query, page }),
   searchCatalog: async (
@@ -485,12 +587,17 @@ export const tmdb = {
     };
   },
   details: (type: MediaType, id: number) =>
-    request<TitleDetails>(`/${type}/${id}`, {
-      append_to_response: `videos,credits,watch/providers,external_ids,similar,recommendations,images,${type === "movie" ? "release_dates" : "content_ratings"}`,
-      // Russian first, but keep English trailers and language-free stills.
-      include_video_language: "ru,en",
-      include_image_language: "null,ru,en",
-    }),
+    request<TitleDetails>(
+      `/${type}/${id}`,
+      {
+        append_to_response: `videos,credits,watch/providers,external_ids,similar,recommendations,images,${type === "movie" ? "release_dates" : "content_ratings"}`,
+        // Russian first, but keep English trailers and language-free stills.
+        include_video_language: "ru,en",
+        include_image_language: "null,ru,en",
+      },
+      undefined,
+      "high",
+    ),
   collection: (id: number) =>
     request<CollectionDetails>(`/collection/${id}`, {}, 6 * 3600_000),
   /** TMDB viewer reviews are almost all English, so ask for them in English. */
@@ -500,19 +607,76 @@ export const tmdb = {
       { language: "en-US" },
       3600_000,
     ),
-  movieReleases: (id: number) =>
-    request<MovieReleases>(
+  movieReleases: async (id: number): Promise<MovieReleases> => {
+    const ttl = 6 * 3600_000;
+    const hit = readTimedCache<MovieReleases>(MOVIE_RELEASES_CACHE, ttl)[
+      String(id)
+    ];
+    if (hit) return hit.value;
+    const data = await request<MovieReleases>(
       `/movie/${id}`,
       { append_to_response: "release_dates" },
-      6 * 3600_000,
-    ),
+      ttl,
+    );
+    const slim: MovieReleases = {
+      ...slimItem(data),
+      release_dates: data.release_dates
+        ? {
+            results: data.release_dates.results
+              .filter((r) => SUPPORTED_REGIONS.has(r.iso_3166_1))
+              .map((r) => ({
+                iso_3166_1: r.iso_3166_1,
+                release_dates: r.release_dates.map((d) => ({
+                  release_date: d.release_date,
+                  type: d.type,
+                })),
+              })),
+          }
+        : undefined,
+    };
+    writeTimedEntry(MOVIE_RELEASES_CACHE, String(id), slim, ttl, 240);
+    return slim;
+  },
   /** Plain details without appends, cached for hours. */
   basic: (type: MediaType, id: number) =>
     request<TitleDetails & ShowAirDates>(`/${type}/${id}`, {}, 6 * 3600_000),
-  showAirDates: (id: number) =>
-    request<ShowAirDates>(`/tv/${id}`, {}, 6 * 3600_000),
+  showAirDates: async (id: number): Promise<ShowAirDates> => {
+    const ttl = 6 * 3600_000;
+    const hit = readTimedCache<ShowAirDates>(SHOW_DATES_CACHE, ttl)[String(id)];
+    if (hit) return hit.value;
+    const data = await request<ShowAirDates>(`/tv/${id}`, {}, ttl);
+    const slim: ShowAirDates = {
+      ...slimItem(data),
+      status: data.status,
+      next_episode_to_air: data.next_episode_to_air
+        ? {
+            air_date: data.next_episode_to_air.air_date,
+            season_number: data.next_episode_to_air.season_number,
+            episode_number: data.next_episode_to_air.episode_number,
+          }
+        : data.next_episode_to_air,
+      last_episode_to_air: data.last_episode_to_air
+        ? {
+            air_date: data.last_episode_to_air.air_date,
+            season_number: data.last_episode_to_air.season_number,
+            episode_number: data.last_episode_to_air.episode_number,
+          }
+        : data.last_episode_to_air,
+      seasons: data.seasons?.map((s) => ({
+        season_number: s.season_number,
+        episode_count: s.episode_count,
+      })),
+    };
+    writeTimedEntry(SHOW_DATES_CACHE, String(id), slim, ttl, 240);
+    return slim;
+  },
   externalIds: (type: MediaType, id: number) =>
-    request<{ imdb_id?: string }>(`/${type}/${id}/external_ids`),
+    request<{ imdb_id?: string }>(
+      `/${type}/${id}/external_ids`,
+      {},
+      6 * 3600_000,
+      "low",
+    ),
   person: (id: number) =>
     request<PersonDetails>(`/person/${id}`, {
       append_to_response: "combined_credits,external_ids",
@@ -530,6 +694,8 @@ export const tmdb = {
       {
         external_source: "imdb_id",
       },
+      6 * 3600_000,
+      "low",
     ),
   /** Where a title streams, by country. */
   watchProviders: (type: MediaType, id: number) =>
@@ -693,6 +859,12 @@ export const tmdb = {
     return byCatalogRank([...merged, ...extras]).slice(0, 20);
   },
   imdbChart: async (kind: MediaType, page = 1): Promise<TmdbPage<TmdbItem>> => {
+    const ttl = 12 * 3600_000;
+    const pageKey = `${kind}:${page}`;
+    const cached = readTimedCache<TmdbPage<TmdbItem>>(CHART_PAGE_CACHE, ttl)[
+      pageKey
+    ];
+    if (cached && cached.value.results.length > 0) return cached.value;
     try {
       const ids = await chartIds(kind);
       const size = 20;
@@ -702,17 +874,20 @@ export const tmdb = {
           const hit = await tmdb.find(imdbId);
           const row = kind === "tv" ? hit.tv_results[0] : hit.movie_results[0];
           if (!row) return null;
-          const item: TmdbItem = { ...row, media_type: kind };
+          const item: TmdbItem = { ...slimItem(row), media_type: kind };
           return item;
         }),
       );
       const results = found.filter((item): item is TmdbItem => item !== null);
-      return {
+      const out: TmdbPage<TmdbItem> = {
         page,
         results,
         total_pages: Math.max(1, Math.ceil(ids.length / size)),
         total_results: ids.length,
       };
+      if (results.length > 0 && page <= 3)
+        writeTimedEntry(CHART_PAGE_CACHE, pageKey, out, ttl, 6);
+      return out;
     } catch {
       throw new Error("IMDb-подборка временно недоступна");
     }

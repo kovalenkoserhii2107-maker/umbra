@@ -1,5 +1,13 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Row, ErrorBox, RatingBadge, useAsync } from "../components";
+import {
+  Row,
+  ErrorBox,
+  RatingBadge,
+  hasWarmCache,
+  useAsync,
+} from "../components";
+import { useMarkStartupReady } from "../components/RequireAccount";
 import {
   loadNewEpisodes,
   pickSpotlight,
@@ -7,7 +15,7 @@ import {
   type Spotlight,
 } from "../lib/spotlight";
 import { loadFeedPage, FEEDS } from "../lib/feeds";
-import { useAppState } from "../state";
+import { useAppState, type LibraryItem } from "../state";
 import { isTv } from "../lib/tvMode";
 import {
   continueWatching,
@@ -66,12 +74,14 @@ function Featured({ spotlight }: { spotlight: Spotlight }) {
   const details = useAsync(
     () => tmdb.details(media, item.id),
     [media, item.id],
+    `home:spot:${media}:${item.id}`,
   );
   const videos = details.data?.videos?.results ?? [];
   const trailer =
     videos.find((v) => v.site === "YouTube" && v.type === "Trailer") ||
     videos.find((v) => v.site === "YouTube");
-  const title = titleOf(details.data || item);
+  const title =
+    item.title || item.name ? titleOf(item) : titleOf(details.data || item);
   const bg =
     backdropUrl(item.backdrop_path) || backdropUrl(item.poster_path, "w780");
   function want() {
@@ -94,6 +104,8 @@ function Featured({ spotlight }: { spotlight: Spotlight }) {
         <img
           src={bg}
           alt=""
+          decoding="async"
+          fetchPriority="high"
           className="aspect-[4/3] w-full object-cover sm:aspect-[21/9] tv:aspect-[16/5]"
         />
       ) : (
@@ -115,7 +127,7 @@ function Featured({ spotlight }: { spotlight: Spotlight }) {
           {title}
         </h2>
         {note ? <p className="mt-1 text-sm text-white/70">{note}</p> : null}
-        <div className="pointer-events-auto mt-3 flex flex-wrap gap-2">
+        <div className="pointer-events-auto mt-3 flex min-h-9 flex-wrap gap-2">
           {isTv ? (
             <Link
               to={`/title/${media}/${item.id}`}
@@ -213,10 +225,16 @@ function ReleaseCard({ release }: { release: Release }) {
   );
 }
 
-function WatchlistReleases({ list }: { list: Release[] }) {
+function WatchlistReleases({
+  list,
+  animate = true,
+}: {
+  list: Release[];
+  animate?: boolean;
+}) {
   if (!list.length) return null;
   return (
-    <section className="rise mb-10">
+    <section className={`${animate ? "rise " : ""}mb-10`}>
       <div className="mb-3">
         <h2 className="text-lg font-medium tracking-tight">
           Релизы из «Хочу посмотреть»
@@ -286,10 +304,36 @@ function ContinueCard({ row }: { row: ContinueItem }) {
   );
 }
 
-function ContinueRow({ rows }: { rows: ContinueItem[] }) {
-  if (!rows.length) return null;
+function ContinueRow({
+  rows,
+  pendingCount = 0,
+  animate = true,
+}: {
+  rows: ContinueItem[];
+  pendingCount?: number;
+  animate?: boolean;
+}) {
+  if (!rows.length) {
+    if (!pendingCount) return null;
+    return (
+      <section aria-hidden="true" data-tv-wait className="mb-10">
+        <div className="mb-3 h-7 w-52 animate-pulse rounded-lg bg-card" />
+        <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
+          {Array.from({ length: Math.min(pendingCount, 6) }, (_, idx) => (
+            <div key={idx} className="w-[42vw] shrink-0 sm:w-40">
+              <div className="aspect-[2/3] w-full animate-pulse rounded-xl border border-hairline bg-card" />
+              <div className="mt-2 space-y-1">
+                <div className="h-4 w-4/5 animate-pulse rounded bg-card" />
+                <div className="h-3.5 w-1/2 animate-pulse rounded bg-card" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
   return (
-    <section className="rise mb-10">
+    <section className={`${animate ? "rise " : ""}mb-10`}>
       <h2 className="mb-3 text-lg font-medium tracking-tight">
         Продолжить смотреть
       </h2>
@@ -303,7 +347,13 @@ function ContinueRow({ rows }: { rows: ContinueItem[] }) {
 }
 
 export function HomePage() {
-  const { items, settings, sync } = useAppState();
+  const { uid, libraryReady, items, settings } = useAppState();
+  const markStartupReady = useMarkStartupReady();
+  const [warmOnMount] = useState(
+    () => hasWarmCache("home:theaters") || hasWarmCache("home:trending"),
+  );
+  const animate = !warmOnMount;
+
   const seed = tasteSeed(items);
   const watchlistItems = items.filter((x) => x.status === "watchlist");
   const watchlistKey = watchlistItems.map((x) => `${x.type}-${x.id}`).join();
@@ -311,23 +361,22 @@ export function HomePage() {
     .filter((x) => x.type === "tv" && x.status !== "watchlist")
     .map((x) => `${x.id}-${x.status}`)
     .join();
-  const releases = useAsync(
-    () => loadWatchlistReleases(watchlistItems, settings.region),
-    [watchlistKey, settings.region],
+  const watchingItems: LibraryItem[] = items.filter(
+    (x) => x.type === "tv" && x.status === "watching",
   );
-  const episodes = useAsync(() => loadNewEpisodes(items), [showsKey]);
-  const watchingKey = items
-    .filter((x) => x.type === "tv" && x.status === "watching")
-    .map((x) => x.id)
-    .join();
-  const watchingShows = useAsync(() => loadWatchingShows(items), [watchingKey]);
-  const theaters = useAsync(() => loadFeedPage("theaters", 1), []);
-  const trending = useAsync(() => loadFeedPage("trending", 1), []);
-  const airing = useAsync(() => loadFeedPage("airing", 1), []);
-  const upcoming = useAsync(() => loadFeedPage("upcoming", 1), []);
-  const upcomingTv = useAsync(() => loadFeedPage("upcoming-tv", 1), []);
-  const imdbMovies = useAsync(() => loadFeedPage("imdb250-movie", 1), []);
-  const imdbTv = useAsync(() => loadFeedPage("imdb250-tv", 1), []);
+  const watchingKey = watchingItems.map((x) => x.id).join();
+
+  // Enqueue primary above-the-fold catalog feeds first.
+  const theaters = useAsync(
+    () => loadFeedPage("theaters", 1),
+    [],
+    "home:theaters",
+  );
+  const trending = useAsync(
+    () => loadFeedPage("trending", 1),
+    [],
+    "home:trending",
+  );
   const recs = useAsync(
     () =>
       loadFeedPage(
@@ -336,32 +385,82 @@ export function HomePage() {
         seed ? { type: seed.type, id: seed.id } : undefined,
       ),
     [seed?.id, seed?.type],
+    `home:recs:${seed?.type ?? ""}:${seed?.id ?? ""}`,
+  );
+  const airing = useAsync(() => loadFeedPage("airing", 1), [], "home:airing");
+
+  // Personal shelf enrichments (cached across reloads in localStorage).
+  const watchingShows = useAsync(
+    () => loadWatchingShows(items),
+    [watchingKey],
+    `home:watching:${uid ?? ""}:${watchingKey}`,
+  );
+  const releases = useAsync(
+    () => loadWatchlistReleases(watchlistItems, settings.region),
+    [watchlistKey, settings.region],
+    `home:releases:${uid ?? ""}:${settings.region}:${watchlistKey}`,
+  );
+  const episodes = useAsync(
+    () => loadNewEpisodes(items),
+    [showsKey],
+    `home:episodes:${uid ?? ""}:${showsKey}`,
+  );
+
+  // Below-the-fold feeds.
+  const upcoming = useAsync(
+    () => loadFeedPage("upcoming", 1),
+    [],
+    "home:upcoming",
+  );
+  const upcomingTv = useAsync(
+    () => loadFeedPage("upcoming-tv", 1),
+    [],
+    "home:upcoming-tv",
+  );
+  const imdbMovies = useAsync(
+    () => loadFeedPage("imdb250-movie", 1),
+    [],
+    "home:imdb-movie",
+  );
+  const imdbTv = useAsync(
+    () => loadFeedPage("imdb250-tv", 1),
+    [],
+    "home:imdb-tv",
   );
 
   const firstError = [theaters, trending].find((x) => x.error)?.error;
-  if (firstError && !theaters.data && !trending.data)
-    return <ErrorBox code={firstError} />;
-
-  const watchlist: TmdbItem[] = items
-    .filter((x) => x.status === "watchlist")
-    .map((x) => ({
-      id: x.id,
-      title: x.type === "movie" ? x.title : undefined,
-      name: x.type === "tv" ? x.title : undefined,
-      poster_path: posterPathFromStored(x.poster),
-      media_type: x.type,
-      release_date: x.year,
-    }));
-
-  const preview = (id: (typeof FEEDS)[number]["id"]) =>
-    FEEDS.find((f) => f.id === id)!;
-  // Wait for the first library snapshot so the spotlight is chosen once.
-  const libraryPending = sync === "connecting" && !items.length;
   const spotlightPending =
-    libraryPending ||
+    !libraryReady ||
     releases.loading ||
     episodes.loading ||
     (seed ? recs.loading : trending.loading);
+
+  const topCatalogReady =
+    !theaters.loading || !trending.loading || Boolean(firstError);
+  const homeReady =
+    libraryReady &&
+    !spotlightPending &&
+    !watchingShows.loading &&
+    topCatalogReady;
+
+  useEffect(() => {
+    if (homeReady) markStartupReady();
+  }, [homeReady, markStartupReady]);
+
+  if (firstError && !theaters.data && !trending.data)
+    return <ErrorBox code={firstError} />;
+
+  const watchlist: TmdbItem[] = watchlistItems.map((x) => ({
+    id: x.id,
+    title: x.type === "movie" ? x.title : undefined,
+    name: x.type === "tv" ? x.title : undefined,
+    poster_path: posterPathFromStored(x.poster),
+    media_type: x.type,
+    release_date: x.year,
+  }));
+
+  const preview = (id: (typeof FEEDS)[number]["id"]) =>
+    FEEDS.find((f) => f.id === id)!;
   const spotlight = spotlightPending
     ? null
     : pickSpotlight({
@@ -392,60 +491,84 @@ export function HomePage() {
   );
 
   return (
-    <div className="rise space-y-2">
+    <div className={`${animate ? "rise " : ""}space-y-2`}>
       {spotlight ? (
         <Featured spotlight={spotlight} />
       ) : spotlightPending ? (
         <FeaturedPlaceholder />
       ) : null}
       <TonightEntry />
-      <WatchlistReleases list={releaseList} />
-      <ContinueRow rows={continueWatching(items, watchingShows.data ?? {})} />
+      <WatchlistReleases list={releaseList} animate={animate} />
+      <ContinueRow
+        rows={continueWatching(items, watchingShows.data ?? {})}
+        pendingCount={watchingShows.loading ? watchingItems.length : 0}
+        animate={animate}
+      />
       <Row
         title={preview("theaters").title}
         items={theaters.data?.results ?? []}
+        loading={theaters.loading}
+        animate={animate}
         type="movie"
         to="/feed/theaters"
       />
       <Row
         title={preview("trending").title}
         items={shown(trending.data?.results ?? [])}
+        loading={trending.loading}
+        animate={animate}
         to="/feed/trending"
       />
       <Row
         title={preview("airing").title}
         items={airing.data?.results ?? []}
+        loading={airing.loading}
+        animate={animate}
         type="tv"
         to="/feed/airing"
       />
       <Row
         title={preview("upcoming").title}
         items={upcoming.data?.results ?? []}
+        loading={upcoming.loading}
+        animate={animate}
         type="movie"
         to="/feed/upcoming"
       />
       <Row
         title={preview("upcoming-tv").title}
         items={upcomingTv.data?.results ?? []}
+        loading={upcomingTv.loading}
+        animate={animate}
         type="tv"
         to="/feed/upcoming-tv"
       />
-      <Row title={preview("watchlist").title} items={watchlist} />
+      <Row
+        title={preview("watchlist").title}
+        items={watchlist}
+        animate={animate}
+      />
       <Row
         title={preview("imdb250-movie").title}
         items={imdbMovies.data?.results ?? []}
+        loading={imdbMovies.loading}
+        animate={animate}
         type="movie"
         to="/feed/imdb250-movie"
       />
       <Row
         title={preview("imdb250-tv").title}
         items={imdbTv.data?.results ?? []}
+        loading={imdbTv.loading}
+        animate={animate}
         type="tv"
         to="/feed/imdb250-tv"
       />
       <Row
         title={preview("recs").title}
         items={shown(recs.data?.results ?? [])}
+        loading={recs.loading}
+        animate={animate}
         type={seed?.type as MediaType | undefined}
         to="/feed/recs"
       />

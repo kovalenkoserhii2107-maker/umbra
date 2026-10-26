@@ -1,11 +1,13 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { RequireAccount } from "./components/RequireAccount";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { Layout } from "./components";
 import { isTv } from "./lib/tvMode";
+import { HomePage } from "./pages/Home";
 
-// The TV app has screens of its own (src/tv); loaded only there.
-const TvApp = lazy(() => import("./tv/TvApp"));
+// The TV app has screens of its own (src/tv); start loading immediately in TV mode.
+const tvAppPromise = isTv ? import("./tv/TvApp") : null;
+const TvApp = lazy(() => tvAppPromise ?? import("./tv/TvApp"));
 const FeedPage = lazy(() =>
   import("./pages/Feed").then((m) => ({ default: m.FeedPage })),
 );
@@ -38,9 +40,6 @@ const GuidePage = lazy(() =>
 );
 const GuideListPage = lazy(() =>
   import("./pages/Guide").then((m) => ({ default: m.GuideListPage })),
-);
-const HomePage = lazy(() =>
-  import("./pages/Home").then((m) => ({ default: m.HomePage })),
 );
 const LibraryPage = lazy(() =>
   import("./pages/Library").then((m) => ({ default: m.LibraryPage })),
@@ -85,9 +84,23 @@ const TitlePage = lazy(() =>
   import("./pages/Title").then((m) => ({ default: m.TitlePage })),
 );
 
+function DelayedScreenFallback() {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setVisible(true), 180);
+    return () => window.clearTimeout(timer);
+  }, []);
+  if (!visible) return null;
+  return (
+    <p role="status" className="py-12 text-center text-xs text-dim">
+      Загружаю экран…
+    </p>
+  );
+}
+
 function Screen() {
   return (
-    <Suspense fallback={<p role="status">Загружаю экран…</p>}>
+    <Suspense fallback={<DelayedScreenFallback />}>
       <Outlet />
     </Suspense>
   );

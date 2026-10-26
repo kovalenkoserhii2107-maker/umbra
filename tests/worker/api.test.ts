@@ -495,6 +495,9 @@ describe("umbra-api", () => {
 
     it("turns store HTML into text", () => {
       expect(htmlToText("a<br/>b&amp;c&#169;<b>d</b>")).toBe("a\nb&c©d");
+      expect(htmlToText("тире&#x2014;и сбой &#99999999; &#xD800;")).toBe(
+        "тире—и сбой &#99999999; &#xD800;",
+      );
     });
   });
 
@@ -830,6 +833,7 @@ describe("umbra-api", () => {
           36,
         ),
       ).toBe("Первое предложение здесь.");
+      expect(shorten("а".repeat(60), 50)).toBe(`${"а".repeat(50)}…`);
     });
   });
 
@@ -892,6 +896,16 @@ describe("umbra-api", () => {
             params: {
               ...params,
               "openid.claimed_id": "https://evil.example/id/1",
+            },
+          }).response
+        ).status,
+      ).toBe(400);
+      expect(
+        (
+          await verify({
+            params: {
+              ...params,
+              "openid.signed": "op_endpoint,return_to,response_nonce",
             },
           }).response
         ).status,

@@ -145,6 +145,9 @@ it("lets people send friend requests only in their own name", async () => {
   const c = env.authenticatedContext("C").firestore();
   const request = { name: "Boris", picture: "", createdAt: serverTimestamp() };
   await assertSucceeds(setDoc(doc(b, "users/A/requests/B"), request));
+  await assertSucceeds(
+    setDoc(doc(b, "users/A/requests/B"), { ...request, name: "Boris B." }),
+  );
   await assertFails(setDoc(doc(c, "users/A/requests/B"), request));
   await assertFails(setDoc(doc(b, "users/B/requests/B"), request));
   await assertFails(

@@ -94,6 +94,7 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         web.onResume()
+        if (isTrustedPage) emit("remote", JSONObject().put("state", "token").put("text", ""))
     }
 
     override fun onPause() {
@@ -239,7 +240,7 @@ class MainActivity : Activity() {
         /** site — сайт сам обработал «Назад» (закрыл окно/клавиатуру), history — шаг назад, none — некуда. */
         const val BACK_SCRIPT = """(function(){try{
             if (window.umbraTvBack && window.umbraTvBack()) return 'site';
-            if (window.navigation && navigation.canGoBack) { history.back(); return 'history'; }
+            if ((window.navigation && navigation.canGoBack) || (window.history.state && window.history.state.idx > 0)) { history.back(); return 'history'; }
         }catch(e){} return 'none';})()"""
         const val REQUEST_MIC = 1
 

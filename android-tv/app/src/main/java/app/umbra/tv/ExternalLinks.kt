@@ -53,7 +53,12 @@ object ExternalLinks {
         val uri = normalize(Uri.parse(url))
         val intents = mutableListOf<Intent>()
         if (uri.scheme == "intent") {
-            runCatching { Intent.parseUri(url, Intent.URI_INTENT_SCHEME) }.getOrNull()?.let(intents::add)
+            runCatching {
+                Intent.parseUri(url, Intent.URI_INTENT_SCHEME).apply {
+                    component = null
+                    selector = null
+                }
+            }.getOrNull()?.let(intents::add)
         } else {
             val app = appForHost(uri.host)
             app?.let { installedPackage(context, it) }?.let { pkg ->

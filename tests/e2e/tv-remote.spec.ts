@@ -63,7 +63,7 @@ async function worker(
         status: answer.status,
         json: answer.json,
       });
-    if (path === "/tv/device")
+    if (path === "/tv/device" || path === "/tv/device/remove")
       return route.fulfill({ headers: cors, json: { devices: 1 } });
     return route.fulfill({
       headers: cors,
@@ -97,6 +97,12 @@ const SONY = {
   lampa: true,
   background: true,
 };
+const BEDROOM = {
+  id: "1122334455667788",
+  device: "Xiaomi Bedroom",
+  lampa: true,
+  background: true,
+};
 
 test.describe("phone", () => {
   test.use({ viewport: { width: 390, height: 844 } });
@@ -114,6 +120,26 @@ test.describe("phone", () => {
     const open = calls.find((c) => c.path === "/tv/open")!;
     expect(open.body).toEqual({ type: "movie", id: 438631 });
     expect(open.auth).toMatch(/^Bearer \S+/);
+  });
+
+  test("lets the user pick a target TV when multiple TVs are linked", async ({
+    page,
+    context,
+  }) => {
+    await catalog(context);
+    const calls = await worker(context, [SONY, BEDROOM]);
+    await register(page);
+    await page.goto("#/title/movie/438631");
+    const group = page.getByRole("group", { name: "Телевизор" });
+    await group.getByRole("button", { name: "Xiaomi Bedroom" }).click();
+    await page.getByRole("button", { name: "На телевизоре в Lampa" }).click();
+    await expect(page.getByText("Открываю на «Xiaomi Bedroom».")).toBeVisible();
+    const open = calls.find((c) => c.path === "/tv/open")!;
+    expect(open.body).toEqual({
+      type: "movie",
+      id: 438631,
+      device: "1122334455667788",
+    });
   });
 
   test("says when the TV does not answer", async ({ page, context }) => {
@@ -146,7 +172,7 @@ test.describe("phone", () => {
 test.describe("TV", () => {
   test.use({ viewport: { width: 960, height: 540 } });
 
-  test("registers itself once signed in and when the push token arrives", async ({
+  test("registers itself once signed in and unregisters on sign-out", async ({
     page,
     context,
   }) => {
@@ -207,5 +233,15 @@ test.describe("TV", () => {
     );
     await page.waitForTimeout(300);
     expect(calls.filter((c) => c.path === "/tv/device")).toHaveLength(1);
+
+    // Signing out removes this TV from the account's remote list.
+    await page.goto("?tv=1#/settings");
+    await page.getByRole("button", { name: "Выйти из аккаунта" }).click();
+    await expect
+      .poll(() => calls.filter((c) => c.path === "/tv/device/remove").length)
+      .toBe(1);
+    const removed = calls.find((c) => c.path === "/tv/device/remove")!;
+    expect(removed.body).toEqual({ id: "a1b2c3d4e5f60718" });
+    expect(removed.auth).toMatch(/^Bearer \S+/);
   });
 });

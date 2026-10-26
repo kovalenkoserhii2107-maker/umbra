@@ -89,6 +89,16 @@ export async function registerDevice(deps: Deps, uid: string, body: unknown) {
   return { devices: devices.length };
 }
 
+/** POST /tv/device/remove — a TV signing out removes itself from this account. */
+export async function unregisterDevice(deps: Deps, uid: string, body: unknown) {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const id = text(b.id, 64);
+  if (!/^[A-Za-z0-9_-]{4,64}$/.test(id))
+    throw new ApiError(400, "bad_device", "id is required");
+  const devices = await store(deps)(uid).run({ op: "remove", id });
+  return { devices: devices.length };
+}
+
 /** What the phone sees of a TV: no push tokens. */
 const visible = (d: Device) => ({
   id: d.id,
@@ -175,22 +185,32 @@ export async function openOnTv(deps: Deps, uid: string, body: unknown) {
   const id = typeof b.id === "number" && Number.isInteger(b.id) ? b.id : 0;
   if (!type || id <= 0 || id > 9_999_999_999)
     throw new ApiError(400, "bad_title", "type and id are required");
-  const day = new Date(deps.now()).toISOString().slice(0, 10);
-  if (!(await bump(deps, `tv/open/${day}/${uid}`, 200)))
-    throw new ApiError(429, "tv_limit", "Too many today");
 
   const devices = (await store(deps)(uid).run({ op: "list" })).filter(
     (d) => d.lampa && (typeof b.device !== "string" || d.id === b.device),
   );
   if (!devices.length)
     throw new ApiError(404, "no_tv", "No TV with Lampa on this account");
+
+  const day = new Date(deps.now()).toISOString().slice(0, 10);
+  if (!(await bump(deps, `tv/open/${day}/${uid}`, 200)))
+    throw new ApiError(429, "tv_limit", "Too many today");
+
   const data = { action: "lampa", type, id: String(id) };
   let sent = 0;
+  let lastError: unknown = null;
   for (const d of devices) {
-    if ((await push(deps, d.token, data)) === "sent") sent++;
-    else await store(deps)(uid).run({ op: "remove", id: d.id });
+    try {
+      if ((await push(deps, d.token, data)) === "sent") sent++;
+      else await store(deps)(uid).run({ op: "remove", id: d.id });
+    } catch (err) {
+      lastError = err;
+    }
   }
-  if (!sent) throw new ApiError(404, "no_tv", "The TV is not reachable");
+  if (!sent) {
+    if (lastError) throw lastError;
+    throw new ApiError(404, "no_tv", "The TV is not reachable");
+  }
   return { sent };
 }
 

@@ -3,18 +3,25 @@ import { ApiError, tvDevices, tvOpen, type TvDevice } from "../lib/api";
 import { idToken, useAuth } from "../lib/auth";
 import { isTv } from "../lib/tvMode";
 
-/** The account's TVs, asked once per visit (worker/src/tvRemote.ts). */
-let known: Promise<TvDevice[]> | null = null;
+/** The account's TVs, cached briefly per signed-in uid (worker/src/tvRemote.ts). */
+let known: {
+  uid: string;
+  until: number;
+  promise: Promise<TvDevice[]>;
+} | null = null;
 
-function devices() {
-  known ??= idToken()
-    .then((token) => tvDevices(token))
-    .then((r) => r.devices)
-    .catch(() => {
-      known = null;
-      return [];
-    });
-  return known;
+function devices(uid: string) {
+  if (!known || known.uid !== uid || known.until <= Date.now()) {
+    const promise = idToken()
+      .then((token) => tvDevices(token))
+      .then((r) => r.devices)
+      .catch(() => {
+        if (known?.promise === promise) known = null;
+        return [];
+      });
+    known = { uid, until: Date.now() + 30_000, promise };
+  }
+  return known.promise;
 }
 
 type State =
@@ -31,12 +38,18 @@ type State =
 export function SendToTv({ type, id }: { type: "movie" | "tv"; id: number }) {
   const { account } = useAuth();
   const [tvs, setTvs] = useState<TvDevice[]>([]);
+  const [target, setTarget] = useState<string>("");
   const [state, setState] = useState<State>({ step: "idle" });
 
   useEffect(() => {
-    if (isTv || !account) return;
+    if (isTv || !account) {
+      setTvs([]);
+      return;
+    }
     let alive = true;
-    void devices().then((list) => alive && setTvs(list.filter((d) => d.lampa)));
+    void devices(account.sub).then(
+      (list) => alive && setTvs(list.filter((d) => d.lampa)),
+    );
     return () => {
       alive = false;
     };
@@ -45,12 +58,25 @@ export function SendToTv({ type, id }: { type: "movie" | "tv"; id: number }) {
   useEffect(() => setState({ step: "idle" }), [type, id]);
 
   if (!tvs.length) return null;
-  const name = tvs.length === 1 ? tvs[0].device : "телевизоре";
+  const multi = tvs.length > 1;
+  const activeId = multi
+    ? target === "all" || tvs.some((d) => d.id === target)
+      ? target
+      : tvs[0].id
+    : tvs[0].id;
+  const chosenTv =
+    activeId === "all" ? undefined : tvs.find((d) => d.id === activeId);
+  const name = chosenTv ? chosenTv.device : "телевизоре";
 
   async function send() {
     setState({ step: "sending" });
     try {
-      await tvOpen(type, id, await idToken());
+      await tvOpen(
+        type,
+        id,
+        await idToken(),
+        multi && chosenTv ? chosenTv.id : undefined,
+      );
       setState({ step: "sent", device: name });
     } catch (e) {
       const code = e instanceof ApiError ? e.code : "";
@@ -66,8 +92,48 @@ export function SendToTv({ type, id }: { type: "movie" | "tv"; id: number }) {
     }
   }
 
+  const needsOverlay = chosenTv
+    ? !chosenTv.background
+    : tvs.every((d) => !d.background);
+
   return (
     <div className="mt-3">
+      {multi ? (
+        <div
+          role="group"
+          aria-label="Телевизор"
+          className="mb-2 flex flex-wrap gap-1.5"
+        >
+          {tvs.map((d) => {
+            const on = activeId === d.id;
+            return (
+              <button
+                key={d.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => {
+                  setTarget(d.id);
+                  setState({ step: "idle" });
+                }}
+                className={`rounded-full border px-3 py-1 text-xs ${on ? "border-ink bg-ink text-canvas" : "border-hairline text-mute"}`}
+              >
+                {d.device}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            aria-pressed={activeId === "all"}
+            onClick={() => {
+              setTarget("all");
+              setState({ step: "idle" });
+            }}
+            className={`rounded-full border px-3 py-1 text-xs ${activeId === "all" ? "border-ink bg-ink text-canvas" : "border-hairline text-mute"}`}
+          >
+            Все ({tvs.length})
+          </button>
+        </div>
+      ) : null}
       <button
         type="button"
         onClick={send}
@@ -98,7 +164,7 @@ export function SendToTv({ type, id }: { type: "movie" | "tv"; id: number }) {
         <p role="alert" className="mt-2 text-center text-xs text-mute">
           {state.text}
         </p>
-      ) : tvs.every((d) => !d.background) ? (
+      ) : needsOverlay ? (
         <p className="mt-2 text-center text-xs text-dim">
           Если Umbra на телевизоре закрыта, Lampa откроется после разрешения
           «Поверх других приложений» для Umbra.

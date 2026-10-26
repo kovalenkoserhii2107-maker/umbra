@@ -33,7 +33,9 @@ export function shorten(text: string, max = 220) {
   const cut = clean.slice(0, max);
   const sentence = cut.lastIndexOf(". ");
   if (sentence > max * 0.6) return cut.slice(0, sentence + 1);
-  return `${cut.slice(0, cut.lastIndexOf(" ")).replace(/[,;:–—-]$/, "")}…`;
+  const space = cut.lastIndexOf(" ");
+  const head = space > max * 0.4 ? cut.slice(0, space) : cut;
+  return `${head.replace(/[,;:–—-]$/, "")}…`;
 }
 
 const yearOf = (date?: string | null) => (date || "").slice(0, 4);
@@ -47,7 +49,10 @@ export async function imdbRating(deps: Deps, imdbId: string) {
   try {
     const r = await deps.fetch(
       `https://api.agregarr.org/api/ratings?id=${encodeURIComponent(imdbId)}`,
-      { headers: { Accept: "application/json" } },
+      {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(2_500),
+      },
     );
     if (r.ok) {
       const data = (await r.json()) as
@@ -66,6 +71,7 @@ export async function imdbRating(deps: Deps, imdbId: string) {
   try {
     const r = await deps.fetch(
       `https://www.omdbapi.com/?i=${encodeURIComponent(imdbId)}&apikey=${encodeURIComponent(deps.env.OMDB_KEY)}`,
+      { signal: AbortSignal.timeout(3_500) },
     );
     if (!r.ok) return null;
     return score(((await r.json()) as { imdbRating?: string }).imdbRating);

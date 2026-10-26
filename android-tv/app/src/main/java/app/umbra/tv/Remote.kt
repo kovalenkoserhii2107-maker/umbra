@@ -9,6 +9,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.provider.Settings
+import android.view.WindowManager
 import android.widget.Toast
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -91,8 +92,16 @@ class RemoteOpenActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setTurnScreenOn(true)
-        setShowWhenLocked(true)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setTurnScreenOn(true)
+            setShowWhenLocked(true)
+        } else {
+            @Suppress("DEPRECATION")
+            window.addFlags(
+                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                    WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED,
+            )
+        }
         val type = intent.getStringExtra(EXTRA_TYPE)
         val id = intent.getStringExtra(EXTRA_ID)
         if (type == null || id == null) return finish()
@@ -109,6 +118,11 @@ class RemoteOpenActivity : Activity() {
             finish()
         }
         main.postDelayed(::open, if (power.isInteractive) 0 else 600)
+    }
+
+    override fun onDestroy() {
+        main.removeCallbacksAndMessages(null)
+        super.onDestroy()
     }
 
     companion object {

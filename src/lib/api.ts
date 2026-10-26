@@ -119,13 +119,20 @@ export type TvDevice = Omit<TvRemoteInfo, "token">;
 
 export const tvRegister = (info: TvRemoteInfo, token: string | null) =>
   call<{ devices: number }>("/tv/device", post(info, bearer(token)));
+export const tvUnregister = (id: string, token: string | null) =>
+  call<{ devices: number }>("/tv/device/remove", post({ id }, bearer(token)));
 export const tvDevices = (token: string | null) =>
   call<{ devices: TvDevice[] }>("/tv/devices", { headers: bearer(token) });
 export const tvOpen = (
   type: "movie" | "tv",
   id: number,
   token: string | null,
-) => call<{ sent: number }>("/tv/open", post({ type, id }, bearer(token)));
+  device?: string,
+) =>
+  call<{ sent: number }>(
+    "/tv/open",
+    post(device ? { type, id, device } : { type, id }, bearer(token)),
+  );
 
 const memory = new Map<string, { until: number; value: Promise<unknown> }>();
 

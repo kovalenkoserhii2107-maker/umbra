@@ -303,10 +303,12 @@ export async function loadCandidates(
   const types = typesFor(a.format);
   const candidates: Candidate[] = [];
 
+  const uncachedWatchlist: Array<{ item: LibraryItem; candidate: Candidate }> =
+    [];
   for (const x of items)
     if (x.status === "watchlist" && types.includes(x.type)) {
       const m = meta[metaKey(x)];
-      candidates.push({
+      const candidate: Candidate = {
         type: x.type,
         from: "watchlist",
         genres: m?.genres,
@@ -318,7 +320,10 @@ export async function loadCandidates(
           release_date: m?.date || (x.year ? `${x.year}-01-01` : ""),
           media_type: x.type,
         },
-      });
+      };
+      candidates.push(candidate);
+      if (!m && uncachedWatchlist.length < 12)
+        uncachedWatchlist.push({ item: x, candidate });
     }
 
   // Titles similar to the best-rated ones in the same mood.
@@ -357,6 +362,18 @@ export async function loadCandidates(
       })
       .catch(() => undefined),
   );
+  for (const { item, candidate } of uncachedWatchlist)
+    jobs.push(
+      tmdb
+        .basic(item.type, item.id)
+        .then((d) => {
+          candidate.genres = (d.genres || []).map((g) => g.name);
+          if (item.type === "movie" && d.runtime) candidate.runtime = d.runtime;
+          const date = (d.release_date || d.first_air_date || "").slice(0, 10);
+          if (date) candidate.item.release_date = date;
+        })
+        .catch(() => undefined),
+    );
   for (const t of types) {
     const ids = t === "tv" ? mood.tv : mood.movie;
     for (const sort of ["popularity.desc", "vote_average.desc"] as const)

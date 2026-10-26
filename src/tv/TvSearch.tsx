@@ -105,13 +105,19 @@ export function TvSearch() {
     search(value.trim());
   }
 
-  // Letters typed become the query after a short pause; one is not enough.
+  // Letters typed become the query after a short pause; one is not enough,
+  // except when erasing an active query back down to a single character.
   useEffect(() => {
     const next = text.trim();
-    if (next === q || next.length === 1) return;
+    if (next === q) return;
+    if (next.length === 1) {
+      if (!q) return;
+      const timer = window.setTimeout(() => search(""), DELAY);
+      return () => window.clearTimeout(timer);
+    }
     const timer = window.setTimeout(() => search(next), DELAY);
     return () => window.clearTimeout(timer);
-  }, [text]);
+  }, [text, q]);
 
   useEffect(() => {
     if (!q) {
@@ -142,24 +148,36 @@ export function TvSearch() {
   }, [q]);
 
   // Voice through the TV app: what is heard shows in the line as it comes.
-  useEffect(
-    () =>
-      onTvEvent((e) => {
-        if (e.type !== "voice") return;
-        if (e.state === "listening") {
-          setVoice("listening");
-          setHeard("");
-        } else if (e.state === "partial") setHeard(e.text);
-        else if (e.state === "result") {
-          setVoice("idle");
-          setHeard("");
-          put(e.text);
-        } else if (e.state === "error") setVoice("error");
-        else if (e.state === "end")
-          setVoice((v) => (v === "listening" ? "idle" : v));
-      }),
-    [],
-  );
+  const voiceActive = useRef(false);
+  useEffect(() => {
+    const stop = onTvEvent((e) => {
+      if (e.type !== "voice") return;
+      if (e.state === "listening") {
+        voiceActive.current = true;
+        setVoice("listening");
+        setHeard("");
+      } else if (e.state === "partial") setHeard(e.text);
+      else if (e.state === "result") {
+        voiceActive.current = false;
+        setVoice("idle");
+        setHeard("");
+        if (e.text.trim()) put(e.text);
+      } else if (e.state === "error") {
+        voiceActive.current = false;
+        setVoice("error");
+      } else if (e.state === "end") {
+        voiceActive.current = false;
+        setVoice((v) => (v === "listening" ? "idle" : v));
+      }
+    });
+    return () => {
+      stop();
+      if (voiceActive.current) {
+        voiceActive.current = false;
+        tvBridge()?.stopVoice();
+      }
+    };
+  }, []);
 
   // A keyboard plugged into the TV (or the remote's digits) types as well.
   useEffect(() => {

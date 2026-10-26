@@ -16,7 +16,7 @@ import { PLATFORMS } from "../lib/providers";
 import {
   cachedRating,
   ensureImdbRating,
-  subscribeRatings,
+  subscribeRating,
 } from "../lib/ratings";
 import { readStorage, writeStorage } from "../lib/storage";
 import {
@@ -290,27 +290,40 @@ function Progress({ index, round }: { index: number; round: number }) {
 function Question({ view }: { view: QuestionView }) {
   const [chosen, setChosen] = useState<number | null>(null);
   const [listening, setListening] = useState<string | null>(null);
+  const voiceActive = useRef(false);
   const voiceAt = view.options.findIndex((o) => o.voice);
 
-  useEffect(
-    () =>
-      onTvEvent((e) => {
-        if (e.type !== "voice") return;
-        if (e.state === "listening") setListening("");
-        else if (e.state === "partial") setListening(e.text);
-        else if (e.state === "result") {
-          setListening(null);
-          if (e.text.trim()) pick(voiceAt, e.text.trim());
-        } else if (e.state === "end" || e.state === "error") setListening(null);
-      }),
-    [view.key],
-  );
+  useEffect(() => {
+    const stop = onTvEvent((e) => {
+      if (e.type !== "voice") return;
+      if (e.state === "listening") {
+        voiceActive.current = true;
+        setListening("");
+      } else if (e.state === "partial") setListening(e.text);
+      else if (e.state === "result") {
+        voiceActive.current = false;
+        setListening(null);
+        if (e.text.trim()) pick(voiceAt, e.text.trim());
+      } else if (e.state === "end" || e.state === "error") {
+        voiceActive.current = false;
+        setListening(null);
+      }
+    });
+    return () => {
+      stop();
+      if (voiceActive.current) {
+        voiceActive.current = false;
+        tvBridge()?.stopVoice();
+      }
+    };
+  }, [view.key]);
 
   function pick(n: number, text?: string) {
     if (chosen !== null) return;
     const option = view.options[n];
     if (!option) return;
     if (option.voice && text === undefined) {
+      voiceActive.current = true;
       setListening("");
       tvBridge()?.startVoice("ru-RU");
       return;
@@ -430,7 +443,14 @@ const PHRASES = {
  * The final pick: posters of the shelf and of the catalog run past like the
  * reels of a slot machine on a tilted wall, a frame pulsing in the middle.
  */
-function Thinking({ what }: { what: "ask" | "pick" }) {
+function Thinking({
+  what,
+  onBack,
+}: {
+  what: "ask" | "pick";
+  onBack: () => void;
+}) {
+  useTvBack(true, onBack);
   const { items } = useAppState();
   const own = useMemo(
     () =>
@@ -693,12 +713,15 @@ function Eclipse({
   index,
   round,
   trail,
+  onBack,
 }: {
   /** Questions answered in this round (the next one is index + 1). */
   index: number;
   round: number;
   trail: string[];
+  onBack: () => void;
 }) {
+  useTvBack(true, onBack);
   return (
     <div className="absolute inset-0 bg-black">
       <div aria-hidden="true" className="absolute inset-0">
@@ -775,7 +798,13 @@ function Eclipse({
 
 function useImdb(pick: Pick | null) {
   const [, tick] = useState(0);
-  useEffect(() => subscribeRatings(() => tick((n) => n + 1)), []);
+  useEffect(
+    () =>
+      pick
+        ? subscribeRating(pick.type, pick.item.id, () => tick((n) => n + 1))
+        : undefined,
+    [pick?.type, pick?.item.id],
+  );
   useEffect(() => {
     if (pick)
       void ensureImdbRating(pick.type, pick.item.id).catch(() => undefined);
@@ -789,6 +818,7 @@ function Results({
   extra,
   onSeen,
   onDismiss,
+  onBack,
 }: {
   picks: Pick[];
   /** What Claude understood about your taste. */
@@ -798,6 +828,7 @@ function Results({
   /** Seen, with the score picked right away (null — no score). */
   onSeen: (p: Pick, rating: number | null) => void;
   onDismiss: (p: Pick) => void;
+  onBack: () => void;
 }) {
   const navigate = useNavigate();
   const { get, upsert, remove } = useAppState();
@@ -907,10 +938,14 @@ function Results({
           ],
     { lane: "picks" },
   );
-  // Back while scoring: the pick stays, nothing is marked.
-  useTvBack(rating !== null, () => {
-    setRating(null);
-    nav.focus("actions");
+  // Back while scoring: the pick stays, nothing is marked; otherwise back to the start.
+  useTvBack(true, () => {
+    if (rating !== null) {
+      setRating(null);
+      nav.focus("actions");
+    } else {
+      onBack();
+    }
   });
   // While scoring, the picks lane is away: the row keeps its place.
   const lastPick = useRef(0);
@@ -1092,13 +1127,22 @@ function Results({
 
 // ---------------------------------------------------------------- screen
 
-function Message({ text, actions }: { text: string; actions: Action[] }) {
+function Message({
+  text,
+  actions,
+  onBack,
+}: {
+  text: string;
+  actions: Action[];
+  onBack: () => void;
+}) {
   const nav = useLanes(
     [{ key: "msg", size: actions.length, onSelect: (n) => actions[n]?.run() }],
     {
       lane: "msg",
     },
   );
+  useTvBack(true, onBack);
   const at = (lane: string, n: number) =>
     nav.lane === lane && nav.col(lane) === n;
   return (
@@ -1152,6 +1196,7 @@ export function TvTonight() {
   /** null — the start screen. */
   const [mode, setMode] = useState<"ai" | "quick" | null>(null);
   const [hidden, setHidden] = useState<string[]>([]);
+  const toStart = () => setMode(null);
 
   function begin(m: "ai" | "quick") {
     writeStorage(MODE, m);
@@ -1188,13 +1233,20 @@ export function TvTonight() {
     }
     if (claude.busy === "ask")
       content = (
-        <Eclipse index={claude.answered} round={claude.round} trail={trail} />
+        <Eclipse
+          index={claude.answered}
+          round={claude.round}
+          trail={trail}
+          onBack={toStart}
+        />
       );
-    else if (claude.busy) content = <Thinking key="pick" what="pick" />;
+    else if (claude.busy)
+      content = <Thinking key="pick" what="pick" onBack={toStart} />;
     else if (claude.error)
       content = (
         <Message
           text={claude.error}
+          onBack={toStart}
           actions={[
             ...(claude.canRetry
               ? [
@@ -1211,7 +1263,7 @@ export function TvTonight() {
               label: "Быстрый подбор",
               run: () => begin("quick"),
             },
-            { key: "home", label: "К началу", run: () => setMode(null) },
+            { key: "home", label: "К началу", run: toStart },
           ]}
         />
       );
@@ -1232,7 +1284,7 @@ export function TvTonight() {
             round: claude.round,
             trail,
             choose: (o, text) => claude.answer(text ?? o.label),
-            back: () => (s.asked.length > 1 ? claude.back() : setMode(null)),
+            back: () => (s.asked.length > 1 ? claude.back() : toStart()),
           }}
         />
       );
@@ -1244,6 +1296,7 @@ export function TvTonight() {
           taste={s.taste}
           onSeen={(p, rating) => claude.judge(p, "seen", rating)}
           onDismiss={(p) => claude.judge(p, "disliked")}
+          onBack={toStart}
           extra={[
             {
               key: "more",
@@ -1256,7 +1309,7 @@ export function TvTonight() {
               label: "Уточнить (4 вопроса)",
               run: () => claude.proceed("ask"),
             },
-            { key: "again", label: "Начать заново", run: () => setMode(null) },
+            { key: "again", label: "Начать заново", run: toStart },
           ]}
         />
       );
@@ -1264,6 +1317,7 @@ export function TvTonight() {
       content = (
         <Message
           text="Claude не нашёл ничего нового. Уточним?"
+          onBack={toStart}
           actions={[
             {
               key: "ask",
@@ -1271,11 +1325,11 @@ export function TvTonight() {
               accent: true,
               run: () => claude.proceed("ask"),
             },
-            { key: "home", label: "К началу", run: () => setMode(null) },
+            { key: "home", label: "К началу", run: toStart },
           ]}
         />
       );
-    else content = <Eclipse index={0} round={1} trail={[]} />;
+    else content = <Eclipse index={0} round={1} trail={[]} onBack={toStart} />;
   } else {
     const step = quick.step;
     if (step !== "done") {
@@ -1302,7 +1356,7 @@ export function TvTonight() {
               );
             },
             back: () =>
-              step > 0 ? quick.setStep((step - 1) as Step) : setMode(null),
+              step > 0 ? quick.setStep((step - 1) as Step) : toStart(),
           }}
         />
       );
@@ -1310,6 +1364,7 @@ export function TvTonight() {
       content = (
         <Message
           text={quick.error}
+          onBack={toStart}
           actions={[
             {
               key: "again",
@@ -1317,12 +1372,12 @@ export function TvTonight() {
               accent: true,
               run: () => begin("quick"),
             },
-            { key: "home", label: "К началу", run: () => setMode(null) },
+            { key: "home", label: "К началу", run: toStart },
           ]}
         />
       );
     else if (quick.busy && !quick.shown.length)
-      content = <Thinking what="pick" />;
+      content = <Thinking what="pick" onBack={toStart} />;
     else {
       const picks = quick.shown.filter((p) => !hidden.includes(p.key));
       content = picks.length ? (
@@ -1339,6 +1394,7 @@ export function TvTonight() {
             setHidden((h) => [...h, p.key]);
           }}
           onDismiss={(p) => setHidden((h) => [...h, p.key])}
+          onBack={toStart}
           extra={[
             ...(quick.ranked && quick.shown.length < quick.ranked.length
               ? [
@@ -1355,12 +1411,13 @@ export function TvTonight() {
               label: "Изменить ответы",
               run: () => begin("quick"),
             },
-            { key: "home", label: "К началу", run: () => setMode(null) },
+            { key: "home", label: "К началу", run: toStart },
           ]}
         />
       ) : (
         <Message
           text="Ничего не подошло. Попробуем другое настроение?"
+          onBack={toStart}
           actions={[
             {
               key: "again",
@@ -1368,7 +1425,7 @@ export function TvTonight() {
               accent: true,
               run: () => begin("quick"),
             },
-            { key: "home", label: "К началу", run: () => setMode(null) },
+            { key: "home", label: "К началу", run: toStart },
           ]}
         />
       );

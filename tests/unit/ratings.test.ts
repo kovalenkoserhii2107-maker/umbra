@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { parseCriticScores } from "../../src/lib/ratings";
+import {
+  cachedRating,
+  parseCriticScores,
+  rememberRating,
+  subscribeRating,
+} from "../../src/lib/ratings";
 import { parseOmdb } from "../../src/lib/omdb";
 
 const wd = (id: string) => ({ value: `http://www.wikidata.org/entity/${id}` });
@@ -113,9 +118,39 @@ describe("OMDb scores", () => {
         Metascore: "N/A",
         tomatoURL: "N/A",
       }),
-    ).toMatchObject({ tomatometer: null, metascore: null, rottenTomatoesUrl: null });
+    ).toMatchObject({
+      tomatometer: null,
+      metascore: null,
+      rottenTomatoesUrl: null,
+    });
     expect(
       parseOmdb({ Response: "False", Error: "Invalid API key!" }),
     ).toBeNull();
+  });
+});
+
+describe("per-title rating cache and subscriptions", () => {
+  it("notifies only listeners subscribed to the updated title", () => {
+    let duneUpdates = 0;
+    let matrixUpdates = 0;
+    const stopDune = subscribeRating("movie", 438631, () => {
+      duneUpdates += 1;
+    });
+    const stopMatrix = subscribeRating("movie", 603, () => {
+      matrixUpdates += 1;
+    });
+
+    rememberRating("movie", 438631, { imdb: "8.0", imdbId: "tt1160419" });
+    expect(cachedRating("movie", 438631)).toMatchObject({
+      imdb: "8.0",
+      imdbId: "tt1160419",
+    });
+    expect(duneUpdates).toBe(1);
+    expect(matrixUpdates).toBe(0);
+
+    stopDune();
+    stopMatrix();
+    rememberRating("movie", 438631, { imdb: "8.1" });
+    expect(duneUpdates).toBe(1);
   });
 });

@@ -36,6 +36,7 @@ import {
 } from "../lib/tracking";
 import { tvApi } from "../lib/tv";
 import {
+  appForProvider,
   hasLampa,
   installedApps,
   launchTvApp,
@@ -151,7 +152,8 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
   // ---- actions ----
   const videos = sortedVideos(item.videos?.results);
   const offers = item["watch/providers"]?.results[settings.region];
-  const apps = useMemo(() => watchApps(offers, installedApps()), [offers]);
+  const installed = useMemo(() => installedApps(), [offers]);
+  const apps = useMemo(() => watchApps(offers, installed), [offers, installed]);
   const actions: Action[] = [
     ...apps.map((a, i) => ({
       key: `watch-${a.app}`,
@@ -276,11 +278,14 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
   const cast = (item.credits?.cast ?? []).slice(0, 20);
   const crew = crewCards(item);
   const where = providerGroups(offers).flatMap((g) =>
-    g.providers.map((p) => ({
-      provider: p,
-      how: g.label,
-      app: apps.find((a) => a.name === p.provider_name)?.app,
-    })),
+    g.providers.map((p) => {
+      const app = appForProvider(p.provider_name);
+      return {
+        provider: p,
+        how: g.label,
+        app: app && installed[app] ? app : undefined,
+      };
+    }),
   );
   const allVideos = videos.slice(0, 15);
   const stills = (item.images?.backdrops ?? [])

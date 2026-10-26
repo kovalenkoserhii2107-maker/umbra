@@ -33,7 +33,12 @@ import { ShareButton } from "../components/ShareButton";
 import { SendToTv } from "../components/SendToTv";
 import { useAuth } from "../lib/auth";
 import { loadFriendsOn, useFriendList } from "../lib/friends";
-import { Avatar, byInterest, sharedStatus } from "../components/FriendsIndex";
+import {
+  Avatar,
+  byInterest,
+  sharedStatus,
+  useFriendsOn,
+} from "../components/FriendsIndex";
 import { Seasons } from "../components/Seasons";
 import { TvTitleActions } from "../components/TvActions";
 import { isTv } from "../lib/tvMode";
@@ -78,13 +83,18 @@ function rottenTomatoesUrl(critics: CriticScores | null, title: string) {
 
 function FriendsOnTitle({ media, id }: { media: MediaType; id: number }) {
   const { account } = useAuth();
+  const cached = useFriendsOn(media, id);
   const friends = useFriendList(account?.sub || null);
-  const key = (friends.list ?? []).map((p) => p.uid).join();
+  const key =
+    friends.list === null ? "loading" : friends.list.map((p) => p.uid).join();
   const rows = useAsync(
-    () => loadFriendsOn(friends.list ?? [], media, id),
+    () =>
+      friends.list === null
+        ? Promise.resolve(null)
+        : loadFriendsOn(friends.list, media, id),
     [key, media, id],
   );
-  const list = [...(rows.data ?? [])].sort(byInterest);
+  const list = [...(rows.data ?? cached)].sort(byInterest);
   if (!list.length) return null;
   const rated = list.filter((r) => r.rating.rating !== null);
   const average =

@@ -1,12 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   genreTaste,
+  loadCandidates,
   rankTonight,
   type Answers,
   type Candidate,
 } from "../../src/lib/tonight";
 import type { LibraryItem } from "../../src/lib/library";
 import type { MetaMap } from "../../src/lib/meta";
+import { tmdb } from "../../src/lib/tmdb";
 
 const lib = (over: Partial<LibraryItem>): LibraryItem => ({
   id: 1,
@@ -113,5 +115,44 @@ describe("evening picks", () => {
       { seen: new Set(), taste: new Map(), names },
     );
     expect(family.map((p) => p.item.id)).toEqual([21]);
+  });
+
+  it("hydrates uncached watchlist items on cold cache so they are not dropped", async () => {
+    const genresSpy = vi
+      .spyOn(tmdb, "genres")
+      .mockResolvedValue({ genres: [{ id: 35, name: "комедия" }] });
+    const basicSpy = vi.spyOn(tmdb, "basic").mockResolvedValue({
+      id: 77,
+      title: "Залечь на дно в Брюгге",
+      genres: [{ id: 35, name: "комедия" }],
+      runtime: 107,
+      release_date: "2008-02-08",
+    });
+    const discoverSpy = vi.spyOn(tmdb, "discoverBy").mockResolvedValue({
+      page: 1,
+      total_pages: 1,
+      total_results: 1,
+      results: [film(10, [35])],
+    });
+    try {
+      const loaded = await loadCandidates(
+        answers,
+        [lib({ id: 77, title: "Залечь на дно в Брюгге", status: "watchlist" })],
+        {},
+        "UA",
+        [],
+      );
+      const picks = rankTonight(loaded.candidates, answers, {
+        seen: new Set(),
+        taste: new Map(),
+        names: loaded.names,
+      });
+      expect(picks.map((p) => p.item.id)).toEqual([77, 10]);
+      expect(picks[0].reasons[0]).toBe("из «Хочу посмотреть»");
+    } finally {
+      genresSpy.mockRestore();
+      basicSpy.mockRestore();
+      discoverSpy.mockRestore();
+    }
   });
 });

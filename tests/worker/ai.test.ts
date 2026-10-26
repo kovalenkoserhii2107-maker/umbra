@@ -256,6 +256,9 @@ describe("AI picker", () => {
     const third = await send(body, t);
     expect(third.status).toBe(429);
     expect(((await third.json()) as { error: string }).error).toBe("ai_limit");
+
+    const paused = setup(undefined, { AI_DAILY_LIMIT: "0" });
+    expect((await paused.send(body, t)).status).toBe(429);
   });
 
   it("reports refusals and missing keys", async () => {

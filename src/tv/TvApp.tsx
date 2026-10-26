@@ -1,13 +1,27 @@
-import { lazy, Suspense, useEffect, type ReactNode } from "react";
-import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import {
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { RequireAccount } from "../components/RequireAccount";
 import { FriendsIndexProvider } from "../components/FriendsIndex";
 import { UpdatePrompt } from "../components/UpdatePrompt";
 import { tvRegister, tvUnregister, type TvRemoteInfo } from "../lib/api";
 import { idToken, onBeforeSignOut, useAuth } from "../lib/auth";
-import { onTvEvent, tvBridge } from "../lib/tvMode";
+import { exitTvApp, onTvEvent, setTvRootBack, tvBridge } from "../lib/tvMode";
 import { useTvScreenFocus } from "../components/TvFocus";
-import { Tabs } from "./ui";
+import { TABS, Tabs } from "./ui";
 import { TvCollection, TvHome, TvPerson } from "./screens";
 import { TvTitle } from "./TvTitle";
 import { TvTonight } from "./TvTonight";
@@ -105,13 +119,67 @@ function useRemoteRegistration() {
   }, [uid]);
 }
 
+/** Back twice within this time on «Лента» leaves the app. */
+const LEAVE_MS = 2000;
+
+/**
+ * Back with nothing open on the screen: on another tab of the menu it goes
+ * to «Лента» (the app never closes from there); on «Лента» the first press
+ * says how to leave and a second one soon after closes the app. Title and
+ * person pages keep going back in history.
+ */
+function useRootBack() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [hint, setHint] = useState(false);
+  const path = useRef(location.pathname);
+  path.current = location.pathname;
+  const armed = useRef(0);
+  useEffect(() => {
+    let timer = 0;
+    setTvRootBack(() => {
+      const here = path.current;
+      if (here !== "/" && TABS.some((t) => t.to === here)) {
+        navigate("/", { replace: true, state: { menu: true } });
+        return true;
+      }
+      if (here !== "/") return false;
+      window.clearTimeout(timer);
+      if (Date.now() - armed.current < LEAVE_MS) {
+        armed.current = 0;
+        setHint(false);
+        // An app from before exitApp closes by itself when this is false.
+        return exitTvApp();
+      }
+      armed.current = Date.now();
+      setHint(true);
+      timer = window.setTimeout(() => setHint(false), LEAVE_MS);
+      return true;
+    });
+    return () => {
+      window.clearTimeout(timer);
+      setTvRootBack(null);
+    };
+  }, []);
+  return hint;
+}
+
 export default function TvApp() {
   useRemoteRegistration();
+  const leaving = useRootBack();
   return (
     <>
       {/* New versions of the site apply by themselves on the TV. */}
       <UpdatePrompt />
       <TvRoutes />
+      {leaving ? (
+        <p
+          role="status"
+          className="tv-rise fixed bottom-10 left-1/2 z-50 -translate-x-1/2 rounded-full bg-black/80 px-6 py-3 text-[16px] text-ink shadow-[0_8px_30px_rgba(0,0,0,0.6)]"
+        >
+          Нажмите «Назад» ещё раз, чтобы выйти
+        </p>
+      ) : null}
     </>
   );
 }

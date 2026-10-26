@@ -48,7 +48,7 @@ export function enableTvMode() {
   document.documentElement.classList.add("tv");
   startSpatialNav();
   (window as unknown as { umbraTvBack: () => boolean }).umbraTvBack = () =>
-    handleTvBack() || backToTop();
+    handleTvBack() || backToTop() || (rootBack?.() ?? false);
 }
 
 /** Back on a home screen scrolled down returns to its top before leaving. */
@@ -73,6 +73,8 @@ type Bridge = {
   startVoice(language: string): void;
   /** Since the sign-in update of the app; older versions lack it. */
   googleSignIn?(): void;
+  /** Closes the app (Back twice on «Лента»); older versions lack it. */
+  exitApp?(): void;
   /** Since «На телевизоре в Lampa»: JSON of TvRemoteInfo. */
   remoteInfo?(): string;
   stopVoice(): void;
@@ -195,6 +197,25 @@ export function pushTvBack(handler: () => void) {
     const i = backStack.lastIndexOf(handler);
     if (i >= 0) backStack.splice(i, 1);
   };
+}
+
+/**
+ * What Back does when nothing on the screen is open (set by the TV app's
+ * shell): another tab → «Лента»; «Лента» → twice quickly to leave.
+ * true — handled; false — the app goes back in history or closes.
+ */
+let rootBack: (() => boolean) | null = null;
+
+export function setTvRootBack(handler: (() => boolean) | null) {
+  rootBack = handler;
+}
+
+/** Leaves the TV app; false when this version of the app cannot. */
+export function exitTvApp() {
+  const bridge = tvBridge();
+  if (!bridge?.exitApp) return false;
+  bridge.exitApp();
+  return true;
 }
 
 export function handleTvBack(): boolean {

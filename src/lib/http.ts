@@ -1,30 +1,90 @@
-const pending = new Map<string, Promise<unknown>>();
+export type RequestPriority = "high" | "normal" | "low";
+
+type Waiter = { rank: number; resolve: () => void };
+type LaneQueue = { running: number; limit: number; queue: Waiter[] };
+
+const RANK: Record<RequestPriority, number> = {
+  high: 0,
+  normal: 1,
+  low: 2,
+};
+
+const pending = new Map<
+  string,
+  { promise: Promise<unknown>; waiter?: Waiter; lane?: LaneQueue }
+>();
 const cache = new Map<string, { until: number; value: unknown }>();
 // Keep small same-origin catalog files responsive while remote feeds are busy.
-const lanes = {
-  local: { running: 0, limit: 3, queue: [] as Array<() => void> },
-  remote: { running: 0, limit: 6, queue: [] as Array<() => void> },
+const lanes: { local: LaneQueue; remote: LaneQueue } = {
+  local: { running: 0, limit: 3, queue: [] },
+  remote: { running: 0, limit: 6, queue: [] },
 };
-async function slot<T>(url: string, fn: () => Promise<T>): Promise<T> {
+
+function enqueue(lane: LaneQueue, waiter: Waiter) {
+  const idx = lane.queue.findIndex((w) => w.rank > waiter.rank);
+  if (idx < 0) lane.queue.push(waiter);
+  else lane.queue.splice(idx, 0, waiter);
+}
+
+function promote(lane: LaneQueue, waiter: Waiter, nextRank: number) {
+  if (nextRank >= waiter.rank) return;
+  const idx = lane.queue.indexOf(waiter);
+  waiter.rank = nextRank;
+  if (idx >= 0) {
+    lane.queue.splice(idx, 1);
+    enqueue(lane, waiter);
+  }
+}
+
+async function slot<T>(
+  url: string,
+  rank: number,
+  entry: { waiter?: Waiter; lane?: LaneQueue },
+  fn: () => Promise<T>,
+): Promise<T> {
   const lane =
     url.startsWith("/") && !url.startsWith("//") ? lanes.local : lanes.remote;
-  if (lane.running >= lane.limit)
-    await new Promise<void>((resolve) => lane.queue.push(resolve));
-  else lane.running++;
+  if (lane.running >= lane.limit) {
+    await new Promise<void>((resolve) => {
+      const waiter: Waiter = { rank, resolve };
+      entry.waiter = waiter;
+      entry.lane = lane;
+      enqueue(lane, waiter);
+    });
+    entry.waiter = undefined;
+    entry.lane = undefined;
+  } else {
+    lane.running++;
+  }
   try {
     return await fn();
   } finally {
     const next = lane.queue.shift();
-    if (next) next();
+    if (next) next.resolve();
     else lane.running--;
   }
 }
-export async function requestJson<T>(url: string, ttl = 60_000): Promise<T> {
+
+export async function requestJson<T>(
+  url: string,
+  ttl = 60_000,
+  options?: { priority?: RequestPriority },
+): Promise<T> {
   const hit = cache.get(url);
   if (hit && hit.until > Date.now()) return hit.value as T;
+  const rank = RANK[options?.priority ?? "normal"];
   const inflight = pending.get(url);
-  if (inflight) return inflight as Promise<T>;
-  const task = slot(url, async () => {
+  if (inflight) {
+    if (inflight.waiter && inflight.lane)
+      promote(inflight.lane, inflight.waiter, rank);
+    return inflight.promise as Promise<T>;
+  }
+  const entry: {
+    promise: Promise<unknown>;
+    waiter?: Waiter;
+    lane?: LaneQueue;
+  } = { promise: Promise.resolve() };
+  const task = slot(url, rank, entry, async () => {
     for (let attempt = 0; ; attempt++) {
       let response: Response;
       try {
@@ -53,7 +113,8 @@ export async function requestJson<T>(url: string, ttl = 60_000): Promise<T> {
       return value as T;
     }
   });
-  pending.set(url, task);
+  entry.promise = task;
+  pending.set(url, entry);
   try {
     return await task;
   } finally {

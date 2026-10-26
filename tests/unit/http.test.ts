@@ -71,3 +71,32 @@ it("local game details do not wait behind slow external catalog requests", async
     await Promise.all(slow);
   }
 });
+it("serves high-priority requests before queued low-priority ones", async () => {
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const order: string[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (url.includes("/busy/")) await gate;
+      order.push(url);
+      return new Response("{}");
+    }),
+  );
+  const { requestJson } = await import("../../src/lib/http");
+  // Six slow requests take every slot; the rest wait in the queue.
+  const busy = Array.from({ length: 6 }, (_, n) =>
+    requestJson(`https://x.test/busy/${n}`),
+  );
+  const low = requestJson("https://x.test/low", 60_000, { priority: "low" });
+  const high = requestJson("https://x.test/high", 60_000, {
+    priority: "high",
+  });
+  release();
+  await Promise.all([...busy, low, high]);
+  expect(order.indexOf("https://x.test/high")).toBeLessThan(
+    order.indexOf("https://x.test/low"),
+  );
+});

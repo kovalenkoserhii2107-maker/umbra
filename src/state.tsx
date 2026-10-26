@@ -50,6 +50,8 @@ function loadSettings(): Settings {
   }
 }
 type Ctx = {
+  uid: string | null;
+  libraryReady: boolean;
   settings: Settings;
   setSettings: (patch: Partial<Settings>) => void;
   items: LibraryItem[];
@@ -68,11 +70,25 @@ type Ctx = {
 const AppState = createContext<Ctx | null>(null);
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
-  // Keyed lifetime prevents even a single render of A's data in B's session.
+  const uid = auth.account?.sub || null;
+  const [session, setSession] = useState<{
+    lastUid: string | null;
+    epoch: number;
+  }>({ lastUid: uid, epoch: 0 });
+  if (session.lastUid !== uid) {
+    const switchedFromUser = session.lastUid !== null;
+    setSession({
+      lastUid: uid,
+      epoch: switchedFromUser ? session.epoch + 1 : session.epoch,
+    });
+  }
+  // Keyed epoch tears down the tree when leaving an authenticated session
+  // (preventing even a single render of A's data in B's session) while
+  // avoiding a full remount during initial auth restoration (null -> uid).
   return (
     <SessionState
-      key={auth.account?.sub || auth.status}
-      uid={auth.account?.sub || null}
+      key={session.epoch}
+      uid={uid}
       name={auth.account?.name || ""}
       picture={auth.account?.picture || ""}
     >
@@ -93,6 +109,7 @@ function SessionState({
 }) {
   const [settings, setSettings] = useState(loadSettings);
   const [items, setItems] = useState<LibraryItem[]>([]);
+  const [readyForUid, setReadyForUid] = useState<string | null>(null);
   const [sync, setSync] = useState<SyncState>(
     uid ? "connecting" : "signed-out",
   );
@@ -112,11 +129,24 @@ function SessionState({
     writeStorage("umbra.tmdbKey", null);
   }, [settings]);
   useEffect(() => {
-    if (!uid) return;
+    if (!uid) {
+      setItems([]);
+      setSync("signed-out");
+      setSyncError(null);
+      return;
+    }
     let alive = true;
     let pending = false;
     let cached = true;
     let failed = false;
+    let markedReady = false;
+    const markReady = () => {
+      if (!alive || markedReady) return;
+      markedReady = true;
+      window.clearTimeout(fallbackTimer);
+      setReadyForUid(uid);
+    };
+    const fallbackTimer = window.setTimeout(markReady, 500);
     const status = () => {
       if (!alive || failed) return;
       setSync(
@@ -139,10 +169,12 @@ function SessionState({
         pending = hasPending;
         cached = fromCache;
         status();
+        if (next.length > 0 || !fromCache || !navigator.onLine) markReady();
       },
       (error) => {
         if (!alive) return;
         failed = true;
+        markReady();
         setSync("error");
         setSyncError(
           error.message.includes("permission")
@@ -155,6 +187,7 @@ function SessionState({
     window.addEventListener("offline", status);
     return () => {
       alive = false;
+      window.clearTimeout(fallbackTimer);
       stop();
       window.removeEventListener("online", status);
       window.removeEventListener("offline", status);
@@ -185,7 +218,10 @@ function SessionState({
       setSyncError((error as Error).message);
     }
   }
+  const libraryReady = !uid || readyForUid === uid;
   const value: Ctx = {
+    uid,
+    libraryReady,
     settings,
     setSettings: (patch) => setSettings((s) => ({ ...s, ...patch })),
     items,

@@ -97,10 +97,7 @@ function bind(uid: string | null) {
           ready: state.ready || !snap.metadata.fromCache,
           error: null,
         });
-        if (!snap.metadata.fromCache) {
-          void moveLocalGames(uid);
-          void repairEntries();
-        }
+        if (!snap.metadata.fromCache) void repairEntries();
       },
       () => set({ error: "Не удалось загрузить коллекцию игр." }),
     ),
@@ -157,6 +154,35 @@ export async function saveGameEntry(entry: Omit<GameEntry, "updatedAt">) {
     ...(steam ? { steam } : {}),
     updatedAt: serverTimestamp(),
   });
+}
+
+/**
+ * Games from a backup file: each entry checked like any saved game; matching
+ * ones are updated, the rest stay. Small batches keep under Firestore limits.
+ */
+export async function importGames(rows: unknown[]) {
+  const uid = owner();
+  const entries: GameEntry[] = [];
+  for (const row of rows.slice(0, 5000)) {
+    try {
+      entries.push(parseEntry({ ...(row as object), updatedAt: 0 }));
+    } catch {
+      // A damaged row is skipped; the rest of the file still comes in.
+    }
+  }
+  for (let start = 0; start < entries.length; start += 100) {
+    const batch = writeBatch(firebaseDb);
+    for (const entry of entries.slice(start, start + 100)) {
+      const { steam, ...rest } = entry;
+      batch.set(ref(uid, entry.id), {
+        ...rest,
+        ...(steam ? { steam } : {}),
+        updatedAt: serverTimestamp(),
+      });
+    }
+    await batch.commit();
+  }
+  return entries.length;
 }
 
 export async function removeGameEntry(id: number) {
@@ -363,11 +389,23 @@ async function repairEntries() {
 const LOCAL = "umbra.gamesLibrary";
 let moving = false;
 
+/** Games saved on this device before the cloud collection, not yet moved. */
+export function localGamesCount() {
+  try {
+    const rows = JSON.parse(readStorage(LOCAL) || "[]");
+    return Array.isArray(rows) ? rows.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
 /**
- * Games saved on this device before the cloud collection are uploaded once
- * (already matched to IGDB ids), then kept as a backup copy.
+ * Moves the games saved on this device into the signed-in account, when its
+ * owner asks (Settings). Never on its own: whose they are is unknown — the
+ * same rule as the old movie shelf. A backup copy stays on the device.
  */
-async function moveLocalGames(uid: string) {
+export async function moveLocalGames() {
+  const uid = owner();
   if (moving) return;
   const raw = readStorage(LOCAL);
   if (!raw) return;
@@ -407,8 +445,6 @@ async function moveLocalGames(uid: string) {
     if (count) await batch.commit();
     writeStorage(`${LOCAL}.backup`, raw);
     writeStorage(LOCAL, null);
-  } catch {
-    // Retried on the next snapshot.
   } finally {
     moving = false;
   }

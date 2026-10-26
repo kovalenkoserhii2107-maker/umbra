@@ -93,9 +93,13 @@ export async function cached(
   return { body, hit: false };
 }
 
-/** A rough counter in the edge cache: false once `limit` is reached. */
+/** Counts one more use of `key`: false once `limit` is reached. */
 export async function bump(deps: Deps, key: string, limit: number) {
-  if (!deps.cache || limit <= 0) return true;
+  if (limit <= 0) return true;
+  // The Durable Object counts exactly and for the whole world; the edge
+  // cache (local development, tests) only roughly.
+  if (deps.usage) return deps.usage(key).take(limit);
+  if (!deps.cache) return true;
   const request = cacheKey(key);
   const hit = await deps.cache.match(request);
   const count = hit ? Number(await hit.text()) || 0 : 0;

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { clearDraft, readDraft, writeDraft } from "../lib/drafts";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import type { MediaType } from "../lib/tmdb";
@@ -82,6 +83,7 @@ export function CollectionMark({
   const [panel, setPanel] = useState(false);
   const [stars, setStars] = useState(0);
   const [comment, setComment] = useState("");
+  const draftKey = `${media}-${id}`;
 
   function login() {
     navigate(`/login?next=${encodeURIComponent(`/title/${media}/${id}`)}`);
@@ -93,7 +95,7 @@ export function CollectionMark({
       return;
     }
     setStars(mine?.rating ?? 0);
-    setComment(mine?.note ?? "");
+    setComment(readDraft(account.sub, draftKey) ?? mine?.note ?? "");
     setPanel(true);
   }
 
@@ -104,6 +106,7 @@ export function CollectionMark({
     }
     if (stars < 1) return;
     const note = comment.trim().slice(0, 5000);
+    clearDraft(account.sub, draftKey);
     if (mine) {
       update(media, id, { status: "watched", rating: stars, note });
     } else {
@@ -217,7 +220,11 @@ export function CollectionMark({
               aria-label="Комментарий"
               value={comment}
               maxLength={5000}
-              onChange={(event) => setComment(event.target.value)}
+              onChange={(event) => {
+                setComment(event.target.value);
+                if (account)
+                  writeDraft(account.sub, draftKey, event.target.value);
+              }}
               placeholder="Что запомнилось — по желанию"
               className="mt-1 w-full rounded-xl border border-hairline bg-canvas px-3 py-2 text-ink outline-none"
             />
@@ -233,7 +240,10 @@ export function CollectionMark({
             </button>
             <button
               type="button"
-              onClick={() => setPanel(false)}
+              onClick={() => {
+                if (account) clearDraft(account.sub, draftKey);
+                setPanel(false);
+              }}
               className="rounded-full px-4 py-2 text-sm text-dim"
             >
               Отмена

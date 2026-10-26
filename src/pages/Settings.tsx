@@ -4,7 +4,14 @@ import { authError, signOutAccount, useAuth, verifyEmail } from "../lib/auth";
 import { PLATFORMS, REGIONS } from "../lib/providers";
 import { useAppState } from "../state";
 import { APP_VERSION } from "../version";
+import { plural } from "../lib/format";
 import { SteamPanel } from "../components/GameCollection";
+import {
+  importGames,
+  localGamesCount,
+  moveLocalGames,
+  useGameCollection,
+} from "../lib/gameStore";
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -23,6 +30,8 @@ export function SettingsPage() {
   const { settings, setSettings, exportJson, importJson, items, sync } =
     useAppState();
   const { account, error } = useAuth();
+  const { games } = useGameCollection();
+  const [localGames, setLocalGames] = useState(localGamesCount);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -50,9 +59,13 @@ export function SettingsPage() {
     });
   }
 
+  /** One file with the films and series and the games. */
   function download() {
+    const backup = { ...JSON.parse(exportJson()), games };
     const url = URL.createObjectURL(
-      new Blob([exportJson()], { type: "application/json" }),
+      new Blob([JSON.stringify(backup, null, 2)], {
+        type: "application/json",
+      }),
     );
     const a = document.createElement("a");
     a.href = url;
@@ -66,10 +79,13 @@ export function SettingsPage() {
       setMessage("Максимальный размер файла — 5 МБ.");
       return;
     }
-    await action(
-      async () => importJson(await file.text()),
-      "Коллекция импортирована. Совпадающие записи обновлены, остальные остались.",
-    );
+    await action(async () => {
+      const text = await file.text();
+      await importJson(text);
+      // Backups made before games were in them have only films and series.
+      const backup = JSON.parse(text) as { games?: unknown };
+      if (Array.isArray(backup.games)) await importGames(backup.games);
+    }, "Коллекция импортирована. Совпадающие записи обновлены, остальные остались.");
   }
 
   async function checkUpdate() {
@@ -209,8 +225,10 @@ export function SettingsPage() {
       {account ? (
         <Card title="Резервная копия">
           <p className="mt-2 text-sm text-mute">
-            {items.length} фильмов и сериалов в аккаунте. Файл можно загрузить
-            обратно: совпадающие записи обновятся, остальные останутся.
+            {items.length} фильмов и сериалов и {games.length}{" "}
+            {plural(games.length, "игра", "игры", "игр")} в аккаунте. Файл можно
+            загрузить обратно: совпадающие записи обновятся, остальные
+            останутся.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <button
@@ -234,6 +252,28 @@ export function SettingsPage() {
               />
             </label>
           </div>
+          {localGames ? (
+            // Games saved on this device before the cloud: whose they are is
+            // unknown, so they move only when the owner asks.
+            <div className="mt-5 border-t border-hairline pt-4">
+              <p className="text-sm text-mute">
+                На этом устройстве остались игры из старой версии: {localGames}.
+                Если они твои, перенеси их в аккаунт.
+              </p>
+              <button
+                disabled={busy}
+                onClick={() =>
+                  void action(async () => {
+                    await moveLocalGames();
+                    setLocalGames(localGamesCount());
+                  }, "Игры с устройства перенесены в аккаунт.")
+                }
+                className="mt-3 rounded-full border border-hairline px-4 py-2 text-sm"
+              >
+                Перенести в мой аккаунт
+              </button>
+            </div>
+          ) : null}
         </Card>
       ) : null}
 

@@ -471,13 +471,14 @@ export function HomePage() {
         seed,
         library: items,
       });
-  const shown = (list: TmdbItem[]) =>
+  const shown = (list: TmdbItem[], fallbackType?: MediaType) =>
     spotlight
       ? list.filter(
           (x) =>
             !(
               x.id === spotlight.item.id &&
-              (x.media_type || spotlight.media) === spotlight.media
+              (x.media_type || fallbackType || spotlight.media) ===
+                spotlight.media
             ),
         )
       : list;
@@ -506,7 +507,7 @@ export function HomePage() {
       />
       <Row
         title={preview("theaters").title}
-        items={theaters.data?.results ?? []}
+        items={shown(theaters.data?.results ?? [], "movie")}
         loading={theaters.loading}
         animate={animate}
         type="movie"
@@ -521,7 +522,7 @@ export function HomePage() {
       />
       <Row
         title={preview("airing").title}
-        items={airing.data?.results ?? []}
+        items={shown(airing.data?.results ?? [], "tv")}
         loading={airing.loading}
         animate={animate}
         type="tv"
@@ -529,7 +530,7 @@ export function HomePage() {
       />
       <Row
         title={preview("upcoming").title}
-        items={upcoming.data?.results ?? []}
+        items={shown(upcoming.data?.results ?? [], "movie")}
         loading={upcoming.loading}
         animate={animate}
         type="movie"
@@ -537,7 +538,7 @@ export function HomePage() {
       />
       <Row
         title={preview("upcoming-tv").title}
-        items={upcomingTv.data?.results ?? []}
+        items={shown(upcomingTv.data?.results ?? [], "tv")}
         loading={upcomingTv.loading}
         animate={animate}
         type="tv"
@@ -550,7 +551,7 @@ export function HomePage() {
       />
       <Row
         title={preview("imdb250-movie").title}
-        items={imdbMovies.data?.results ?? []}
+        items={shown(imdbMovies.data?.results ?? [], "movie")}
         loading={imdbMovies.loading}
         animate={animate}
         type="movie"
@@ -558,7 +559,7 @@ export function HomePage() {
       />
       <Row
         title={preview("imdb250-tv").title}
-        items={imdbTv.data?.results ?? []}
+        items={shown(imdbTv.data?.results ?? [], "tv")}
         loading={imdbTv.loading}
         animate={animate}
         type="tv"
@@ -566,7 +567,7 @@ export function HomePage() {
       />
       <Row
         title={preview("recs").title}
-        items={shown(recs.data?.results ?? [])}
+        items={shown(recs.data?.results ?? [], seed?.type as MediaType | undefined)}
         loading={recs.loading}
         animate={animate}
         type={seed?.type as MediaType | undefined}

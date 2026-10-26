@@ -270,7 +270,7 @@ export async function aiTonight(
   let message: Anthropic.Beta.Messages.BetaMessage;
   try {
     message = await client.beta.messages.create({
-      model: AI_MODEL,
+      model: deps.env.AI_MODEL?.trim() || AI_MODEL,
       max_tokens: stage === "pick" ? 16_000 : 8_000,
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
@@ -339,8 +339,8 @@ export async function aiTonight(
 /* ------------------------------------------------------------- limits */
 
 /**
- * A rough daily budget per person and in total, so a shared link cannot run
- * up the bill. Counts live in the edge cache, which is enough for that.
+ * A daily budget per person and in total, so a shared link cannot run up
+ * the bill. Counted in a Durable Object (usage.ts).
  */
 export async function checkAiLimits(deps: Deps, uid: string) {
   const day = new Date(deps.now()).toISOString().slice(0, 10);

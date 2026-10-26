@@ -18,7 +18,8 @@ export type Release = {
   item: LibraryItem;
   /** Local calendar date, YYYY-MM-DD. */
   date: string;
-  kind: "movie" | "series" | "season";
+  /** return — a season goes on after a break (its second half, «Part 2»). */
+  kind: "movie" | "series" | "season" | "return";
   season?: number;
   /** TMDB details used for the date; carry the backdrop for the home spotlight. */
   details?: TmdbItem;
@@ -71,17 +72,39 @@ export function movieReleaseDate(movie: MovieReleases, region: string) {
   return regional || movie.release_date?.slice(0, 10) || null;
 }
 
+/** A pause this long before the next episode means the show is coming back. */
+export const BREAK_DAYS = 45;
+
 export function showRelease(
   show: ShowAirDates,
   today: string,
 ): Pick<Release, "date" | "kind" | "season"> | null {
-  const premieres = [show.next_episode_to_air, show.last_episode_to_air]
+  const premieres: Array<Pick<Release, "date" | "kind" | "season">> = [
+    show.next_episode_to_air,
+    show.last_episode_to_air,
+  ]
     .filter((ep) => ep && ep.episode_number === 1 && ep.air_date)
     .map((ep) => ({
       date: ep!.air_date!.slice(0, 10),
       kind: ep!.season_number <= 1 ? ("series" as const) : ("season" as const),
       season: ep!.season_number,
     }));
+  // Back after a break mid-season: the next episode is not the first one, but
+  // the last one aired long before it.
+  const next = show.next_episode_to_air;
+  const last = show.last_episode_to_air;
+  if (
+    next?.air_date &&
+    last?.air_date &&
+    next.episode_number > 1 &&
+    daysUntil(next.air_date.slice(0, 10), last.air_date.slice(0, 10)) >=
+      BREAK_DAYS
+  )
+    premieres.push({
+      date: next.air_date.slice(0, 10),
+      kind: "return",
+      season: next.season_number,
+    });
   if (show.first_air_date)
     premieres.push({
       date: show.first_air_date.slice(0, 10),

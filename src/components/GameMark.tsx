@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { clearDraft, readDraft, writeDraft } from "../lib/drafts";
 import {
   GAME_STATUSES,
   playedHours,
@@ -52,6 +53,7 @@ export function GameMark({ game }: { game: MarkedGame }) {
     note: string;
   }>({ platforms: [], rating: 0, hours: "", note: "" });
 
+  const draftKey = `game-${game.id}`;
   const choices = PLATFORM_GROUPS.filter((g) => game.groups.includes(g.id));
   const guess = (): PlatformGroupId[] => {
     if (entry?.platforms.length) return entry.platforms;
@@ -93,7 +95,7 @@ export function GameMark({ game }: { game: MarkedGame }) {
       platforms: entry?.platforms.length ? entry.platforms : guess(),
       rating: entry?.rating ?? 0,
       hours: entry?.hours != null ? String(entry.hours) : "",
-      note: entry?.note ?? "",
+      note: (uid && readDraft(uid, draftKey)) ?? entry?.note ?? "",
       ...next,
     });
     setPanel(true);
@@ -122,6 +124,7 @@ export function GameMark({ game }: { game: MarkedGame }) {
         hours,
         note: draft.note.trim(),
       });
+      if (uid) clearDraft(uid, draftKey);
       setPanel(false);
     });
   }
@@ -269,7 +272,10 @@ export function GameMark({ game }: { game: MarkedGame }) {
           ) : null}
           <textarea
             value={draft.note}
-            onChange={(e) => setDraft((d) => ({ ...d, note: e.target.value }))}
+            onChange={(e) => {
+              setDraft((d) => ({ ...d, note: e.target.value }));
+              if (uid) writeDraft(uid, draftKey, e.target.value);
+            }}
             placeholder="Комментарий"
             className="w-full rounded-xl border border-hairline bg-canvas px-3 py-2 text-sm outline-none focus:border-accent/60"
             rows={3}
@@ -285,7 +291,10 @@ export function GameMark({ game }: { game: MarkedGame }) {
             </button>
             <button
               type="button"
-              onClick={() => setPanel(false)}
+              onClick={() => {
+                if (uid) clearDraft(uid, draftKey);
+                setPanel(false);
+              }}
               className="rounded-full border border-hairline px-4 py-2 text-sm text-mute"
             >
               Отмена

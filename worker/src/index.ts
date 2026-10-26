@@ -24,6 +24,7 @@ import {
   steamProfile,
 } from "./steamUser";
 import { topGames } from "./twitch";
+import { durableUsage } from "./usage";
 import {
   durableDevices,
   listDevices,
@@ -41,6 +42,7 @@ import {
 
 export { TvPairing } from "./tvLogin";
 export { TvRemote } from "./tvRemote";
+export { UsageCounter } from "./usage";
 
 function origins(env: Env) {
   return (env.ALLOWED_ORIGINS || "")
@@ -241,6 +243,9 @@ async function route(
     /^\/steam\/user\/(\d{17})\/(profile|library|achievements)(?:\/(\d{1,10}))?$/,
   );
   if (user && request.method === "GET" && STEAM_ID.test(user[1])) {
+    // Only for people signed in to Umbra: Origin is easy to fake outside a
+    // browser, and these calls spend the Steam key.
+    await signedIn(request, deps);
     const [, steamId, part, app] = user;
     const load =
       part === "profile"
@@ -419,6 +424,7 @@ export default {
       env,
       pairing: env.TV_PAIRING ? durableStore(env.TV_PAIRING) : undefined,
       devices: env.TV_REMOTE ? durableDevices(env.TV_REMOTE) : undefined,
+      usage: env.USAGE ? durableUsage(env.USAGE) : undefined,
       fetch: (input, init) => fetch(input, init),
       cache: cache ?? null,
       now: () => Date.now(),

@@ -201,7 +201,11 @@ function ReleaseCard({ release }: { release: Release }) {
       <div className="mt-2 space-y-0.5">
         <p className="line-clamp-2 text-sm leading-snug">{item.title}</p>
         <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-accent">
-          {kind === "season" ? `сезон ${season} · ` : ""}
+          {kind === "season"
+            ? `сезон ${season} · `
+            : kind === "return"
+              ? `сезон ${season}, продолжение · `
+              : ""}
           {whenLabel(date)}
         </p>
       </div>

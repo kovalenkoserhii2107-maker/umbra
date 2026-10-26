@@ -500,6 +500,26 @@ describe("umbra-api", () => {
 
   describe("Steam account", () => {
     const id = "76561198000000001";
+    // A signed-in user (the Auth emulator's unsigned token, allowed in tests).
+    const part = (v: unknown) =>
+      btoa(JSON.stringify(v))
+        .replace(/=+$/, "")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_");
+    const signedIn = {
+      headers: {
+        Authorization: `Bearer ${part({ alg: "none" })}.${part({
+          aud: "umbra-test",
+          iss: "https://securetoken.google.com/umbra-test",
+          sub: "player-1",
+          iat: 900,
+          exp: 5000,
+        })}.`,
+      },
+    };
+    const auth = {
+      env: { ...env, AUTH_EMULATOR: "true", FIREBASE_PROJECT_ID: "umbra-test" },
+    };
     it("returns the library with play time and the wishlist", async () => {
       const { send, calls } = setup(({ url }) => {
         if (url.includes("GetOwnedGames"))
@@ -519,8 +539,10 @@ describe("umbra-api", () => {
             },
           });
         return Response.json({ response: { items: [{ appid: 1091500 }] } });
-      });
-      const body = await (await send(`/steam/user/${id}/library`)).json();
+      }, auth);
+      const body = await (
+        await send(`/steam/user/${id}/library`, signedIn)
+      ).json();
       expect(body).toEqual({
         private: false,
         games: [
@@ -546,9 +568,10 @@ describe("umbra-api", () => {
     });
 
     it("marks a private library", async () => {
-      const { send } = setup(() => Response.json({ response: {} }));
+      const { send } = setup(() => Response.json({ response: {} }), auth);
       expect(
-        (await (await send(`/steam/user/${id}/library`)).json()).private,
+        (await (await send(`/steam/user/${id}/library`, signedIn)).json())
+          .private,
       ).toBe(true);
     });
 
@@ -601,9 +624,9 @@ describe("umbra-api", () => {
             ],
           },
         });
-      });
+      }, auth);
       const body = await (
-        await send(`/steam/user/${id}/achievements/292030`)
+        await send(`/steam/user/${id}/achievements/292030`, signedIn)
       ).json();
       expect(body.total).toBe(3);
       expect(body.achieved).toBe(2);
@@ -619,10 +642,22 @@ describe("umbra-api", () => {
       });
     });
 
+    it("answers only people signed in to Umbra", async () => {
+      const { send, calls } = setup(
+        () => Response.json({ response: {} }),
+        auth,
+      );
+      const response = await send(`/steam/user/${id}/library`);
+      expect(response.status).toBe(401);
+      expect(calls).toHaveLength(0);
+    });
+
     it("rejects malformed ids and explains private stats", async () => {
-      const { send } = setup(() => new Response("", { status: 403 }));
-      expect((await send("/steam/user/123/library")).status).toBe(404);
-      const response = await send(`/steam/user/${id}/profile`);
+      const { send } = setup(() => new Response("", { status: 403 }), auth);
+      expect((await send("/steam/user/123/library", signedIn)).status).toBe(
+        404,
+      );
+      const response = await send(`/steam/user/${id}/profile`, signedIn);
       expect(response.status).toBe(403);
       expect((await response.json()).error).toBe("steam_private");
     });

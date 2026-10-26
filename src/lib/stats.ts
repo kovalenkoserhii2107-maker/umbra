@@ -93,8 +93,10 @@ export function computeStats(
     .map(([d, items]) => ({ label: `${d}-е`, value: items.length, items }));
 
   return {
+    // Films seen to the end; series seen or being watched. Dropped ones count
+    // in neither number (their hours still count: they were partly watched).
     movies: done.filter((x) => x.type === "movie").length,
-    shows: seen.filter((x) => x.type === "tv").length,
+    shows: seen.filter((x) => x.type === "tv" && x.status !== "dropped").length,
     hours: Math.round(minutes / 60),
     average: rated.length
       ? Math.round(

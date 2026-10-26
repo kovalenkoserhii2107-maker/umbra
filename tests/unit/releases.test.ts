@@ -70,6 +70,46 @@ describe("watchlist release window", () => {
         today,
       ),
     ).toBeNull();
+    // Back after a long break with the season's second half.
+    expect(
+      showRelease(
+        {
+          id: 5,
+          first_air_date: "2020-01-01",
+          last_episode_to_air: {
+            air_date: "2026-06-20",
+            season_number: 2,
+            episode_number: 8,
+          },
+          next_episode_to_air: {
+            air_date: "2026-10-04",
+            season_number: 2,
+            episode_number: 9,
+          },
+        },
+        today,
+      ),
+    ).toEqual({ date: "2026-10-04", kind: "return", season: 2 });
+    // A weekly episode is not a return.
+    expect(
+      showRelease(
+        {
+          id: 6,
+          first_air_date: "2020-01-01",
+          last_episode_to_air: {
+            air_date: "2026-09-27",
+            season_number: 2,
+            episode_number: 3,
+          },
+          next_episode_to_air: {
+            air_date: "2026-10-04",
+            season_number: 2,
+            episode_number: 4,
+          },
+        },
+        today,
+      ),
+    ).toBeNull();
     expect(showRelease({ id: 4, first_air_date: "2026-09-28" }, today)).toEqual(
       { date: "2026-09-28", kind: "series", season: 1 },
     );

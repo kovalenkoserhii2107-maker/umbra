@@ -292,12 +292,22 @@ export type SteamAchievements = {
   next: SteamAchievement[];
 };
 
-export const steamProfile = (steamId: string) =>
-  call<SteamProfile>(`/steam/user/${steamId}/profile`);
-export const steamLibrary = (steamId: string) =>
-  call<SteamLibrary>(`/steam/user/${steamId}/library`);
-export const steamAchievements = (steamId: string, appId: number) =>
-  call<SteamAchievements>(`/steam/user/${steamId}/achievements/${appId}`);
+// Steam calls spend the worker's key: only for people signed in.
+// Loaded on use: unit tests of the catalog import this file without Firebase.
+const signedInHeaders = async () => {
+  const { idToken } = await import("./auth");
+  return { headers: bearer(await idToken()) };
+};
+
+export const steamProfile = async (steamId: string) =>
+  call<SteamProfile>(`/steam/user/${steamId}/profile`, await signedInHeaders());
+export const steamLibrary = async (steamId: string) =>
+  call<SteamLibrary>(`/steam/user/${steamId}/library`, await signedInHeaders());
+export const steamAchievements = async (steamId: string, appId: number) =>
+  call<SteamAchievements>(
+    `/steam/user/${steamId}/achievements/${appId}`,
+    await signedInHeaders(),
+  );
 
 export type AiStep =
   | { question: string; answer: string }

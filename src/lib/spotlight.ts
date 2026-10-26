@@ -131,9 +131,11 @@ export function pickSpotlight({
       note: `${
         release.kind === "season"
           ? `Сезон ${release.season}`
-          : daysUntil(release.date, today) >= 0
-            ? "Выход"
-            : "Вышел"
+          : release.kind === "return"
+            ? `Продолжение ${release.season} сезона`
+            : daysUntil(release.date, today) >= 0
+              ? "Выход"
+              : "Вышел"
       } ${dayMonthLabel(release.date)} · ${relativeDay(release.date, today)}`,
     };
   }

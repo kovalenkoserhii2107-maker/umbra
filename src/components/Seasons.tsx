@@ -9,6 +9,7 @@ import {
 } from "../lib/tracking";
 import { fetchImdbRatings } from "../lib/ratings";
 import {
+  episodeImdbIds,
   tvApi,
   type EpisodeInfo,
   type EpisodeRef,
@@ -105,20 +106,11 @@ export function Seasons({
         if (!alive) return;
         setEpisodes(list);
         setLoading(false);
-        const ids = await Promise.all(
-          list.map(async (ep) => {
-            try {
-              const ext = await tvApi.episodeImdb(
-                tvId,
-                current,
-                ep.episode_number,
-              );
-              return { key: ep.id, imdbId: ext.imdb_id };
-            } catch {
-              return { key: ep.id, imdbId: undefined as string | undefined };
-            }
-          }),
-        );
+        const byNumber = await episodeImdbIds(tvId, current, list);
+        const ids = list.map((ep) => ({
+          key: ep.id,
+          imdbId: byNumber.get(ep.episode_number) || undefined,
+        }));
         const scores = await fetchImdbRatings(
           ids.map((row) => row.imdbId || "").filter(Boolean),
         );

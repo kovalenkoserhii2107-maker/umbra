@@ -561,7 +561,7 @@ test("unknown game says so instead of showing another one", async ({
   await expect(page.getByRole("link", { name: "К поиску игр" })).toBeVisible();
 });
 
-test("collection lives in the cloud: marks sync across tabs and old device entries move up", async ({
+test("collection lives in the cloud: marks sync across tabs; old device entries move up on request", async ({
   context,
   page,
 }) => {
@@ -587,6 +587,20 @@ test("collection lives in the cloud: marks sync across tabs and old device entri
     ),
   );
   const other = await context.newPage();
+  await other.goto("http://127.0.0.1:5187/umbra/#/games/library");
+  // Whose they are is unknown: nothing moves until the owner asks.
+  await expect(other.getByText("Ведьмак 3 (старая запись)")).toHaveCount(0);
+  expect(
+    await other.evaluate(() => localStorage.getItem("umbra.gamesLibrary")),
+  ).not.toBeNull();
+  await other.goto("http://127.0.0.1:5187/umbra/#/settings");
+  await expect(
+    other.getByText("На этом устройстве остались игры из старой версии: 1."),
+  ).toBeVisible();
+  await other.getByRole("button", { name: "Перенести в мой аккаунт" }).click();
+  await expect(
+    other.getByText("Игры с устройства перенесены в аккаунт."),
+  ).toBeVisible();
   await other.goto("http://127.0.0.1:5187/umbra/#/games/library");
   await expect(
     other.getByRole("link", { name: /Ведьмак 3 \(старая запись\)/ }),
@@ -787,4 +801,52 @@ test("Steam sign-in imports the library, wishlist, play time and achievements", 
   await expect(
     page.getByRole("button", { name: "Играю", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
+});
+
+test("backup file carries the games: loading it restores them, saving it includes them", async ({
+  context,
+  page,
+}) => {
+  await mockApi(context);
+  await signIn(page);
+  await page.goto("#/settings");
+  const backup = {
+    version: 1,
+    items: [],
+    games: [
+      {
+        id: 1942,
+        title: "Ведьмак 3 (из копии)",
+        cover: "",
+        year: "2015",
+        genre: "RPG",
+        platforms: ["pc"],
+        status: "played",
+        rating: 9,
+        note: "Шедевр",
+        hours: 120,
+      },
+    ],
+  };
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "umbra-library.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(backup)),
+  });
+  await expect(page.getByText(/Коллекция импортирована/)).toBeVisible();
+  await page.goto("#/games/library");
+  await expect(
+    page.getByRole("link", { name: /Ведьмак 3 \(из копии\)/ }),
+  ).toBeVisible();
+
+  await page.goto("#/settings");
+  await expect(page.getByText(/и 1 игра в аккаунте/)).toBeVisible();
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Скачать" }).click();
+  const file = await (await download).createReadStream();
+  let text = "";
+  for await (const chunk of file) text += chunk;
+  const saved = JSON.parse(text);
+  expect(saved.games).toHaveLength(1);
+  expect(saved.games[0]).toMatchObject({ id: 1942, rating: 9, hours: 120 });
 });

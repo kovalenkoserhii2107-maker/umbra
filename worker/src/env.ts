@@ -1,5 +1,6 @@
 import type { PairingStore } from "./tvLogin";
 import type { DeviceStore } from "./tvRemote";
+import type { UsageStore } from "./usage";
 
 /** Bindings from wrangler.toml [vars] and the secrets set by the deploy workflow. */
 export type Env = {
@@ -33,6 +34,15 @@ export type Env = {
       fetch(url: string, init: RequestInit): Promise<Response>;
     };
   };
+  /** Durable Object namespace for the daily limits (usage.ts). */
+  USAGE?: {
+    idFromName(name: string): unknown;
+    get(id: unknown): {
+      fetch(url: string, init: RequestInit): Promise<Response>;
+    };
+  };
+  /** Claude model for the evening picker; claude-opus-5-5 when not set. */
+  AI_MODEL?: string;
   /** Durable Object namespace for each account's TVs (tvRemote.ts). */
   TV_REMOTE?: {
     idFromName(name: string): unknown;
@@ -57,6 +67,8 @@ export type Deps = {
   env: Env;
   /** TV sign-in codes; missing when the namespace is not bound. */
   pairing?: PairingStore;
+  /** Exact daily limits; without it the edge cache counts them roughly. */
+  usage?: UsageStore;
   /** Each account's TVs for commands from the phone; missing when not bound. */
   devices?: DeviceStore;
   fetch: typeof fetch;

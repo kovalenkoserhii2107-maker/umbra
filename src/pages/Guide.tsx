@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Empty, ErrorBox, Grid, useAsync } from "../components";
-import { SEARCH_GENRES } from "../lib/search";
+import { SEARCH_GENRES, genreIds } from "../lib/search";
 import { catalog } from "../lib/catalog";
 import { byCatalogRank } from "../lib/rank";
 import type { MediaType } from "../lib/tmdb";
@@ -71,19 +71,19 @@ export function GuideListPage() {
     () => catalog.browse("movie", 1, extra),
     [genreId, year],
   );
+  // Series have their own ids for a few genres (action → «Боевик и
+  // приключения», sci-fi and fantasy → «НФ и фэнтези»…), and their own dates.
   const shows = useAsync(
     () =>
-      catalog.browse(
-        "tv",
-        1,
-        decade
+      catalog.browse("tv", 1, {
+        with_genres: genre ? genreIds([genre.id], "tv").join(",") : undefined,
+        ...(decade
           ? {
-              with_genres: extra.with_genres,
               "first_air_date.gte": `${decade}-01-01`,
               "first_air_date.lte": `${decade + 9}-12-31`,
             }
-          : extra,
-      ),
+          : {}),
+      }),
     [genreId, year],
   );
 

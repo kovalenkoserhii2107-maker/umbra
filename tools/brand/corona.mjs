@@ -57,15 +57,30 @@ const files = await page.evaluate(() => {
     g.globalCompositeOperation = "lighter";
 
     // The whole corona: a faint warm ring all around the moon.
-    const ring = soft(g.createRadialGradient(x, y, r * 0.97, x, y, r * 1.7), "255, 186, 84", 0.42, 0.3);
+    const ring = soft(
+      g.createRadialGradient(x, y, r * 0.98, x, y, r * 1.22),
+      "255, 190, 96",
+      0.5,
+      0.28,
+    );
     g.fillStyle = ring;
     g.fillRect(0, 0, size, size);
 
     // The big glow, strongest above the moon.
-    const halo = soft(g.createRadialGradient(x, top + r * 0.4, 0, x, top + r * 0.4, r * 2.1), "236, 168, 60", 0.75, 0.38);
+    const halo = soft(
+      g.createRadialGradient(x, top + r * 0.35, 0, x, top + r * 0.35, r * 1.45),
+      "236, 168, 60",
+      0.62,
+      0.34,
+    );
     g.fillStyle = halo;
     g.fillRect(0, 0, size, size);
-    const glow = soft(g.createRadialGradient(x, top + r * 0.15, 0, x, top + r * 0.15, r * 1.1), "255, 226, 150", 0.85, 0.4);
+    const glow = soft(
+      g.createRadialGradient(x, top + r * 0.12, 0, x, top + r * 0.12, r * 0.8),
+      "255, 226, 150",
+      0.8,
+      0.4,
+    );
     g.fillStyle = glow;
     g.fillRect(0, 0, size, size);
 
@@ -73,7 +88,12 @@ const files = await page.evaluate(() => {
     g.save();
     g.translate(x, top + r * 0.04);
     g.scale(2, 1);
-    g.fillStyle = soft(g.createRadialGradient(0, 0, 0, 0, 0, r * 0.42), "255, 250, 232", 1, 0.32);
+    g.fillStyle = soft(
+      g.createRadialGradient(0, 0, 0, 0, 0, r * 0.42),
+      "255, 250, 232",
+      1,
+      0.32,
+    );
     g.fillRect(-r, -r, r * 2, r * 2);
     g.restore();
 
@@ -87,7 +107,12 @@ const files = await page.evaluate(() => {
     g.beginPath();
     g.arc(x, y, r, 0, Math.PI * 2);
     g.clip();
-    const limb = soft(g.createRadialGradient(x, top - r * 0.1, 0, x, top - r * 0.1, r * 0.8), "190, 118, 36", 0.7, 0.36);
+    const limb = soft(
+      g.createRadialGradient(x, top - r * 0.1, 0, x, top - r * 0.1, r * 0.8),
+      "190, 118, 36",
+      0.7,
+      0.36,
+    );
     g.fillStyle = limb;
     g.fillRect(0, 0, size, size);
     g.restore();
@@ -138,13 +163,28 @@ const files = await page.evaluate(() => {
   }
 
   return {
-    ...Object.fromEntries([96, 144, 192].map((s) => [`ic_launcher_${s}`, png(small(s, { bg: "round" }))])),
+    ...Object.fromEntries(
+      [96, 144, 192].map((s) => [
+        `ic_launcher_${s}`,
+        png(small(s, { bg: "round" })),
+      ]),
+    ),
     // Adaptive icon: background layer = the backdrop, foreground = the mark in the safe zone.
-    ...Object.fromEntries([216, 324, 432].map((s) => [`fg_${s}`, png(small(s, { bg: "none", moon: 0.2, cy: 0.52 }))])),
-    ...Object.fromEntries([216, 324, 432].map((s) => [`bgl_${s}`, png(small(s, { bg: "square", moon: 0 }))])),
+    ...Object.fromEntries(
+      [216, 324, 432].map((s) => [
+        `fg_${s}`,
+        png(small(s, { bg: "none", moon: 0.2, cy: 0.52 })),
+      ]),
+    ),
+    ...Object.fromEntries(
+      [216, 324, 432].map((s) => [
+        `bgl_${s}`,
+        png(small(s, { bg: "square", moon: 0 })),
+      ]),
+    ),
     banner_640: png(banner(640, 360)),
     banner_960: png(banner(960, 540)),
-    brand_288: png(small(288, { bg: "none", moon: 0.3 })),
+    brand_288: png(small(288, { bg: "none", moon: 0.27, cy: 0.56 })),
     icon_512: png(small(512, {})),
     icon_192: png(small(192, {})),
     apple_180: png(small(180, {})),

@@ -1,42 +1,70 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { useAppState } from "../state";
 import { isTv } from "../lib/tvMode";
+
 export function UpdatePrompt() {
   const { sync } = useAppState();
   const [error, setError] = useState(false);
+  const applying = useRef(false);
   const {
     needRefresh: [ready, setReady],
     updateServiceWorker,
   } = useRegisterSW({
-    onRegisterError: () => setError(true),
+    onRegisterError: () => {
+      if (!navigator.serviceWorker?.controller) setError(true);
+    },
   });
+
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
-    const check = () => {
+    const check = async () => {
       if (document.visibilityState !== "visible" || !navigator.onLine) return;
-      void navigator.serviceWorker
-        .getRegistration(import.meta.env.BASE_URL)
-        .then((reg) => reg?.update())
-        .catch(() => setError(true));
+      try {
+        const reg = await navigator.serviceWorker.getRegistration(
+          import.meta.env.BASE_URL,
+        );
+        if (!reg || reg.installing) return;
+        const res = await fetch(`${import.meta.env.BASE_URL}sw.js`, {
+          cache: "no-store",
+          headers: { "cache-control": "no-cache" },
+        });
+        if (res.ok) await reg.update();
+      } catch {
+        // Ignore transient network hiccups during background update checks.
+      }
     };
-    const timer = setInterval(check, 60_000);
-    document.addEventListener("visibilitychange", check);
-    window.addEventListener("online", check);
+    void navigator.serviceWorker.ready
+      .then(() => check())
+      .catch(() => undefined);
+    const timer = setInterval(() => {
+      void check();
+    }, 60_000);
+    const onVisible = () => {
+      void check();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onVisible);
     return () => {
       clearInterval(timer);
-      document.removeEventListener("visibilitychange", check);
-      window.removeEventListener("online", check);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onVisible);
     };
   }, []);
-  // On the TV nobody taps «Обновить»: a new version applies by itself, once
-  // nothing is waiting to be saved.
+
+  // Apply downloaded updates automatically on phone, desktop and TV once no
+  // local library changes are waiting to sync to Firestore.
   useEffect(() => {
-    if (isTv && ready && sync !== "pending")
-      void updateServiceWorker(true).catch(() => undefined);
-  }, [ready, sync]);
+    if (!ready || sync === "pending" || applying.current) return;
+    applying.current = true;
+    void updateServiceWorker(true).catch(() => {
+      applying.current = false;
+      setError(true);
+    });
+  }, [ready, sync, updateServiceWorker]);
+
   if (isTv) return null;
-  if (!ready && !error) return null;
+  if (!error && !(ready && sync === "pending")) return null;
   return (
     <aside
       role="status"

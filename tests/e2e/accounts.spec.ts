@@ -261,7 +261,7 @@ test("production has one hashed entry and supports offline shell without clearin
   await context.close();
 });
 
-test("an installed PWA detects the next worker and activates it on demand", async ({
+test("an installed PWA detects the next worker and activates it automatically", async ({
   browser,
 }) => {
   const { readFile, writeFile } = await import("node:fs/promises");
@@ -275,15 +275,18 @@ test("an installed PWA detects the next worker and activates it on demand", asyn
       navigator.serviceWorker.ready.then(() => undefined),
     );
     await page.reload();
-    await writeFile("dist/sw.js", original + "\n/* update lifecycle test */\n");
-    await page.evaluate(async () => {
-      const reg = await navigator.serviceWorker.getRegistration("/umbra/");
-      await reg?.update();
-    });
     await expect(
-      page.getByText("Доступна новая версия Umbra", { exact: true }),
+      page.getByRole("heading", { name: "Вход в Umbra" }),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Обновить", exact: true }).click();
+    await writeFile("dist/sw.js", original + "\n/* update lifecycle test */\n");
+    const reloaded = page.waitForEvent("load");
+    await page
+      .evaluate(async () => {
+        const reg = await navigator.serviceWorker.getRegistration("/umbra/");
+        await reg?.update();
+      })
+      .catch(() => undefined);
+    await reloaded;
     await expect(
       page.getByText("Доступна новая версия Umbra", { exact: true }),
     ).toHaveCount(0);

@@ -7,6 +7,7 @@ import {
   useCanInstall,
   useInstalled,
 } from "../lib/install";
+import { LoadingMotion } from "./LoadingMotion";
 
 export function AccountMenu() {
   const [open, setOpen] = useState(false);
@@ -58,7 +59,7 @@ export function AccountMenu() {
       {open ? (
         <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-hairline bg-card shadow-[0_18px_50px_rgba(0,0,0,0.55)]">
           {status === "initializing" ? (
-            <p className="px-4 py-3 text-sm">Восстанавливаю вход…</p>
+            <LoadingMotion kind="auth" label="Восстанавливаю вход…" compact />
           ) : account ? (
             <Link
               to="/settings"

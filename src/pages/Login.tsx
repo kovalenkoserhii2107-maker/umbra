@@ -2,6 +2,7 @@ import { Navigate, useSearchParams } from "react-router-dom";
 import { BrandLockup } from "../components/Brand";
 import { EmailAuth } from "../components/EmailAuth";
 import { GoogleSignIn } from "../components/GoogleSignIn";
+import { LoadingMotion } from "../components/LoadingMotion";
 import { safeReturnPath, useAuth } from "../lib/auth";
 import { isTv } from "../lib/tvMode";
 import { TvLogin } from "../components/TvLogin";
@@ -10,7 +11,11 @@ export function LoginPage() {
   const [params] = useSearchParams();
   const next = safeReturnPath(params.get("next"));
   if (auth.status === "initializing")
-    return <p role="status">Восстанавливаю вход…</p>;
+    return (
+      <div className="flex min-h-[70dvh] items-center justify-center px-4">
+        <LoadingMotion kind="auth" label="Восстанавливаю вход…" />
+      </div>
+    );
   if (auth.account) return <Navigate to={next} replace />;
   if (isTv) return <TvLogin error={auth.error} />;
   return (

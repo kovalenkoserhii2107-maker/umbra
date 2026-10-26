@@ -4,13 +4,11 @@ import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { Layout } from "./components";
 import { isTv } from "./lib/tvMode";
 import { HomePage } from "./pages/Home";
+import { FeedPage } from "./pages/Feed";
 
 // The TV app has screens of its own (src/tv); start loading immediately in TV mode.
 const tvAppPromise = isTv ? import("./tv/TvApp") : null;
 const TvApp = lazy(() => tvAppPromise ?? import("./tv/TvApp"));
-const FeedPage = lazy(() =>
-  import("./pages/Feed").then((m) => ({ default: m.FeedPage })),
-);
 const GamesPage = lazy(() =>
   import("./pages/Games").then((m) => ({ default: m.GamesPage })),
 );

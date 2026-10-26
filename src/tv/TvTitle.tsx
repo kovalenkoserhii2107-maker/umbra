@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAsync } from "../components";
+import { LoadingMotion } from "../components/LoadingMotion";
 import { profileUrl } from "../lib/catalog";
 import { plural, runtimeLabel, yearOf } from "../lib/format";
 import { fetchCriticScores, fetchImdbRating } from "../lib/ratings";
@@ -109,7 +110,13 @@ export function TvTitle() {
   if (!item || item.id !== Number(id))
     return (
       <Stage>
-        <p className="absolute left-12 top-24 text-mute">Загружаю…</p>
+        <div className="flex h-full items-center justify-center">
+          <LoadingMotion
+            key={`${media}-${id}`}
+            kind="movie"
+            label="Собираю карточку…"
+          />
+        </div>
       </Stage>
     );
   return <TitleView key={`${media}-${id}`} item={item} media={media} />;

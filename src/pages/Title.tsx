@@ -29,6 +29,7 @@ import {
   votesShort,
 } from "../lib/titleFacts";
 import { CollectionMark } from "../components/CollectionMark";
+import { LoadingMotion } from "../components/LoadingMotion";
 import { ShareButton } from "../components/ShareButton";
 import { SendToTv } from "../components/SendToTv";
 import { useAuth } from "../lib/auth";
@@ -209,7 +210,15 @@ export function TitlePage() {
 
   if (query.error) return <ErrorBox code={query.error} />;
   if (query.loading || !query.data)
-    return <p className="text-sm text-mute">Собираю карточку…</p>;
+    return (
+      <div className="flex min-h-[55dvh] items-center justify-center py-12">
+        <LoadingMotion
+          key={`${media}-${id}`}
+          kind="movie"
+          label="Собираю карточку…"
+        />
+      </div>
+    );
 
   const item = query.data as typeof query.data & {
     seasons?: SeasonInfo[];

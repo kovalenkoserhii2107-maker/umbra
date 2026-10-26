@@ -11,6 +11,26 @@ import { blockZoom } from "./lib/zoom";
 import { captureSteamReturn } from "./lib/steamLink";
 import { enableTvMode } from "./lib/tvMode";
 
+function handleStaleChunks() {
+  window.addEventListener("vite:preloadError", (event) => {
+    if (!navigator.onLine) return;
+    try {
+      const key = "umbra.chunkReloadAt";
+      const last = Number(sessionStorage.getItem(key) || 0);
+      if (Date.now() - last < 15_000) return;
+      sessionStorage.setItem(key, String(Date.now()));
+    } catch {
+      return;
+    }
+    event.preventDefault();
+    void navigator.serviceWorker
+      ?.getRegistration(import.meta.env.BASE_URL)
+      .then((reg) => reg?.update())
+      .finally(() => window.location.reload());
+  });
+}
+
+handleStaleChunks();
 captureSteamReturn();
 listenAuth();
 listenInstall();

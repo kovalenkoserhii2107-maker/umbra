@@ -16,6 +16,7 @@ import {
   releaseLabel,
 } from "../components/GameTile";
 import { GameMark } from "../components/GameMark";
+import { LoadingMotion } from "../components/LoadingMotion";
 import { SteamPlay } from "../components/SteamPlay";
 import {
   BestShelf,
@@ -200,9 +201,13 @@ export function GamePage() {
 
   if (!game && query.loading)
     return (
-      <p role="status" className="text-sm text-mute">
-        Собираю карточку игры…
-      </p>
+      <div className="flex min-h-[55dvh] items-center justify-center py-12">
+        <LoadingMotion
+          key={id}
+          kind="game"
+          label="Собираю карточку игры…"
+        />
+      </div>
     );
   if (!game)
     return (

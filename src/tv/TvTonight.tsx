@@ -1086,7 +1086,7 @@ function Results({
             className="tv-rise flex items-center gap-2.5 px-12"
           >
             <p className="mr-2 max-w-[190px] truncate text-[15px] text-white/80">
-              Как тебе «{titleOf(rating.item)}»?
+              Як тобі «{titleOf(rating.item)}»?
             </p>
             {Array.from({ length: 10 }, (_, n) => (
               <span

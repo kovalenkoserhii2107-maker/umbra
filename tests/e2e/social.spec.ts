@@ -311,7 +311,7 @@ test("friends invite, accept and see each other's ratings without notes", async 
   await register(a, "Anna");
 
   await a.goto("#/friends");
-  await a.getByRole("button", { name: "Пригласить друга" }).click();
+  await a.getByRole("button", { name: "Запросити друга" }).click();
   const telegram = await a
     .getByRole("link", { name: /Telegram/ })
     .getAttribute("href");

@@ -558,7 +558,7 @@ test("unknown game says so instead of showing another one", async ({
   await signIn(page);
   await page.goto("#/games/999999");
   await expect(page.getByText("Гру не знайдено.")).toBeVisible();
-  await expect(page.getByRole("link", { name: "К поиску игр" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "До пошуку ігор" })).toBeVisible();
 });
 
 test("collection lives in the cloud: marks sync across tabs; old device entries move up on request", async ({
@@ -851,7 +851,7 @@ test("backup file carries the games: loading it restores them, saving it include
   ).toBeVisible();
 
   await page.goto("#/settings");
-  await expect(page.getByText(/і 1 гра в акаунті/)).toBeVisible();
+  await expect(page.getByText(/1 гра в акаунті/)).toBeVisible();
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Завантажити" }).click();
   const file = await (await download).createReadStream();

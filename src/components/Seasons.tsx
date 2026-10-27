@@ -149,22 +149,22 @@ export function Seasons({
     <section className="mt-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-lg tracking-tight">Сезоны и серии</h2>
+          <h2 className="text-lg tracking-tight">Сезони та серії</h2>
           {onMark && progress ? (
             <p className="mt-1 text-sm text-accent">
-              Просмотрено до {episodeLabel(progress)}
-              {toWatch ? ` · дальше ${episodeLabel(toWatch)}` : ""}
+              Переглянуто до {episodeLabel(progress)}
+              {toWatch ? ` · далі ${episodeLabel(toWatch)}` : ""}
             </p>
           ) : null}
           {upcoming ? (
             <p className="mt-1 text-sm text-mute">
-              Следующая: S{upcoming.season_number}E{upcoming.episode_number}{" "}
+              Наступна: S{upcoming.season_number}E{upcoming.episode_number}{" "}
               {upcoming.name}
               {upcoming.air_date ? ` · ${dateLabel(upcoming.air_date)}` : ""}
             </p>
           ) : lastEpisode ? (
             <p className="mt-1 text-sm text-mute">
-              Последняя: S{lastEpisode.season_number}E
+              Остання: S{lastEpisode.season_number}E
               {lastEpisode.episode_number} {lastEpisode.name}
               {lastEpisode.air_date
                 ? ` · ${dateLabel(lastEpisode.air_date)}`
@@ -205,7 +205,7 @@ export function Seasons({
       </div>
 
       {loading ? (
-        <p className="mt-4 text-sm text-mute">Загружаю сезон {current}…</p>
+        <p className="mt-4 text-sm text-mute">Завантажую сезон {current}…</p>
       ) : null}
 
       {onMark && seasonInfo && seasonInfo.episode_count > 0 ? (
@@ -221,8 +221,8 @@ export function Seasons({
           className={`mt-3 rounded-full border px-3 py-1.5 text-xs ${seasonDone ? "border-accent/50 text-accent" : "border-hairline text-mute"}`}
         >
           {seasonDone
-            ? `Сезон ${current} просмотрен · снять отметку`
-            : `Отметить сезон ${current} просмотренным`}
+            ? `Сезон ${current} переглянуто · зняти відмітку`
+            : `Позначити сезон ${current} переглянутим`}
         </button>
       ) : null}
 
@@ -268,7 +268,7 @@ export function Seasons({
                       type="button"
                       role="checkbox"
                       aria-checked={seen}
-                      aria-label={`${episodeLabel(ref)} просмотрена`}
+                      aria-label={`${episodeLabel(ref)} переглянута`}
                       onClick={() => toggle(ref)}
                       className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${seen ? "border-accent bg-accent text-black" : "border-hairline text-dim"}`}
                     >
@@ -283,8 +283,8 @@ export function Seasons({
                       <span className="ml-2">{ep.name}</span>
                     </p>
                     <p className="mt-1 text-xs text-mute">
-                      {ep.air_date ? dateLabel(ep.air_date) : "Дата не указана"}
-                      {ep.runtime ? ` · ${ep.runtime} мин` : ""}
+                      {ep.air_date ? dateLabel(ep.air_date) : "Дату не вказано"}
+                      {ep.runtime ? ` · ${ep.runtime} хв` : ""}
                     </p>
                   </div>
                   <span

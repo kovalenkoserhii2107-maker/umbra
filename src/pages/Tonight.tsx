@@ -29,13 +29,13 @@ function ContinueCard({ item }: { item: LibraryItem }) {
       ) : null}
       <span className="min-w-0">
         <span className="block font-mono text-[10px] uppercase tracking-[0.14em] text-accent">
-          продолжить
+          продовжити
         </span>
         <span className="block truncate">{item.title}</span>
         <span className="block text-xs text-mute">
           {item.season
-            ? `досмотрено до ${episodeLabel({ season: item.season, episode: item.episode ?? 0 })}`
-            : "уже начат"}
+            ? `доглянуто до ${episodeLabel({ season: item.season, episode: item.episode ?? 0 })}`
+            : "уже розпочато"}
         </span>
       </span>
     </Link>
@@ -65,7 +65,7 @@ function QuickPicker({ rewatch }: { rewatch: boolean }) {
   return (
     <div>
       {step === 0 ? (
-        <Question step={0} title="Какое настроение?">
+        <Question step={0} title="Який настрій?">
           {MOODS.map((m) => (
             <Option
               key={m.id}
@@ -77,7 +77,7 @@ function QuickPicker({ rewatch }: { rewatch: boolean }) {
           ))}
         </Question>
       ) : step === 1 ? (
-        <Question step={1} title="Фильм или сериал?" onBack={() => setStep(0)}>
+        <Question step={1} title="Фільм чи серіал?" onBack={() => setStep(0)}>
           {FORMATS.map((f) => (
             <Option
               key={f.id}
@@ -89,7 +89,7 @@ function QuickPicker({ rewatch }: { rewatch: boolean }) {
           ))}
         </Question>
       ) : step === 2 ? (
-        <Question step={2} title="С кем смотришь?" onBack={() => setStep(1)}>
+        <Question step={2} title="З ким дивишся?" onBack={() => setStep(1)}>
           {COMPANIES.map((c) => (
             <Option
               key={c.id}
@@ -102,7 +102,7 @@ function QuickPicker({ rewatch }: { rewatch: boolean }) {
       ) : step === 3 ? (
         <Question
           step={3}
-          title="Свежее или проверенное?"
+          title="Свіже чи перевірене?"
           onBack={() => setStep(2)}
         >
           {ERAS.map((e) => (
@@ -137,7 +137,7 @@ function QuickPicker({ rewatch }: { rewatch: boolean }) {
               onClick={restart}
               className="text-xs text-accent"
             >
-              Изменить ответы
+              Змінити відповіді
             </button>
           </div>
           {services.length ? (
@@ -150,7 +150,7 @@ function QuickPicker({ rewatch }: { rewatch: boolean }) {
                 }
                 className="h-4 w-4 accent-[#ff9e64]"
               />
-              Только на моих сервисах ({services.map((s) => s.name).join(", ")})
+              Тільки на моїх сервісах ({services.map((s) => s.name).join(", ")})
             </label>
           ) : null}
 
@@ -169,16 +169,16 @@ function QuickPicker({ rewatch }: { rewatch: boolean }) {
           ) : null}
           {busy && !shown.length ? (
             <p role="status" className="mt-5 text-sm text-mute">
-              Подбираю под твоё настроение…
+              Підбираю під твій настрій…
             </p>
           ) : null}
           {!busy && ranked && !shown.length ? (
             <p className="mt-5 text-sm text-mute">
-              Ничего не подошло.{" "}
+              Нічого не підійшло.{" "}
               {answers.mine
-                ? "Попробуй без «Только на моих сервисах» или "
-                : "Попробуй "}
-              другое настроение.
+                ? "Спробуй без «Тільки на моїх сервісах» або "
+                : "Спробуй "}
+              інший настрій.
             </p>
           ) : null}
           <div className="mt-5 space-y-3">
@@ -200,7 +200,7 @@ function QuickPicker({ rewatch }: { rewatch: boolean }) {
                 onClick={() => void more()}
                 className="rounded-full border border-hairline px-4 py-2 text-sm disabled:opacity-50"
               >
-                {busy ? "Подбираю…" : "Ещё варианты"}
+                {busy ? "Підбираю…" : "Ще варіанти"}
               </button>
             </div>
           ) : null}
@@ -248,24 +248,24 @@ export function TonightPage() {
   return (
     <div className="rise max-w-3xl">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
-        подбор
+        підбір
       </p>
-      <h1 className="mt-1 text-3xl tracking-tight">Что посмотреть вечером</h1>
+      <h1 className="mt-1 text-3xl tracking-tight">Що подивитися ввечері</h1>
       <p className="mt-2 text-sm text-mute">
         {useAi
-          ? "Вопросы задаёт Claude — под тебя и твою библиотеку."
-          : "Четыре вопроса — и подборка с учётом того, что ты уже смотрел, как оценивал и что отложил."}
+          ? "Питання ставить Claude — під тебе та твою бібліотеку."
+          : "Чотири питання — і добірка з урахуванням того, що ти вже дивився, як оцінював і що відклав."}
       </p>
       {ai ? (
         <div
           role="tablist"
-          aria-label="Как подбирать"
+          aria-label="Як підбирати"
           className="mt-4 inline-flex rounded-full border border-hairline p-1 text-sm"
         >
           {(
             [
-              ["ai", "С Claude"],
-              ["quick", "Быстрый"],
+              ["ai", "З Claude"],
+              ["quick", "Швидкий"],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -294,20 +294,20 @@ export function TonightPage() {
           <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-ink transition peer-checked:translate-x-4" />
         </span>
         <span>
-          Включать просмотренное
+          Включати переглянуте
           <span className="block text-xs text-mute">
             {rewatch
-              ? "Уже просмотренные фильмы тоже попадут в подборку"
-              : "В подборке только то, что ты ещё не видел"}
+              ? "Вже переглянуті фільми теж потраплять у добірку"
+              : "У добірці тільки те, що ти ще не бачив"}
           </span>
         </span>
       </label>
       {ai && mode === "ai" && !signedIn ? (
         <p className="mt-3 text-sm text-mute">
           <Link to="/login?next=%2Ftonight" className="text-accent">
-            Войди
+            Увійди
           </Link>
-          , чтобы подбирал Claude: он смотрит на твою библиотеку.
+          , щоб підбирав Claude: він дивиться на твою бібліотеку.
         </p>
       ) : null}
       {useAi ? (
@@ -321,7 +321,7 @@ export function TonightPage() {
         />
       ) : ai === null && mode === "ai" && signedIn ? (
         <p role="status" className="mt-6 text-sm text-mute">
-          Загрузка…
+          Завантаження…
         </p>
       ) : (
         <QuickPicker rewatch={rewatch} />

@@ -1,16 +1,16 @@
 const MONTHS = [
-  "января",
-  "февраля",
-  "марта",
-  "апреля",
-  "мая",
-  "июня",
-  "июля",
-  "августа",
-  "сентября",
-  "октября",
-  "ноября",
-  "декабря",
+  "січня",
+  "лютого",
+  "березня",
+  "квітня",
+  "травня",
+  "червня",
+  "липня",
+  "серпня",
+  "вересня",
+  "жовтня",
+  "листопада",
+  "грудня",
 ];
 
 export function yearOf(date?: string | null) {
@@ -39,8 +39,8 @@ export function runtimeLabel(minutes?: number | null) {
   if (!minutes) return "";
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
-  if (!h) return `${m} мин`;
-  return `${h} ч ${m} мин`;
+  if (!h) return `${m} хв`;
+  return `${h} год ${m} хв`;
 }
 
 export function scoreColor(score: number) {

@@ -106,8 +106,8 @@ function FriendsOnTitle({ media, id }: { media: MediaType; id: number }) {
   return (
     <div className="mt-4">
       <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-mute">
-        Оценки друзей
-        {average !== null ? ` · средняя ${average.toFixed(1)}` : ""}
+        Оцінки друзів
+        {average !== null ? ` · середня ${average.toFixed(1)}` : ""}
       </p>
       <div className="mt-1.5 flex flex-wrap gap-2">
         {list.map(({ friend, rating }) => (
@@ -163,7 +163,7 @@ function years(item: TitleDetails, media: MediaType) {
   if (media !== "tv" || !first) return first;
   const last = yearOf((item as { last_air_date?: string }).last_air_date);
   if (item.in_production || item.status === "Returning Series")
-    return `${first} — н. в.`;
+    return `${first} — дотепер`;
   return last && last !== first ? `${first}–${last}` : first;
 }
 
@@ -215,7 +215,7 @@ export function TitlePage() {
         <LoadingMotion
           key={`${media}-${id}`}
           kind="movie"
-          label="Собираю карточку…"
+          label="Збираю картку…"
         />
       </div>
     );
@@ -283,7 +283,7 @@ export function TitlePage() {
     },
     {
       label: "Tomatoes",
-      title: "Rotten Tomatoes — доля положительных рецензий критиков",
+      title: "Rotten Tomatoes — частка позитивних рецензій критиків",
       value: criticsPending
         ? undefined
         : critics?.tomatometer != null
@@ -292,15 +292,15 @@ export function TitlePage() {
       sub:
         critics?.tomatometer != null
           ? critics.tomatometer >= 60
-            ? "свежий"
-            : "гнилой"
+            ? "свіжий"
+            : "гнилий"
           : null,
       color: tomatoColor(critics?.tomatometer ?? 100),
       href: rtUrl,
     },
     {
       label: "Metacritic",
-      title: "Metascore — сводная оценка критиков",
+      title: "Metascore — зведена оцінка критиків",
       value: criticsPending
         ? undefined
         : critics?.metascore != null
@@ -317,7 +317,7 @@ export function TitlePage() {
   const meta = [
     runtime ? runtimeLabel(runtime) : null,
     item.number_of_seasons ? `${item.number_of_seasons} сез.` : null,
-    item.number_of_episodes ? `${item.number_of_episodes} эп.` : null,
+    item.number_of_episodes ? `${item.number_of_episodes} еп.` : null,
     showType,
   ].filter(Boolean);
   const recommendations = item.recommendations?.results ?? [];
@@ -346,7 +346,7 @@ export function TitlePage() {
             <ShareButton
               title={title}
               path={`/title/${media}/${item.id}`}
-              text={`«${title}»${year ? ` (${year})` : ""}${imdb ? ` — IMDb ${imdb}` : ""}. Смотри в Umbra:`}
+              text={`«${title}»${year ? ` (${year})` : ""}${imdb ? ` — IMDb ${imdb}` : ""}. Дивись в Umbra:`}
               className="flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md hover:bg-black/70"
             />
           </div>
@@ -363,7 +363,7 @@ export function TitlePage() {
           ) : null}
           <div className="min-w-0 flex-1 pb-0.5">
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
-              {media === "tv" ? "сериал" : "фильм"}
+              {media === "tv" ? "серіал" : "фільм"}
               {years(item, media) ? ` · ${years(item, media)}` : ""}
             </p>
             <h1 className="mt-1 text-2xl leading-tight tracking-tight sm:text-4xl">
@@ -381,7 +381,7 @@ export function TitlePage() {
           <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-2 text-sm text-mute">
             {rated ? (
               <span
-                title={`Возрастной рейтинг · ${rated.country}`}
+                title={`Віковий рейтинг · ${rated.country}`}
                 className="rounded border border-mute/60 px-1.5 font-mono text-xs text-ink"
               >
                 {rated.code}
@@ -395,7 +395,7 @@ export function TitlePage() {
             ))}
             {upcoming ? (
               <span className="text-accent">
-                {meta.length || rated ? "· " : ""}выходит {dateLabel(released)}
+                {meta.length || rated ? "· " : ""}виходить {dateLabel(released)}
               </span>
             ) : status && (media === "tv" || item.status !== "Released") ? (
               <span className="text-accent">
@@ -461,8 +461,8 @@ export function TitlePage() {
 
       {cast.length ? (
         <Section
-          title="В ролях"
-          aside={cast.length > 16 ? <Aside>{cast.length} актёров</Aside> : null}
+          title="У ролях"
+          aside={cast.length > 16 ? <Aside>{cast.length} акторів</Aside> : null}
         >
           <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
             {cast.slice(0, 16).map((c) => (
@@ -485,8 +485,8 @@ export function TitlePage() {
         rottenTomatoesUrl={rtUrl}
       />
       <Franchise item={item} currentId={item.id} />
-      <PosterRow title="Рекомендации" items={recommendations} media={media} />
-      <PosterRow title="Похожее" items={similar} media={media} />
+      <PosterRow title="Рекомендації" items={recommendations} media={media} />
+      <PosterRow title="Схоже" items={similar} media={media} />
       {isTv ? null : <LinksRow item={item} media={media} />}
     </article>
   );

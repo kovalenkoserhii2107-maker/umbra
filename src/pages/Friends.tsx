@@ -68,19 +68,19 @@ export function FriendsPage() {
   return (
     <div className="rise max-w-2xl">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
-        друзья
+        друзі
       </p>
-      <h1 className="mt-1 text-3xl tracking-tight">Друзья</h1>
+      <h1 className="mt-1 text-3xl tracking-tight">Друзі</h1>
       <p className="mt-2 text-sm text-mute">
-        Друзья видят твои оценки и статусы — что смотришь и что хочешь
-        посмотреть. Личные заметки остаются только у тебя.
+        Друзі бачать твої оцінки та статуси — що дивишся і що хочеш
+        подивитися. Особисті нотатки залишаються тільки в тебе.
       </p>
 
       <div className="mt-5 rounded-2xl border border-hairline bg-card p-4">
-        <p className="text-sm">Пригласи друга по ссылке</p>
+        <p className="text-sm">Запроси друга за посиланням</p>
         <p className="mt-1 text-xs text-mute">
-          Друг откроет ссылку, войдёт или зарегистрируется в Umbra — и вы сразу
-          станете друзьями и увидите оценки друг друга.
+          Друг відкриє посилання, увійде або зареєструється в Umbra — і ви відразу
+          станете друзями та побачите оцінки одне одного.
         </p>
         {token.loading ? (
           <button
@@ -88,14 +88,14 @@ export function FriendsPage() {
             disabled
             className="mt-3 inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm text-canvas opacity-60"
           >
-            Готовлю ссылку…
+            Готую посилання…
           </button>
         ) : (
           <ShareButton
-            title="Приглашение в Umbra"
-            text={`${account.name} зовёт тебя в друзья в Umbra — будем видеть оценки фильмов друг друга:`}
+            title="Запрошення в Umbra"
+            text={`${account.name} кличе тебе в Umbra — будемо бачити оцінки фільмів одне одного:`}
             path={invitePath}
-            label="Пригласить друга"
+            label="Запросити друга"
             showLabel
             className="mt-3 inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm text-canvas"
           />
@@ -110,7 +110,7 @@ export function FriendsPage() {
 
       {requests.list?.length ? (
         <section className="mt-8">
-          <h2 className="mb-3 text-lg tracking-tight">Заявки в друзья</h2>
+          <h2 className="mb-3 text-lg tracking-tight">Заявки в друзі</h2>
           <div className="space-y-2">
             {requests.list.map((p) => (
               <div
@@ -124,14 +124,14 @@ export function FriendsPage() {
                   onClick={() => run(() => acceptRequest(p))}
                   className="rounded-full bg-accent px-3 py-1.5 text-xs text-black"
                 >
-                  Принять
+                  Прийняти
                 </button>
                 <button
                   type="button"
                   onClick={() => run(() => declineRequest(p.uid))}
                   className={button}
                 >
-                  Отклонить
+                  Відхилити
                 </button>
               </div>
             ))}
@@ -140,11 +140,11 @@ export function FriendsPage() {
       ) : null}
 
       <section className="mt-8">
-        <h2 className="mb-3 text-lg tracking-tight">Мои друзья</h2>
+        <h2 className="mb-3 text-lg tracking-tight">Мої друзі</h2>
         {friends.list === null ? (
-          <p className="text-sm text-mute">Загружаю…</p>
+          <p className="text-sm text-mute">Завантажую…</p>
         ) : friends.list.length === 0 ? (
-          <Empty text="Пока никого. Отправь другу ссылку-приглашение." />
+          <Empty text="Поки нікого. Надішли другу посилання-запрошення." />
         ) : (
           <div className="space-y-2">
             {friends.list.map((p) => (
@@ -162,7 +162,7 @@ export function FriendsPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (window.confirm(`Удалить ${p.name} из друзей?`))
+                    if (window.confirm(`Видалити ${p.name} з друзів?`))
                       void run(async () => {
                         await removeFriend(p.uid);
                         setTokenEpoch((n) => n + 1);
@@ -170,7 +170,7 @@ export function FriendsPage() {
                   }}
                   className={button}
                 >
-                  Удалить
+                  Видалити
                 </button>
               </div>
             ))}
@@ -210,7 +210,7 @@ export function InvitePage() {
       })
       .catch(() => {
         setMessage(
-          "Не получилось добавить сразу — отправь заявку, и друг её примет.",
+          "Не вдалося додати одразу — надішли заявку, і друг її прийме.",
         );
         setBusy(false);
       });
@@ -244,17 +244,17 @@ export function InvitePage() {
   return (
     <div className="rise mx-auto max-w-md pt-6 text-center">
       {uid === account.sub ? (
-        <Empty text="Это твоя ссылка-приглашение. Отправь её другу." />
+        <Empty text="Це твоє посилання-запрошення. Надішли його другу." />
       ) : profile.loading || (keyed && busy) ? (
         <p role="status" className="text-sm text-mute">
-          {keyed ? "Добавляю в друзья…" : "Открываю приглашение…"}
+          {keyed ? "Додаю в друзі…" : "Відкриваю запрошення…"}
         </p>
       ) : !profile.data ? (
         <Empty
           text={
             profile.error
               ? friendsError({ code: "permission-denied" })
-              : "Приглашение не найдено. Попроси друга отправить ссылку ещё раз."
+              : "Запрошення не знайдено. Попроси друга надіслати посилання ще раз."
           }
         />
       ) : (
@@ -263,13 +263,13 @@ export function InvitePage() {
             <Avatar person={profile.data} size={64} />
           </div>
           <p className="mt-4 text-xl">{profile.data.name}</p>
-          <p className="mt-1 text-sm text-mute">приглашает тебя в друзья</p>
+          <p className="mt-1 text-sm text-mute">запрошує тебе в друзі</p>
           {already ? (
             <Link
               to={`/friends/${uid}`}
               className="mt-6 inline-block rounded-full border border-hairline px-4 py-2 text-sm"
             >
-              Вы уже друзья — открыть
+              Ви вже друзі — відкрити
             </Link>
           ) : (
             <button
@@ -278,12 +278,12 @@ export function InvitePage() {
               onClick={add}
               className="mt-6 w-full rounded-full bg-ink px-4 py-3 text-sm text-canvas disabled:opacity-60"
             >
-              Добавить в друзья
+              Додати в друзі
             </button>
           )}
           <p className="mt-3 text-xs text-dim">
-            {profile.data.name} увидит твои оценки и статусы, ты — его. Заметки
-            остаются личными.
+            {profile.data.name} побачить твої оцінки та статуси, ти — його. Нотатки
+            залишаються особистими.
           </p>
           {message ? (
             <p role="alert" className="mt-3 text-sm text-accent">
@@ -340,15 +340,15 @@ export function FriendPage() {
           role="status"
           className="mt-4 rounded-2xl border border-ok/40 bg-ok/10 px-4 py-3 text-sm"
         >
-          Вы теперь друзья — {name} видит твои оценки, а ты его.
+          Ви тепер друзі — {name} бачить твої оцінки, а ти його.
         </p>
       ) : null}
 
       {friends.list && !friend ? (
         <p className="mt-4 text-sm text-mute">
-          Этого человека нет в твоих друзьях.{" "}
+          Цієї людини немає серед твоїх друзів.{" "}
           <Link to="/friends" className="text-accent">
-            К друзьям
+            До друзів
           </Link>
         </p>
       ) : null}
@@ -357,28 +357,28 @@ export function FriendPage() {
         <div className="mt-5 rounded-2xl border border-hairline bg-card p-4">
           <p className="text-3xl tracking-tight">{match.percent}%</p>
           <p className="mt-1 text-xs text-mute">
-            совпадение вкусов по {match.common} общим оценкам
+            збіг смаків за {match.common} спільними оцінками
           </p>
         </div>
       ) : null}
 
       {ratings.loading ? (
-        <p className="mt-6 text-sm text-mute">Загружаю оценки…</p>
+        <p className="mt-6 text-sm text-mute">Завантажую оцінки…</p>
       ) : denied ? (
         <Empty
-          text={`${name} ещё не принял заявку — оценки появятся после подтверждения.`}
+          text={`${name} ще не прийняв заявку — оцінки з'являться після підтвердження.`}
         />
       ) : !ratings.data?.length ? (
-        <Empty text={`${name} пока ничего не отметил.`} />
+        <Empty text={`${name} поки нічого не відзначив.`} />
       ) : (
         <>
           <div className="row-scroll mt-6 flex gap-2 overflow-x-auto pb-1">
             {(
               [
-                ["all", "Все"],
-                ["rated", "С оценкой"],
-                ["watching", "Смотрит"],
-                ["watchlist", "Хочет посмотреть"],
+                ["all", "Всі"],
+                ["rated", "З оцінкою"],
+                ["watching", "Дивиться"],
+                ["watchlist", "Хоче подивитися"],
               ] as Array<[Show, string]>
             ).map(([id, label]) => (
               <button
@@ -417,7 +417,7 @@ export function FriendPage() {
                     </p>
                     {mine?.rating ? (
                       <p className="font-mono text-[11px] uppercase tracking-wider text-dim">
-                        у тебя {mine.rating}/10
+                        у тебе {mine.rating}/10
                       </p>
                     ) : null}
                   </div>

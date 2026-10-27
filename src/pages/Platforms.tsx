@@ -13,12 +13,12 @@ export function PlatformsPage() {
   return (
     <div className="rise">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
-        платформы
+        платформи
       </p>
-      <h1 className="mt-1 text-3xl tracking-tight">Где смотреть</h1>
+      <h1 className="mt-1 text-3xl tracking-tight">Де дивитися</h1>
       <p className="mt-2 max-w-xl text-sm text-mute">
-        Сначала новое от сервиса, затем популярное на нём, потом фильмы не от
-        платформы. Регион: {settings.region}.
+        Спочатку нове від сервісу, потім популярне на ньому, далі фільми не від
+        платформи. Регіон: {settings.region}.
       </p>
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
         {shown.map((p) => (
@@ -37,7 +37,7 @@ export function PlatformsPage() {
               />
             </div>
             <h2 className="mt-6 text-2xl tracking-tight">{p.name}</h2>
-            <p className="mt-1 text-sm text-mute">Новое, популярное и каталог</p>
+            <p className="mt-1 text-sm text-mute">Нове, популярне та каталог</p>
           </Link>
         ))}
       </div>
@@ -99,7 +99,7 @@ export function PlatformPage() {
   );
 
   if (!platform)
-    return <p className="text-sm text-mute">Платформа не найдена.</p>;
+    return <p className="text-sm text-mute">Платформу не знайдено.</p>;
   const err = newest.error || popular.error || movies.error || shows.error;
   if (err && !newest.data && !popular.data && !movies.data)
     return <ErrorBox code={err} />;
@@ -117,14 +117,14 @@ export function PlatformPage() {
         {platform.short}
       </p>
       <h1 className="mt-1 mb-8 text-3xl tracking-tight">{platform.name}</h1>
-      <Row title="Новое от сервиса" items={byCatalogRank(newest.data ?? [])} />
-      <Row title="Популярное на платформе" items={popularItems} />
+      <Row title="Нове від сервісу" items={byCatalogRank(newest.data ?? [])} />
+      <Row title="Популярне на платформі" items={popularItems} />
       <section className="mb-10">
         <h2 className="mb-3 text-lg font-medium tracking-tight">
-          Фильмы не от сервиса
+          Фільми не від сервісу
         </h2>
         {movies.loading ? (
-          <p className="text-sm text-mute">Загрузка…</p>
+          <p className="text-sm text-mute">Завантаження…</p>
         ) : (
           <Grid
             items={byCatalogRank(movies.data?.results ?? [])}
@@ -134,10 +134,10 @@ export function PlatformPage() {
       </section>
       <section className="mb-10">
         <h2 className="mb-3 text-lg font-medium tracking-tight">
-          Сериалы в каталоге
+          Серіали в каталозі
         </h2>
         {shows.loading ? (
-          <p className="text-sm text-mute">Загрузка…</p>
+          <p className="text-sm text-mute">Завантаження…</p>
         ) : (
           <Grid items={byCatalogRank(shows.data?.results ?? [])} type="tv" />
         )}

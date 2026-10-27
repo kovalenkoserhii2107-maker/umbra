@@ -23,7 +23,7 @@ export function GoogleSignIn() {
         onClick={enter}
         className="w-full rounded-full bg-ink px-4 py-3 text-sm text-canvas disabled:opacity-60"
       >
-        {busy ? "Открываю Google…" : "Продолжить с Google"}
+        {busy ? "Відкриваю Google…" : "Продовжити з Google"}
       </button>
       {error ? (
         <p role="alert" className="text-sm text-accent">

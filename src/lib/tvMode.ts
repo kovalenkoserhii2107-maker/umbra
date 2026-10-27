@@ -73,9 +73,9 @@ type Bridge = {
   startVoice(language: string): void;
   /** Since the sign-in update of the app; older versions lack it. */
   googleSignIn?(): void;
-  /** Closes the app (Back twice on «Лента»); older versions lack it. */
+  /** Closes the app (Back twice on «Стрічка»); older versions lack it. */
   exitApp?(): void;
-  /** Since «На телевизоре в Lampa»: JSON of TvRemoteInfo. */
+  /** Since «На телевізорі в Lampa»: JSON of TvRemoteInfo. */
   remoteInfo?(): string;
   stopVoice(): void;
 };
@@ -174,7 +174,7 @@ export function tvDeviceName(userAgent: string) {
   const model = userAgent.match(
     /Android [\d.]+; ([^;)]+?)(?: Build\/[^;)]*)?[;)]/,
   )?.[1];
-  return model && model !== "K" ? model.trim() : "Телевизор";
+  return model && model !== "K" ? model.trim() : "Телевізор";
 }
 
 export function onTvEvent(listener: (event: TvEvent) => void) {
@@ -201,7 +201,7 @@ export function pushTvBack(handler: () => void) {
 
 /**
  * What Back does when nothing on the screen is open (set by the TV app's
- * shell): another tab → «Лента»; «Лента» → twice quickly to leave.
+ * shell): another tab → «Стрічка»; «Стрічка» → twice quickly to leave.
  * true — handled; false — the app goes back in history or closes.
  */
 let rootBack: (() => boolean) | null = null;
@@ -227,7 +227,7 @@ export function handleTvBack(): boolean {
   return false;
 }
 
-// ---- "Смотреть": streaming apps on this TV ----
+// ---- "Дивитися": streaming apps on this TV ----
 
 type Provider = { provider_id: number; provider_name: string };
 type Offers = Partial<
@@ -250,11 +250,11 @@ export function appForProvider(name: string): TvApp | null {
 }
 
 const OFFER_LABELS = [
-  ["flatrate", "по подписке"],
-  ["free", "бесплатно"],
-  ["ads", "бесплатно с рекламой"],
-  ["rent", "аренда"],
-  ["buy", "покупка"],
+  ["flatrate", "за передплатою"],
+  ["free", "безкоштовно"],
+  ["ads", "безкоштовно з рекламою"],
+  ["rent", "оренда"],
+  ["buy", "купівля"],
 ] as const;
 
 export type WatchApp = { app: TvApp; name: string; offer: string };

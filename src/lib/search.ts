@@ -2,21 +2,21 @@ import { kindOf, titleOf, type MediaType, type TmdbItem } from "./tmdb";
 import { byCatalogRank, catalogBand } from "./rank";
 
 export const SEARCH_GENRES = [
-  { id: 28, label: "Боевик" },
-  { id: 12, label: "Приключения" },
-  { id: 16, label: "Анимация" },
-  { id: 35, label: "Комедия" },
-  { id: 80, label: "Криминал" },
+  { id: 28, label: "Бойовик" },
+  { id: 12, label: "Пригоди" },
+  { id: 16, label: "Анімація" },
+  { id: 35, label: "Комедія" },
+  { id: 80, label: "Кримінал" },
   { id: 99, label: "Док" },
   { id: 18, label: "Драма" },
-  { id: 10751, label: "Семья" },
-  { id: 14, label: "Фэнтези" },
-  { id: 27, label: "Ужасы" },
+  { id: 10751, label: "Сімейний" },
+  { id: 14, label: "Фентезі" },
+  { id: 27, label: "Жахи" },
   { id: 9648, label: "Детектив" },
   { id: 10749, label: "Мелодрама" },
   { id: 878, label: "Фантастика" },
-  { id: 53, label: "Триллер" },
-  { id: 10752, label: "Война" },
+  { id: 53, label: "Трилер" },
+  { id: 10752, label: "Військовий" },
 ] as const;
 
 export type SearchKind = "all" | MediaType;
@@ -64,45 +64,45 @@ export const defaultFilters: SearchFilters = {
 };
 
 export const ERAS: Array<[Era, string]> = [
-  ["new", "Новинки года"],
-  ["2020", "2020-е"],
-  ["2010", "2010-е"],
-  ["2000", "2000-е"],
-  ["1990", "90-е"],
-  ["1980", "80-е"],
-  ["classic", "Классика до 2000"],
+  ["new", "Новинки року"],
+  ["2020", "2020-ті"],
+  ["2010", "2010-ті"],
+  ["2000", "2000-ні"],
+  ["1990", "90-ті"],
+  ["1980", "80-ті"],
+  ["classic", "Класика до 2000"],
 ];
 
 export const RUNTIMES: Array<[Runtime, string]> = [
-  ["short", "До 1,5 часа"],
-  ["mid", "1,5–2 часа"],
-  ["long", "Больше 2 часов"],
+  ["short", "До 1,5 години"],
+  ["mid", "1,5–2 години"],
+  ["long", "Понад 2 години"],
 ];
 
 export const FAMES: Array<[Fame, string]> = [
-  ["famous", "Известные"],
-  ["gems", "Малоизвестные"],
+  ["famous", "Відомі"],
+  ["gems", "Маловідомі"],
 ];
 
 export const MINE: Array<[MineFilter, string]> = [
-  ["unseen", "Не смотрел"],
-  ["watchlist", "Хочу посмотреть"],
-  ["seen", "Уже смотрел"],
+  ["unseen", "Не дивився"],
+  ["watchlist", "Хочу подивитися"],
+  ["seen", "Уже дивився"],
 ];
 
 export const LANGUAGES: Array<[string, string]> = [
-  ["en", "Английский"],
-  ["ru", "Русский"],
-  ["uk", "Украинский"],
-  ["ko", "Корейский"],
-  ["ja", "Японский"],
-  ["fr", "Французский"],
-  ["es", "Испанский"],
-  ["de", "Немецкий"],
-  ["it", "Итальянский"],
-  ["tr", "Турецкий"],
-  ["zh", "Китайский"],
-  ["hi", "Индийский"],
+  ["en", "Англійська"],
+  ["ru", "Російська"],
+  ["uk", "Українська"],
+  ["ko", "Корейська"],
+  ["ja", "Японська"],
+  ["fr", "Французька"],
+  ["es", "Іспанська"],
+  ["de", "Німецька"],
+  ["it", "Італійська"],
+  ["tr", "Турецька"],
+  ["zh", "Китайська"],
+  ["hi", "Індійська"],
 ];
 
 export const SCORE_STEPS = [6, 7, 7.5, 8];
@@ -115,37 +115,37 @@ export const PRESETS: Array<{
 }> = [
   {
     id: "gems",
-    label: "Скрытые жемчужины",
+    label: "Приховані перлини",
     filters: { fame: "gems", minScore: 7, sort: "rating" },
   },
   {
     id: "classic",
-    label: "Классика",
+    label: "Класика",
     filters: { era: "classic", minScore: 7.5, fame: "famous", sort: "rating" },
   },
   {
     id: "fresh",
-    label: "Свежее и хорошее",
+    label: "Свіже та якісне",
     filters: { era: "new", minScore: 7, sort: "popular" },
   },
   {
     id: "short",
-    label: "Короткий вечер",
+    label: "Короткий вечір",
     filters: { kind: "movie", runtime: "short", minScore: 6.5 },
   },
   {
     id: "family",
-    label: "Для семьи",
+    label: "Для сім'ї",
     filters: { genres: [10751, 16], without: [27, 53, 80] },
   },
   {
     id: "unseen",
-    label: "Лучшее, что я не видел",
+    label: "Найкраще, що я не бачив",
     filters: { mine: "unseen", minScore: 8, fame: "famous", sort: "rating" },
   },
   {
     id: "mine",
-    label: "На моих сервисах",
+    label: "На моїх сервісах",
     filters: { services: true, minScore: 7, sort: "popular" },
   },
 ];
@@ -367,7 +367,7 @@ export function applySearch(
 }
 
 const EN = "qwertyuiop[]asdfghjkl;'zxcvbnm,.`";
-const RU = "йцукенгшщзхъфывапролджэячсмитьбюё";
+const RU = "йцукенгшщзхїфівапролджєячсмитьбю'";
 
 /**
  * The same keys on the other keyboard layout: "ltyf" ↔ "дюна"-style typos.
@@ -376,7 +376,7 @@ const RU = "йцукенгшщзхъфывапролджэячсмитьбюё";
 export function switchLayout(text: string) {
   const lower = text.toLowerCase();
   const latin = /[a-z]/.test(lower);
-  const cyrillic = /[а-яё]/.test(lower);
+  const cyrillic = /[а-яёіїєґ]/.test(lower);
   if (latin === cyrillic) return null;
   const [from, to] = latin ? [EN, RU] : [RU, EN];
   let out = "";

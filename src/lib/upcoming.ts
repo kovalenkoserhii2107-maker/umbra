@@ -143,12 +143,12 @@ async function loadShows(
   };
 }
 
-/** "сегодня", "завтра", "14 ноября", or "3 марта 2027" in another year. */
+/** "сьогодні", "завтра", "14 листопада", or "3 березня 2027" in another year. */
 export function premiereLabel(date: string, today = new Date()) {
   const m = date.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!m) return "";
   const now = localIso(today);
-  if (date.slice(0, 10) === now) return "сегодня";
+  if (date.slice(0, 10) === now) return "сьогодні";
   if (date.slice(0, 10) === ahead(1, today)) return "завтра";
   const day = dayMonthLabel(date);
   return m[1] === now.slice(0, 4) ? day : `${day} ${m[1]}`;

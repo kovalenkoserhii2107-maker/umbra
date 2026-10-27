@@ -47,8 +47,8 @@ function Hero({ game, label }: { game: GameSummary; label: string }) {
         <p className="mt-1 text-sm text-mute">
           {upcoming
             ? game.released
-              ? `выходит ${releaseLabel(game.released)}`
-              : "дата не объявлена"
+              ? `виходить ${releaseLabel(game.released)}`
+              : "дата не оголошена"
             : [game.genres.slice(0, 2).join(", "), game.year]
                 .filter(Boolean)
                 .join(" · ")}
@@ -88,30 +88,30 @@ export function FeedShelves({ platforms }: { platforms: number[] }) {
   if (!data)
     return (
       <p role="status" className="mb-10 text-sm text-mute">
-        Собираю игры…
+        Збираю ігри…
       </p>
     );
   return (
     <>
       <Heroes
         items={[
-          { game: data.fresh[0], label: "главная новинка" },
-          { game: data.awaited[0], label: "самая ожидаемая" },
-          { game: data.popular[0], label: "больше всех играют" },
+          { game: data.fresh[0], label: "головна новинка" },
+          { game: data.awaited[0], label: "найочікуваніша" },
+          { game: data.popular[0], label: "найбільше грають" },
         ]}
       />
       <GameShelf
-        title="Популярные новинки"
+        title="Популярні новинки"
         games={data.fresh}
-        aside={<span className={asideText}>за 4 месяца</span>}
+        aside={<span className={asideText}>за 4 місяці</span>}
       />
-      <GameShelf title="Сейчас популярно" games={data.popular} />
-      <GameShelf title="Самые ожидаемые" games={data.awaited} dated />
+      <GameShelf title="Зараз популярно" games={data.popular} />
+      <GameShelf title="Найочікуваніші" games={data.awaited} dated />
       <GameShelf
-        title="Скоро выйдут"
+        title="Скоро вийдуть"
         games={data.soon}
         dated
-        aside={<span className={asideText}>2 месяца</span>}
+        aside={<span className={asideText}>2 місяці</span>}
       />
     </>
   );
@@ -122,9 +122,9 @@ export function BestShelf({ platforms }: { platforms: number[] }) {
   const feed = useAsync(() => shelves(platforms), [platforms.join()]);
   return (
     <GameShelf
-      title="Лучшие за год"
+      title="Найкращі за рік"
       games={feed.data?.best ?? []}
-      aside={<span className={asideText}>по критикам</span>}
+      aside={<span className={asideText}>за критиками</span>}
     />
   );
 }
@@ -139,7 +139,7 @@ export function Giveaways({ groups }: { groups: readonly PlatformGroupId[] }) {
     <section className="mb-10">
       <div className="mb-3 flex items-end justify-between gap-3">
         <h2 className="text-lg font-medium tracking-tight">
-          Раздают бесплатно
+          Роздають безкоштовно
         </h2>
         <span className={asideText}>{drops.data.length}</span>
       </div>
@@ -163,7 +163,7 @@ export function Giveaways({ groups }: { groups: readonly PlatformGroupId[] }) {
             <p className="mt-2 line-clamp-2 text-sm">{item.title}</p>
             <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
               {item.platforms.split(",")[0]?.trim()}
-              {item.type === "DLC" ? " · дополнение" : ""}
+              {item.type === "DLC" ? " · доповнення" : ""}
               {item.end_date && item.end_date !== "N/A"
                 ? ` · до ${item.end_date.slice(8, 10)}.${item.end_date.slice(5, 7)}`
                 : ""}
@@ -199,9 +199,9 @@ function PassShelf({
 export function GamePassShelves() {
   return (
     <>
-      <PassShelf list="recent" title="Недавно в Game Pass" />
+      <PassShelf list="recent" title="Нещодавно в Game Pass" />
       <PassShelf list="coming" title="Скоро в Game Pass" dated />
-      <PassShelf list="leaving" title="Скоро уйдут из Game Pass" />
+      <PassShelf list="leaving" title="Скоро підуть з Game Pass" />
     </>
   );
 }
@@ -218,7 +218,7 @@ export function DealsShelf() {
   return (
     <section className="mb-10">
       <div className="mb-3 flex items-end justify-between gap-3">
-        <h2 className="text-lg font-medium tracking-tight">Скидки на ПК</h2>
+        <h2 className="text-lg font-medium tracking-tight">Знижки на ПК</h2>
         <a
           href="https://isthereanydeal.com/deals/"
           target="_blank"

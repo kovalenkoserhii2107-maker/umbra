@@ -43,14 +43,14 @@ import type { LibraryItem } from "../lib/library";
 type Tab = "all" | "movie" | "tv" | "person";
 
 const TABS: Array<[Tab, string]> = [
-  ["all", "Всё"],
-  ["movie", "Фильмы"],
-  ["tv", "Сериалы"],
+  ["all", "Все"],
+  ["movie", "Фільми"],
+  ["tv", "Серіали"],
   ["person", "Люди"],
 ];
 const SORTS: Array<[SearchSort, string]> = [
-  ["relevance", "По смыслу"],
-  ["popular", "Популярные"],
+  ["relevance", "За змістом"],
+  ["popular", "Популярні"],
   ["rating", "Рейтинг"],
   ["year", "Новизна"],
 ];
@@ -60,10 +60,10 @@ const YEARS = Array.from({ length: 60 }, (_, i) =>
 const DELAY = 300;
 
 const STATUS: Record<LibraryItem["status"], string> = {
-  watchlist: "Хочу посмотреть",
-  watching: "Смотрю",
-  watched: "Посмотрено",
-  dropped: "Брошено",
+  watchlist: "Хочу подивитися",
+  watching: "Дивлюся",
+  watched: "Переглянуто",
+  dropped: "Покинуто",
 };
 
 const fold = (s: string) => s.toLowerCase().replace(/ё/g, "е");
@@ -129,7 +129,7 @@ function TitleRow({
           </span>
         ) : null}
         <span className="mt-0.5 block font-mono text-[10px] uppercase tracking-[0.12em] text-dim">
-          {[media === "tv" ? "сериал" : "фильм", year, score && `★ ${score}`]
+          {[media === "tv" ? "серіал" : "фільм", year, score && `★ ${score}`]
             .filter(Boolean)
             .join(" · ")}
         </span>
@@ -168,10 +168,10 @@ function PersonRow({ person, query }: { person: PersonHit; query: string }) {
         </span>
         <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-dim">
           {person.known_for_department === "Directing"
-            ? "режиссёр"
+            ? "режисер"
             : person.known_for_department === "Acting"
-              ? "актёр"
-              : person.known_for_department || "человек"}
+              ? "актор"
+              : person.known_for_department || "людина"}
         </span>
       </span>
     </Link>
@@ -278,7 +278,7 @@ export function SearchPage() {
         ? [
             {
               key: "sort",
-              label: `Сортировка: ${label(SORTS, filters.sort).toLowerCase()}`,
+              label: `Сортування: ${label(SORTS, filters.sort).toLowerCase()}`,
               clear: () => setFilters((f) => ({ ...f, sort: "relevance" })),
             },
           ]
@@ -621,8 +621,8 @@ export function SearchPage() {
             autoComplete="off"
             autoCorrect="off"
             spellCheck={false}
-            aria-label="Поиск фильмов, сериалов и людей"
-            placeholder="Фильм, сериал, актёр…"
+            aria-label="Пошук фільмів, серіалів та людей"
+            placeholder="Фільм, серіал, актор…"
             className="min-w-0 flex-1 bg-transparent py-3 text-base outline-none placeholder:text-dim"
           />
           {loading || typing ? (
@@ -635,7 +635,7 @@ export function SearchPage() {
             <button
               type="button"
               onClick={clear}
-              aria-label="Очистить"
+              aria-label="Очистити"
               className="-mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-lg text-mute hover:bg-white/10"
             >
               ×
@@ -646,7 +646,7 @@ export function SearchPage() {
           type="submit"
           className="shrink-0 rounded-2xl bg-accent px-4 py-3 text-sm font-medium text-black"
         >
-          Найти
+          Знайти
         </button>
       </form>
 
@@ -667,7 +667,7 @@ export function SearchPage() {
             onClick={() => setShowFilters((v) => !v)}
             className={`ml-auto shrink-0 rounded-full border px-2.5 py-1 text-xs ${activeFilters ? "border-accent text-accent" : "border-hairline text-mute"}`}
           >
-            Фильтры{activeFilters ? ` · ${activeFilters}` : ""}
+            Фільтри{activeFilters ? ` · ${activeFilters}` : ""}
           </button>
         ) : null}
       </div>
@@ -675,14 +675,14 @@ export function SearchPage() {
       {activeFilters && tab !== "person" ? (
         <div
           className="mt-2 flex flex-wrap gap-1.5"
-          aria-label="Включённые фильтры"
+          aria-label="Увімкнені фільтри"
         >
           {activeChips.map((c) => (
             <button
               key={c.key}
               type="button"
               onClick={c.clear}
-              aria-label={`Убрать фильтр: ${c.label}`}
+              aria-label={`Прибрати фільтр: ${c.label}`}
               className="rounded-full bg-accent/15 px-2.5 py-1 text-xs text-accent"
             >
               {c.label} ×
@@ -695,14 +695,14 @@ export function SearchPage() {
             }
             className="px-1 text-xs text-mute underline"
           >
-            Сбросить всё
+            Скинути все
           </button>
         </div>
       ) : null}
 
       {showFilters && tab !== "person" ? (
         <div className="mt-2 space-y-4 rounded-2xl border border-hairline bg-card p-3">
-          <FilterGroup title="Готовые подборки">
+          <FilterGroup title="Готові добірки">
             {PRESETS.filter(
               (p) => !(q && (p.filters.services || p.filters.runtime)),
             ).map((p) => (
@@ -715,7 +715,7 @@ export function SearchPage() {
               </Chip>
             ))}
           </FilterGroup>
-          <FilterGroup title="Сортировка">
+          <FilterGroup title="Сортування">
             {SORTS.map(([id, label]) => (
               <Chip
                 key={id}
@@ -726,7 +726,7 @@ export function SearchPage() {
               </Chip>
             ))}
           </FilterGroup>
-          <FilterGroup title="Жанры" hint="Нажми ещё раз, чтобы исключить жанр">
+          <FilterGroup title="Жанри" hint="Натисни ще раз, щоб виключити жанр">
             {SEARCH_GENRES.map((g) => {
               const on = filters.genres.includes(g.id);
               const off = filters.without.includes(g.id);
@@ -735,7 +735,7 @@ export function SearchPage() {
                   key={g.id}
                   type="button"
                   aria-pressed={on || off}
-                  aria-label={off ? `${g.label}: исключён` : g.label}
+                  aria-label={off ? `${g.label}: виключено` : g.label}
                   onClick={() => cycleGenre(g.id)}
                   className={`shrink-0 rounded-full border px-2.5 py-1 text-xs ${on ? "border-ink bg-ink text-canvas" : off ? "border-accent/60 text-accent line-through" : "border-hairline text-mute"}`}
                 >
@@ -745,7 +745,7 @@ export function SearchPage() {
               );
             })}
           </FilterGroup>
-          <FilterGroup title="Годы">
+          <FilterGroup title="Роки">
             {ERAS.map(([id, label]) => (
               <Chip
                 key={id}
@@ -766,10 +766,10 @@ export function SearchPage() {
               onChange={(e) =>
                 setFilters((f) => ({ ...f, year: e.target.value }))
               }
-              aria-label="Точный год"
+              aria-label="Точний рік"
               className={`rounded-full border bg-canvas px-2.5 py-1 text-xs ${filters.year ? "border-ink text-ink" : "border-hairline text-mute"}`}
             >
-              <option value="">Точный год</option>
+              <option value="">Точний рік</option>
               {YEARS.map((y) => (
                 <option key={y} value={y}>
                   {y}
@@ -793,7 +793,7 @@ export function SearchPage() {
               </Chip>
             ))}
           </FilterGroup>
-          <FilterGroup title="Известность">
+          <FilterGroup title="Відомість">
             {FAMES.map(([id, label]) => (
               <Chip
                 key={id}
@@ -806,7 +806,7 @@ export function SearchPage() {
               </Chip>
             ))}
           </FilterGroup>
-          <FilterGroup title="Моя коллекция">
+          <FilterGroup title="Моя колекція">
             {MINE.map(([id, label]) => (
               <Chip
                 key={id}
@@ -819,7 +819,7 @@ export function SearchPage() {
               </Chip>
             ))}
           </FilterGroup>
-          <FilterGroup title="Язык оригинала">
+          <FilterGroup title="Мова оригіналу">
             {LANGUAGES.map(([id, label]) => (
               <Chip
                 key={id}
@@ -834,12 +834,12 @@ export function SearchPage() {
           </FilterGroup>
           {q ? (
             <p className="text-xs text-dim">
-              Длительность и «На моих сервисах» работают в каталоге — очисти
-              поиск, чтобы подобрать по ним.
+              Тривалість та «На моїх сервісах» працюють у каталозі — очисти
+              пошук, щоб підібрати за ними.
             </p>
           ) : (
             <>
-              <FilterGroup title="Длительность">
+              <FilterGroup title="Тривалість">
                 {RUNTIMES.map(([id, label]) => (
                   <Chip
                     key={id}
@@ -855,14 +855,14 @@ export function SearchPage() {
                   </Chip>
                 ))}
               </FilterGroup>
-              <FilterGroup title="Где смотреть">
+              <FilterGroup title="Де дивитися">
                 <Chip
                   active={filters.services}
                   onClick={() =>
                     setFilters((f) => ({ ...f, services: !f.services }))
                   }
                 >
-                  На моих сервисах
+                  На моїх сервісах
                 </Chip>
               </FilterGroup>
             </>
@@ -872,7 +872,7 @@ export function SearchPage() {
             onClick={() => setShowFilters(false)}
             className="w-full rounded-full bg-accent py-2 text-sm font-medium text-black"
           >
-            Показать результаты
+            Показати результати
           </button>
         </div>
       ) : null}
@@ -885,7 +885,7 @@ export function SearchPage() {
 
       {found && found.used !== splitYear(q).text ? (
         <p className="mt-4 text-sm text-mute">
-          Показаны результаты для «
+          Показано результати для «
           <button
             type="button"
             onClick={() => submit(found.used)}
@@ -893,7 +893,7 @@ export function SearchPage() {
           >
             {found.used}
           </button>
-          » — похоже, была не та раскладка.
+          » — схоже, була не та розкладка.
         </p>
       ) : null}
 
@@ -937,7 +937,7 @@ export function SearchPage() {
                 ))}
               </div>
             ) : (
-              <p className="mt-6 text-sm text-mute">Никого не нашлось.</p>
+              <p className="mt-6 text-sm text-mute">Нікого не знайшлося.</p>
             )
           ) : list.length ? (
             <div>
@@ -954,8 +954,8 @@ export function SearchPage() {
           ) : !loading ? (
             <p className="mt-6 text-sm text-mute">
               {activeFilters || found.year
-                ? "С такими фильтрами ничего нет — попробуй их сбросить."
-                : "Ничего не нашлось. Проверь написание или попробуй оригинальное название."}
+                ? "З такими фільтрами нічого немає — спробуй їх скинути."
+                : "Нічого не знайшлося. Перевір написання або спробуй оригінальну назву."}
             </p>
           ) : null}
         </div>
@@ -965,7 +965,7 @@ export function SearchPage() {
         <div className="mt-4">
           {!list.length && !loading ? (
             <p className="mt-2 text-sm text-mute">
-              По этим фильтрам ничего нет — попробуй убрать какой-нибудь.
+              За цими фільтрами нічого немає — спробуй прибрати якийсь.
             </p>
           ) : null}
           {list.map((item) => (
@@ -988,7 +988,7 @@ export function SearchPage() {
             onClick={() => void loadMore()}
             className="rounded-full border border-hairline px-4 py-2 text-sm disabled:opacity-50"
           >
-            {loading ? "Загрузка…" : "Ещё результаты"}
+            {loading ? "Завантаження…" : "Ще результати"}
           </button>
         </div>
       ) : null}
@@ -999,7 +999,7 @@ export function SearchPage() {
             <section>
               <div className="flex items-center justify-between">
                 <h2 className="font-mono text-[11px] uppercase tracking-[0.16em] text-dim">
-                  недавно искал
+                  нещодавно шукав
                 </h2>
                 <button
                   type="button"
@@ -1009,7 +1009,7 @@ export function SearchPage() {
                   }}
                   className="text-xs text-mute"
                 >
-                  Очистить
+                  Очистити
                 </button>
               </div>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -1029,7 +1029,7 @@ export function SearchPage() {
           {popular.length ? (
             <section>
               <h2 className="font-mono text-[11px] uppercase tracking-[0.16em] text-dim">
-                сейчас ищут
+                зараз шукають
               </h2>
               <div className="mt-1">
                 {popular.slice(0, 10).map((item) => (

@@ -59,7 +59,7 @@ export function AccountMenu() {
       {open ? (
         <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-hairline bg-card shadow-[0_18px_50px_rgba(0,0,0,0.55)]">
           {status === "initializing" ? (
-            <LoadingMotion kind="auth" label="Восстанавливаю вход…" compact />
+            <LoadingMotion kind="auth" label="Відновлюю вхід…" compact />
           ) : account ? (
             <Link
               to="/settings"
@@ -89,7 +89,7 @@ export function AccountMenu() {
               onClick={() => setOpen(false)}
               className="block px-4 py-3 text-sm text-accent hover:bg-white/5"
             >
-              Войти
+              Увійти
             </Link>
           )}
           {account ? (
@@ -99,14 +99,14 @@ export function AccountMenu() {
                 onClick={() => setOpen(false)}
                 className="block px-4 py-3 text-sm hover:bg-white/5"
               >
-                Статистика и итоги
+                Статистика та підсумки
               </Link>
               <Link
                 to="/friends"
                 onClick={() => setOpen(false)}
                 className="block px-4 py-3 text-sm hover:bg-white/5"
               >
-                Друзья
+                Друзі
               </Link>
             </>
           ) : null}
@@ -119,7 +119,7 @@ export function AccountMenu() {
               }}
               className="block w-full px-4 py-3 text-left text-sm hover:bg-white/5"
             >
-              Установить приложение
+              Встановити застосунок
             </button>
           )}
           <Link
@@ -127,7 +127,7 @@ export function AccountMenu() {
             onClick={() => setOpen(false)}
             className="block px-4 py-3 text-sm hover:bg-white/5"
           >
-            Профиль и настройки
+            Профіль та налаштування
           </Link>
         </div>
       ) : null}

@@ -74,9 +74,9 @@ export function GamesPage() {
   return (
     <div className="rise">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
-        игры
+        ігри
       </p>
-      <h1 className="mt-1 text-3xl tracking-tight">Что поиграть</h1>
+      <h1 className="mt-1 text-3xl tracking-tight">У що пограти</h1>
       <div className="mb-8 mt-4">
         <PlatformPicker value={mine} onToggle={toggleMyPlatform} />
       </div>
@@ -157,7 +157,7 @@ function Series({ game }: { game: RawGame }) {
   if (!collection || !list.data?.length) return null;
   return (
     <GameShelf
-      title={`Серия «${collection.name}»`}
+      title={`Серія «${collection.name}»`}
       games={list.data}
       aside={<Aside>{list.data.length + 1} игр</Aside>}
     />
@@ -205,7 +205,7 @@ export function GamePage() {
         <LoadingMotion
           key={id}
           kind="game"
-          label="Собираю карточку игры…"
+          label="Збираю картку гри…"
         />
       </div>
     );
@@ -214,7 +214,7 @@ export function GamePage() {
       <div className="space-y-4">
         <GameError code={query.error || "HTTP_404"} />
         <Link className="block text-accent" to="/games/search">
-          К поиску игр
+          До пошуку ігор
         </Link>
       </div>
     );
@@ -240,7 +240,7 @@ export function GamePage() {
   const tiles: Tile[] = [
     {
       label: "OpenCritic",
-      title: "OpenCritic — средняя оценка ведущих критиков",
+      title: "OpenCritic — середня оцінка провідних критиків",
       value:
         oc === undefined
           ? undefined
@@ -255,7 +255,7 @@ export function GamePage() {
     },
     {
       label: "Metacritic",
-      title: "Metascore — сводная оценка критиков",
+      title: "Metascore — зведена оцінка критиків",
       value:
         steamId && steam === undefined
           ? undefined
@@ -268,7 +268,7 @@ export function GamePage() {
     },
     {
       label: "Steam",
-      title: "Доля положительных отзывов в Steam",
+      title: "Частка позитивних відгуків у Steam",
       value:
         steamId && steam === undefined
           ? undefined
@@ -283,8 +283,8 @@ export function GamePage() {
     },
     summary.users !== null
       ? {
-          label: "Игроки",
-          title: "Оценка игроков IGDB",
+          label: "Гравці",
+          title: "Оцінка гравців IGDB",
           value: summary.users.toFixed(1),
           sub: votesShort(game.rating_count),
           color: "#9147ff",
@@ -292,7 +292,7 @@ export function GamePage() {
         }
       : {
           label: "Критики",
-          title: "Средняя оценка критиков по данным IGDB",
+          title: "Середня оцінка критиків за даними IGDB",
           value:
             summary.critics !== null && !ocFound?.score
               ? String(summary.critics)
@@ -326,7 +326,7 @@ export function GamePage() {
             <ShareButton
               title={game.name}
               path={`/games/${game.id}`}
-              text={`«${game.name}»${year ? ` (${year})` : ""}${ocFound?.score ? ` — OpenCritic ${ocFound.score}` : ""}. Смотри в Umbra:`}
+              text={`«${game.name}»${year ? ` (${year})` : ""}${ocFound?.score ? ` — OpenCritic ${ocFound.score}` : ""}. Дивись в Umbra:`}
               className="flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md hover:bg-black/70"
             />
           </div>
@@ -372,7 +372,7 @@ export function GamePage() {
             {platforms.length ? <span>{platforms.join(" · ")}</span> : null}
             {gamePass ? (
               <span
-                title="Игра сейчас в каталоге Xbox Game Pass"
+                title="Гра зараз у каталозі Xbox Game Pass"
                 className="rounded border border-[#107c10] px-1.5 font-mono text-xs text-[#5fd35f]"
               >
                 Game Pass
@@ -380,7 +380,7 @@ export function GamePage() {
             ) : null}
             {upcoming ? (
               <span className="text-accent">
-                · выходит {releaseLabel(released)}
+                · виходить {releaseLabel(released)}
               </span>
             ) : null}
           </div>
@@ -418,7 +418,7 @@ export function GamePage() {
       {english ? (
         <>
           <Overview text={english} />
-          <p className="mt-1 text-xs text-dim">Описание IGDB · на английском</p>
+          <p className="mt-1 text-xs text-dim">Опис IGDB · англійською</p>
         </>
       ) : null}
 
@@ -436,15 +436,15 @@ export function GamePage() {
       <GameLinks game={game} steamId={steamId} part="links" />
       <div className="mt-10">
         <Related
-          title="Дополнения"
+          title="Доповнення"
           games={[...(game.expansions ?? []), ...(game.dlcs ?? [])]}
         />
         <Series game={game} />
         <Related
-          title="Ремейки и ремастеры"
+          title="Ремейки та ремастери"
           games={[...(game.remakes ?? []), ...(game.remasters ?? [])]}
         />
-        <Related title="Похожие игры" games={game.similar_games} />
+        <Related title="Схожі ігри" games={game.similar_games} />
       </div>
       <PcRequirements steam={steam ?? null} />
     </article>

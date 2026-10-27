@@ -118,19 +118,19 @@ export function GameSearchPage() {
   return (
     <div className="rise">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
-        поиск
+        пошук
       </p>
-      <h1 className="mt-1 text-3xl tracking-tight">Поиск игр</h1>
+      <h1 className="mt-1 text-3xl tracking-tight">Пошук ігор</h1>
       <input
         value={query}
         onChange={(event) => setQuery(event.target.value)}
-        placeholder="Название игры"
-        aria-label="Название игры"
+        placeholder="Назва гри"
+        aria-label="Назва гри"
         className="mt-6 w-full rounded-full border border-hairline bg-card px-4 py-3 text-sm outline-none placeholder:text-dim focus:border-accent/60"
       />
       <div className="mt-5 space-y-3">
         <PlatformPicker
-          label="Платформы"
+          label="Платформи"
           value={groups}
           onToggle={(id) =>
             setGroups((current) =>
@@ -143,10 +143,10 @@ export function GameSearchPage() {
         <div className="flex flex-wrap gap-2">
           {(
             [
-              ["relevance", text ? "По смыслу" : "Популярные"],
-              ...(text ? [["popular", "Популярные"]] : []),
-              ["rating", "Оценка критиков"],
-              ["new", "Новые"],
+              ["relevance", text ? "За змістом" : "Популярні"],
+              ...(text ? [["popular", "Популярні"]] : []),
+              ["rating", "Оцінка критиків"],
+              ["new", "Нові"],
             ] as Array<[SearchSort, string]>
           ).map(([id, label]) => (
             <button
@@ -163,13 +163,13 @@ export function GameSearchPage() {
               className={chip(minCritics === score)}
               onClick={() => setMinCritics(score)}
             >
-              {score ? `Критики ${score}+` : "Любая оценка"}
+              {score ? `Критики ${score}+` : "Будь-яка оцінка"}
             </button>
           ))}
         </div>
         <div className="row-scroll flex gap-2 overflow-x-auto pb-1">
           <button className={chip(!genre)} onClick={() => setGenre(null)}>
-            Все жанры
+            Всі жанри
           </button>
           {GENRE_FILTERS.map((g) => (
             <button
@@ -183,7 +183,7 @@ export function GameSearchPage() {
         </div>
         <div className="row-scroll flex gap-2 overflow-x-auto pb-1">
           <button className={chip(!year)} onClick={() => setYear(null)}>
-            Любой год
+            Будь-який рік
           </button>
           {YEARS.map((y) => (
             <button
@@ -208,17 +208,17 @@ export function GameSearchPage() {
                   disabled={state.loading}
                   className="rounded-full border border-hairline px-4 py-2 text-sm disabled:opacity-50"
                 >
-                  {state.loading ? "Загружаю…" : "Ещё результаты"}
+                  {state.loading ? "Завантажую…" : "Ще результати"}
                 </button>
               </div>
             ) : null}
           </>
         ) : state.loading ? (
           <p role="status" className="text-sm text-mute">
-            Ищу…
+            Шукаю…
           </p>
         ) : !state.error ? (
-          <Empty text="Ничего не нашлось. Измени запрос или сними часть фильтров." />
+          <Empty text="Нічого не знайдено. Зміни запит або зніми частину фільтрів." />
         ) : null}
       </div>
     </div>
@@ -229,9 +229,9 @@ export function GamePlatformsPage() {
   return (
     <div className="rise">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
-        платформы
+        платформи
       </p>
-      <h1 className="mt-1 text-3xl tracking-tight">Где играть</h1>
+      <h1 className="mt-1 text-3xl tracking-tight">Де грати</h1>
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
         {PLATFORM_GROUPS.map((p) => (
           <Link
@@ -296,7 +296,7 @@ export function StudioPage() {
     if (byName.loading)
       return (
         <p role="status" className="text-sm text-mute">
-          Ищу студию…
+          Шукаю студію…
         </p>
       );
     return <GameError code={byName.error || "HTTP_404"} />;
@@ -306,7 +306,7 @@ export function StudioPage() {
   if (!data)
     return (
       <p role="status" className="text-sm text-mute">
-        Собираю игры студии…
+        Збираю ігри студії…
       </p>
     );
   const groups: Array<{ label: string; games: GameSummary[] }> = [];
@@ -315,7 +315,7 @@ export function StudioPage() {
       ? game.released! * 1000 > Date.now()
         ? "Скоро"
         : String(game.year)
-      : "Без даты";
+      : "Без дати";
     const last = groups.at(-1);
     if (last?.label === label) last.games.push(game);
     else groups.push({ label, games: [game] });
@@ -323,7 +323,7 @@ export function StudioPage() {
   return (
     <div className="rise">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
-        студия
+        студія
       </p>
       <div className="mt-1 flex items-center gap-4">
         {data.logo ? (
@@ -337,8 +337,8 @@ export function StudioPage() {
       </div>
       <p className="mt-2 text-sm text-mute">
         {[
-          data.founded ? `основана в ${data.founded}` : "",
-          data.games.length ? `${data.games.length} игр` : "",
+          data.founded ? `заснована в ${data.founded}` : "",
+          data.games.length ? `${data.games.length} ігор` : "",
         ]
           .filter(Boolean)
           .join(" · ")}
@@ -358,11 +358,11 @@ export function StudioPage() {
           rel="noreferrer"
           className="mt-3 inline-block font-mono text-[11px] uppercase tracking-[0.14em] text-accent"
         >
-          Сайт студии ↗
+          Сайт студії ↗
         </a>
       ) : null}
       {!data.games.length ? (
-        <Empty text="У студии пока нет игр в IGDB." />
+        <Empty text="У студії поки немає ігор в IGDB." />
       ) : null}
       {groups.map((group) => (
         <section key={group.label} className="mt-8">
@@ -375,7 +375,7 @@ export function StudioPage() {
                 key={game.id}
                 game={game}
                 layout="grid"
-                note={data.developed.has(game.id) ? undefined : "издатель"}
+                note={data.developed.has(game.id) ? undefined : "видавець"}
               />
             ))}
           </div>
@@ -389,9 +389,9 @@ export function GameLibraryPage() {
   return (
     <div className="rise">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
-        коллекция
+        колекція
       </p>
-      <h1 className="mb-4 mt-1 text-3xl tracking-tight">Мои игры</h1>
+      <h1 className="mb-4 mt-1 text-3xl tracking-tight">Мої ігри</h1>
       <GameCollection />
     </div>
   );
@@ -405,7 +405,7 @@ export function GameFindPage() {
   if (found.loading)
     return (
       <p role="status" className="text-sm text-mute">
-        Ищу «{title}»…
+        Шукаю «{title}»…
       </p>
     );
   if (found.data) return <Navigate replace to={`/games/${found.data}`} />;

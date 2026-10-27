@@ -28,7 +28,7 @@ function Stars({
     <div
       className="flex flex-wrap gap-0.5"
       role="radiogroup"
-      aria-label="Оценка"
+      aria-label="Оцінка"
     >
       {Array.from({ length: 10 }, (_, index) => index + 1).map((score) => {
         const on = score <= value;
@@ -46,7 +46,7 @@ function Stars({
             type="button"
             role="radio"
             aria-checked={value === score}
-            aria-label={`${score} из 10`}
+            aria-label={`${score} з 10`}
             onClick={() => onPick(score)}
             className={className}
           >
@@ -177,7 +177,7 @@ export function CollectionMark({
   return (
     <section className="mt-8 rounded-2xl border border-hairline bg-card p-4">
       <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-dim">
-        коллекция
+        колекція
       </p>
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
         {media === "tv" ? (
@@ -187,7 +187,7 @@ export function CollectionMark({
             onClick={() => mark("watching")}
             className={watching && !panel ? on : idle}
           >
-            Смотрю
+            Дивлюся
           </button>
         ) : null}
         <button
@@ -196,7 +196,7 @@ export function CollectionMark({
           onClick={openPanel}
           className={watched && !panel ? on : idle}
         >
-          В просмотренные
+          У переглянуті
         </button>
         <button
           type="button"
@@ -204,20 +204,20 @@ export function CollectionMark({
           onClick={want}
           className={wanted ? on : idle}
         >
-          Хочу посмотреть
+          Хочу подивитися
         </button>
       </div>
 
       {panel ? (
         <div className="mt-4 space-y-3">
           <p className="text-sm text-mute">
-            Оценка{stars ? ` · ${stars} из 10` : " от 1 до 10"}
+            Оцінка{stars ? ` · ${stars} з 10` : " від 1 до 10"}
           </p>
           <Stars value={stars} onPick={setStars} />
           <label className="block text-sm text-mute">
-            Комментарий
+            Коментар
             <textarea
-              aria-label="Комментарий"
+              aria-label="Коментар"
               value={comment}
               maxLength={5000}
               onChange={(event) => {
@@ -225,7 +225,7 @@ export function CollectionMark({
                 if (account)
                   writeDraft(account.sub, draftKey, event.target.value);
               }}
-              placeholder="Что запомнилось — по желанию"
+              placeholder="Що запам'яталося — за бажанням"
               className="mt-1 w-full rounded-xl border border-hairline bg-canvas px-3 py-2 text-ink outline-none"
             />
           </label>
@@ -236,7 +236,7 @@ export function CollectionMark({
               onClick={confirm}
               className="rounded-full bg-accent px-4 py-2 text-sm text-canvas disabled:opacity-40"
             >
-              Подтвердить
+              Підтвердити
             </button>
             <button
               type="button"
@@ -246,7 +246,7 @@ export function CollectionMark({
               }}
               className="rounded-full px-4 py-2 text-sm text-dim"
             >
-              Отмена
+              Скасувати
             </button>
           </div>
         </div>
@@ -258,32 +258,32 @@ export function CollectionMark({
             <>
               <Stars value={mine.rating} />
               <p className="font-mono text-[11px] uppercase tracking-wider text-dim">
-                в фильмографии · {mine.rating}/10
+                у фільмографії · {mine.rating}/10
               </p>
             </>
           ) : null}
           {watched && !mine.rating ? (
             <p className="text-sm text-mute">
-              В фильмографии без оценки. Можно поставить звёзды.
+              У фільмографії без оцінки. Можна поставити зірки.
             </p>
           ) : null}
           {wanted ? (
             <p className="text-sm text-mute">
-              В списке «Хочу посмотреть». Дату выхода можно будет отслеживать
-              отдельно.
+              У списку «Хочу подивитися». Дату виходу можна буде відстежувати
+              окремо.
             </p>
           ) : null}
           {watching ? (
             <p className="text-sm text-mute">
-              Смотришь
+              Дивишся
               {progress
-                ? ` · просмотрено до ${episodeLabel(progress)}`
-                : " · отмечай просмотренные серии ниже"}
+                ? ` · переглянуто до ${episodeLabel(progress)}`
+                : " · відзначай переглянуті серії нижче"}
             </p>
           ) : null}
           {dropped ? (
             <p className="text-sm text-mute">
-              Брошен
+              Покинуто
               {progress ? ` на ${episodeLabel(progress)}` : ""}
             </p>
           ) : null}
@@ -297,7 +297,7 @@ export function CollectionMark({
                 onClick={openPanel}
                 className="rounded-full border border-hairline px-3 py-1.5 text-sm text-mute"
               >
-                Изменить оценку
+                Змінити оцінку
               </button>
             ) : null}
             {watching ? (
@@ -306,7 +306,7 @@ export function CollectionMark({
                 onClick={() => mark("dropped")}
                 className="rounded-full border border-hairline px-3 py-1.5 text-sm text-mute"
               >
-                Бросил
+                Покинув
               </button>
             ) : null}
             {dropped ? (
@@ -315,7 +315,7 @@ export function CollectionMark({
                 onClick={() => mark("watching")}
                 className="rounded-full border border-hairline px-3 py-1.5 text-sm text-mute"
               >
-                Вернуться к просмотру
+                Повернутися до перегляду
               </button>
             ) : null}
             <button
@@ -323,7 +323,7 @@ export function CollectionMark({
               onClick={() => remove(media, id)}
               className="rounded-full px-3 py-1.5 text-sm text-dim"
             >
-              Убрать из коллекции
+              Вилучити з колекції
             </button>
           </div>
         </div>

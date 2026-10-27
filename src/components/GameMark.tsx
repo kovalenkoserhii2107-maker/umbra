@@ -68,7 +68,7 @@ export function GameMark({ game }: { game: MarkedGame }) {
     try {
       await action();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось сохранить игру.");
+      setError(e instanceof Error ? e.message : "Не вдалося зберегти гру.");
     } finally {
       setBusy(false);
     }
@@ -113,7 +113,7 @@ export function GameMark({ game }: { game: MarkedGame }) {
       ? Number(draft.hours.replace(",", "."))
       : null;
     if (hours !== null && !(hours >= 0 && hours <= 100000)) {
-      setError("Часы — число от 0 до 100000.");
+      setError("Години — число від 0 до 100000.");
       return;
     }
     void run(async () => {
@@ -162,12 +162,12 @@ export function GameMark({ game }: { game: MarkedGame }) {
                 .join(" · ")}
             </span>
           ) : (
-            <span className="text-dim">платформа не указана</span>
+            <span className="text-dim">платформу не вказано</span>
           )}
           {entry.rating ? (
             <span className="font-mono text-accent">{entry.rating}/10</span>
           ) : null}
-          {hours ? <span>{hours} ч</span> : null}
+          {hours ? <span>{hours} год</span> : null}
           {entry.note ? (
             <span className="max-w-full truncate italic">«{entry.note}»</span>
           ) : null}
@@ -177,7 +177,7 @@ export function GameMark({ game }: { game: MarkedGame }) {
               onClick={() => openPanel()}
               className="text-accent"
             >
-              Изменить
+              Змінити
             </button>
           ) : null}
         </div>
@@ -192,12 +192,12 @@ export function GameMark({ game }: { game: MarkedGame }) {
           {choices.length ? (
             <div>
               <p className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
-                Где играю
+                Де граю
               </p>
               <div
                 className="flex flex-wrap gap-2"
                 role="group"
-                aria-label="Где играю"
+                aria-label="Де граю"
               >
                 {choices.map((g) => {
                   const on = draft.platforms.includes(g.id);
@@ -229,18 +229,18 @@ export function GameMark({ game }: { game: MarkedGame }) {
           ) : null}
           <div>
             <p className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
-              Оценка
+              Оцінка
             </p>
             <div
               className="flex flex-wrap gap-0.5"
               role="radiogroup"
-              aria-label="Оценка"
+              aria-label="Оцінка"
             >
               {Array.from({ length: 10 }, (_, i) => i + 1).map((score) => (
                 <button
                   key={score}
                   type="button"
-                  aria-label={`${score} из 10`}
+                  aria-label={`${score} з 10`}
                   onClick={() =>
                     setDraft((d) => ({
                       ...d,
@@ -257,7 +257,7 @@ export function GameMark({ game }: { game: MarkedGame }) {
           {!entry?.steam?.minutes ? (
             <label className="block">
               <span className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
-                Часов в игре
+                Годин у грі
               </span>
               <input
                 inputMode="decimal"
@@ -265,7 +265,7 @@ export function GameMark({ game }: { game: MarkedGame }) {
                 onChange={(e) =>
                   setDraft((d) => ({ ...d, hours: e.target.value }))
                 }
-                placeholder="например, 40"
+                placeholder="наприклад, 40"
                 className="w-32 rounded-xl border border-hairline bg-canvas px-3 py-2 text-sm outline-none focus:border-accent/60"
               />
             </label>
@@ -276,7 +276,7 @@ export function GameMark({ game }: { game: MarkedGame }) {
               setDraft((d) => ({ ...d, note: e.target.value }));
               if (uid) writeDraft(uid, draftKey, e.target.value);
             }}
-            placeholder="Комментарий"
+            placeholder="Коментар"
             className="w-full rounded-xl border border-hairline bg-canvas px-3 py-2 text-sm outline-none focus:border-accent/60"
             rows={3}
           />
@@ -287,7 +287,7 @@ export function GameMark({ game }: { game: MarkedGame }) {
               onClick={save}
               className="rounded-full bg-accent px-4 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-[#1a1008] disabled:opacity-40"
             >
-              Сохранить
+              Зберегти
             </button>
             <button
               type="button"
@@ -297,7 +297,7 @@ export function GameMark({ game }: { game: MarkedGame }) {
               }}
               className="rounded-full border border-hairline px-4 py-2 text-sm text-mute"
             >
-              Отмена
+              Скасувати
             </button>
             {entry ? (
               <button
@@ -311,7 +311,7 @@ export function GameMark({ game }: { game: MarkedGame }) {
                 }
                 className="ml-auto rounded-full border border-hairline px-4 py-2 text-sm text-dim"
               >
-                Убрать из коллекции
+                Вилучити з колекції
               </button>
             ) : null}
           </div>

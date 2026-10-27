@@ -21,7 +21,7 @@ export const itemKey = (item: Pick<LibraryItem, "type" | "id">) =>
 const statuses: Status[] = ["watchlist", "watching", "watched", "dropped"];
 export function parseItem(value: unknown): LibraryItem {
   if (!value || typeof value !== "object")
-    throw new Error("Некорректная запись в полке.");
+    throw new Error("Некоректний запис на полиці.");
   const v = value as Record<string, unknown>;
   if (
     !Number.isSafeInteger(v.id) ||
@@ -29,7 +29,7 @@ export function parseItem(value: unknown): LibraryItem {
     !["movie", "tv"].includes(String(v.type)) ||
     !statuses.includes(v.status as Status)
   )
-    throw new Error("Некорректный ID, тип или статус записи.");
+    throw new Error("Некоректний ID, тип або статус запису.");
   for (const [key, max] of Object.entries({
     title: 500,
     poster: 2048,
@@ -37,10 +37,10 @@ export function parseItem(value: unknown): LibraryItem {
     note: 5000,
   })) {
     if (typeof v[key] !== "string" || (v[key] as string).length > max)
-      throw new Error(`Некорректное поле ${key}.`);
+      throw new Error(`Некоректне поле ${key}.`);
   }
   if (v.poster && !/^https:\/\/image\.tmdb\.org\//.test(String(v.poster)))
-    throw new Error("Некорректный адрес постера.");
+    throw new Error("Некоректна адреса постера.");
   if (
     v.rating !== null &&
     (typeof v.rating !== "number" ||
@@ -48,7 +48,7 @@ export function parseItem(value: unknown): LibraryItem {
       v.rating < 1 ||
       v.rating > 10)
   )
-    throw new Error("Оценка должна быть от 1 до 10.");
+    throw new Error("Оцінка має бути від 1 до 10.");
   const result: LibraryItem = {
     id: Number(v.id),
     type: v.type as MediaType,
@@ -66,7 +66,7 @@ export function parseItem(value: unknown): LibraryItem {
   for (const key of ["season", "episode"] as const) {
     if (v[key] !== undefined) {
       if (!Number.isSafeInteger(v[key]) || Number(v[key]) < 0)
-        throw new Error("Некорректный номер серии или сезона.");
+        throw new Error("Некоректний номер серії або сезону.");
       result[key] = Number(v[key]);
     }
   }
@@ -74,7 +74,7 @@ export function parseItem(value: unknown): LibraryItem {
 }
 export function parseImport(raw: string): LibraryItem[] {
   if (raw.length > 5_000_000)
-    throw new Error("Файл слишком большой (максимум 5 МБ).");
+    throw new Error("Файл занадто великий (максимум 5 МБ).");
   const value = JSON.parse(raw) as { version?: unknown; items?: unknown };
   if (
     !value ||
@@ -82,7 +82,7 @@ export function parseImport(raw: string): LibraryItem[] {
     !Array.isArray(value.items) ||
     value.items.length > 5000
   )
-    throw new Error("Неподдерживаемый файл полки.");
+    throw new Error("Непідтримуваний файл полиці.");
   const unique = new Map<string, LibraryItem>();
   for (const row of value.items) {
     const item = parseItem(row);

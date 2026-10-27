@@ -59,18 +59,18 @@ export function InstallPrompt() {
             className="h-12 w-12 shrink-0 rounded-xl"
           />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">Установить Umbra</p>
+            <p className="text-sm font-medium">Встановити Umbra</p>
             {ios ? (
               <ol className="mt-2 space-y-1.5 text-xs leading-5 text-mute">
-                <li>1. Нажми кнопку «Поделиться» внизу Safari</li>
-                <li>2. Выбери «На экран «Домой»»</li>
-                <li>3. Подтверди «Добавить»</li>
+                <li>1. Натисни кнопку «Поділитися» внизу Safari</li>
+                <li>2. Обери «На екран «Додому»»</li>
+                <li>3. Підтверди «Додати»</li>
               </ol>
             ) : (
               <p className="mt-1 text-xs text-mute">
                 {canInstall
-                  ? "Umbra откроется как приложение — без адресной строки, с иконкой на главном экране."
-                  : "Открой меню браузера (⋮) и выбери «Установить приложение» или «Добавить на главный экран»."}
+                  ? "Umbra відкриється як застосунок — без адресного рядка, з іконкою на головному екрані."
+                  : "Відкрий меню браузера (⋮) та обери «Встановити застосунок» або «Додати на головний екран»."}
               </p>
             )}
           </div>
@@ -80,14 +80,14 @@ export function InstallPrompt() {
             onClick={dismiss}
             className="rounded-full px-3 py-1.5 text-xs text-dim"
           >
-            Позже
+            Пізніше
           </button>
           {ios || !canInstall ? null : (
             <button
               onClick={install}
               className="rounded-full bg-ink px-3 py-1.5 text-xs text-canvas"
             >
-              Установить
+              Встановити
             </button>
           )}
         </div>

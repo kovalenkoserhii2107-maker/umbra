@@ -66,7 +66,7 @@ export function SendToTv({ type, id }: { type: "movie" | "tv"; id: number }) {
     : tvs[0].id;
   const chosenTv =
     activeId === "all" ? undefined : tvs.find((d) => d.id === activeId);
-  const name = chosenTv ? chosenTv.device : "телевизоре";
+  const name = chosenTv ? chosenTv.device : "телевізорі";
 
   async function send() {
     setState({ step: "sending" });
@@ -84,10 +84,10 @@ export function SendToTv({ type, id }: { type: "movie" | "tv"; id: number }) {
         step: "error",
         text:
           code === "no_tv"
-            ? "Телевизор не отвечает. Открой на нём Umbra один раз — и попробуй снова."
+            ? "Телевізор не відповідає. Відкрий на ньому Umbra один раз — і спробуй знову."
             : code === "network"
-              ? "Нет связи. Проверь интернет на телефоне."
-              : "Не получилось отправить. Попробуй ещё раз.",
+              ? "Немає зв’язку. Перевір інтернет на телефоні."
+              : "Не вдалося відправити. Спробуй ще раз.",
       });
     }
   }
@@ -101,7 +101,7 @@ export function SendToTv({ type, id }: { type: "movie" | "tv"; id: number }) {
       {multi ? (
         <div
           role="group"
-          aria-label="Телевизор"
+          aria-label="Телевізор"
           className="mb-2 flex flex-wrap gap-1.5"
         >
           {tvs.map((d) => {
@@ -130,7 +130,7 @@ export function SendToTv({ type, id }: { type: "movie" | "tv"; id: number }) {
             }}
             className={`rounded-full border px-3 py-1 text-xs ${activeId === "all" ? "border-ink bg-ink text-canvas" : "border-hairline text-mute"}`}
           >
-            Все ({tvs.length})
+            Всі ({tvs.length})
           </button>
         </div>
       ) : null}
@@ -153,12 +153,12 @@ export function SendToTv({ type, id }: { type: "movie" | "tv"; id: number }) {
           <rect x="2" y="4" width="20" height="13" rx="2" />
           <path d="M8 21h8M12 17v4M10 8.5l4 2-4 2z" />
         </svg>
-        {state.step === "sending" ? "Отправляю…" : "На телевизоре в Lampa"}
+        {state.step === "sending" ? "Відправляю…" : "На телевізорі в Lampa"}
       </button>
       {state.step === "sent" ? (
         <p role="status" className="mt-2 text-center text-xs text-mute">
-          Открываю на{" "}
-          {state.device === "телевизоре" ? "телевизоре" : `«${state.device}»`}.
+          Відкриваю на{" "}
+          {state.device === "телевизоре" || state.device === "телевізорі" ? "телевізорі" : `«${state.device}»`}.
         </p>
       ) : state.step === "error" ? (
         <p role="alert" className="mt-2 text-center text-xs text-mute">
@@ -166,8 +166,8 @@ export function SendToTv({ type, id }: { type: "movie" | "tv"; id: number }) {
         </p>
       ) : needsOverlay ? (
         <p className="mt-2 text-center text-xs text-dim">
-          Если Umbra на телевизоре закрыта, Lampa откроется после разрешения
-          «Поверх других приложений» для Umbra.
+          Якщо Umbra на телевізорі закрита, Lampa відкриється після надання дозволу
+          «Поверх інших додатків» для Umbra.
         </p>
       ) : null}
     </div>

@@ -74,7 +74,7 @@ export function GameTile({
         )}
         {game.critics !== null ? (
           <span
-            title="Оценка критиков"
+            title="Оцінка критиків"
             className={`absolute right-1.5 top-1.5 rounded-md px-1.5 py-0.5 font-mono text-[11px] font-bold ${scoreTone(game.critics)}`}
           >
             {game.critics}
@@ -121,7 +121,7 @@ export function GameShelf({
             game={game}
             note={
               dated
-                ? releaseLabel(game.released) || "дата не объявлена"
+                ? releaseLabel(game.released) || "дата не оголошена"
                 : undefined
             }
           />
@@ -134,7 +134,7 @@ export function GameShelf({
           >
             <span className="text-2xl text-accent">→</span>
             <span className="mt-2 font-mono text-[11px] uppercase tracking-[0.14em] text-mute">
-              Ещё {games.length - limit}
+              Ще {games.length - limit}
             </span>
           </button>
         ) : null}
@@ -155,12 +155,12 @@ export function GameGrid({ games }: { games: GameSummary[] }) {
 
 const API_ERRORS: Record<string, string> = {
   api_not_configured:
-    "Игровой сервер не подключён: в репозитории нет переменной API_URL.",
-  network: "Нет связи с игровым сервером. Проверь интернет и попробуй ещё раз.",
-  twitch_not_configured: "На игровом сервере нет ключей Twitch для IGDB.",
-  twitch_auth_failed: "Twitch не принял ключи IGDB. Проверь их в Secrets.",
-  origin_not_allowed: "Игровой сервер не отвечает этому сайту.",
-  HTTP_404: "Игра не найдена.",
+    "Ігровий сервер не підключено: у репозиторії немає змінної API_URL.",
+  network: "Немає зв’язку з ігровим сервером. Перевір інтернет і спробуй ще раз.",
+  twitch_not_configured: "На ігровому сервері немає ключів Twitch для IGDB.",
+  twitch_auth_failed: "Twitch не прийняв ключі IGDB. Перевір їх у Secrets.",
+  origin_not_allowed: "Ігровий сервер не відповідає цьому сайту.",
+  HTTP_404: "Гру не знайдено.",
 };
 
 export function GameError({ code }: { code: string }) {
@@ -169,7 +169,7 @@ export function GameError({ code }: { code: string }) {
       role="alert"
       className="rounded-2xl border border-hairline bg-card p-6 text-sm text-mute"
     >
-      {API_ERRORS[code] || `Не удалось загрузить игры (${code}).`}
+      {API_ERRORS[code] || `Не вдалося завантажити ігри (${code}).`}
     </div>
   );
 }
@@ -178,7 +178,7 @@ export function GameError({ code }: { code: string }) {
 export function PlatformPicker({
   value,
   onToggle,
-  label = "Мои платформы",
+  label = "Мої платформи",
 }: {
   value: readonly string[];
   onToggle: (id: (typeof PLATFORM_GROUPS)[number]["id"]) => void;

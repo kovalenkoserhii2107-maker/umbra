@@ -77,7 +77,7 @@ export function SettingsPage() {
 
   async function onImport(file: File) {
     if (file.size > 5_000_000) {
-      setMessage("Максимальный размер файла — 5 МБ.");
+      setMessage("Максимальний розмір файлу — 5 МБ.");
       return;
     }
     await action(async () => {
@@ -86,29 +86,29 @@ export function SettingsPage() {
       // Backups made before games were in them have only films and series.
       const backup = JSON.parse(text) as { games?: unknown };
       if (Array.isArray(backup.games)) await importGames(backup.games);
-    }, "Коллекция импортирована. Совпадающие записи обновлены, остальные остались.");
+    }, "Колекцію імпортовано. Збіжні записи оновлено, інші залишилися.");
   }
 
   async function checkUpdate() {
-    setMessage("Проверяю обновления…");
+    setMessage("Перевіряю оновлення…");
     try {
       const reg = await navigator.serviceWorker?.getRegistration(
         import.meta.env.BASE_URL,
       );
       if (!reg) {
         setMessage(
-          "Для проверки обновлений перезагрузи страницу при подключённом интернете.",
+          "Для перевірки оновлень перезавантаж сторінку з підключеним інтернетом.",
         );
         return;
       }
       await reg.update();
       setMessage(
         reg.waiting
-          ? "Новая версия готова. Нажми «Обновить» в уведомлении."
-          : "У тебя последняя версия.",
+          ? "Нова версія готова. Натисни «Оновити» в сповіщенні."
+          : "У тебе остання версія.",
       );
     } catch {
-      setMessage("Нет связи. Попробуй проверить позже.");
+      setMessage("Немає зв’язку. Спробуй перевірити пізніше.");
     }
   }
 
@@ -116,9 +116,9 @@ export function SettingsPage() {
     <div className="rise max-w-2xl space-y-6">
       <div className="mb-4">
         <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
-          настройки
+          налаштування
         </p>
-        <h1 className="mt-1 text-3xl tracking-tight">Профиль и настройки</h1>
+        <h1 className="mt-1 text-3xl tracking-tight">Профіль та налаштування</h1>
       </div>
 
       {message || error ? (
@@ -128,7 +128,7 @@ export function SettingsPage() {
       ) : null}
 
       {account ? (
-        <Card title="Аккаунт">
+        <Card title="Акаунт">
           <div className="mt-4 flex items-center gap-3">
             {account.picture ? (
               <img
@@ -146,14 +146,14 @@ export function SettingsPage() {
               <p className="truncate">{account.name}</p>
               <p className="truncate text-sm text-mute">
                 {account.email}
-                {account.verified ? " · подтверждена" : ""}
+                {account.verified ? " · підтверджена" : ""}
               </p>
             </div>
           </div>
           {sync === "pending" || sync === "offline" ? (
             <p className="mt-3 text-xs text-mute">
-              Несохранённые изменения отправятся в облако после подключения к
-              сети.
+              Незбережені зміни надішлються в хмару після підключення до
+              мережі.
             </p>
           ) : null}
           <div className="mt-4 flex flex-wrap gap-2">
@@ -163,12 +163,12 @@ export function SettingsPage() {
                 onClick={() =>
                   action(
                     verifyEmail,
-                    "Письмо отправлено. Перейди по ссылке в письме.",
+                    "Лист надіслано. Перейди за посиланням у листі.",
                   )
                 }
                 className="rounded-full border border-hairline px-4 py-2 text-sm"
               >
-                Подтвердить почту
+                Підтвердити пошту
               </button>
             ) : null}
             <button
@@ -176,7 +176,7 @@ export function SettingsPage() {
               onClick={() => action(signOutAccount)}
               className="rounded-full border border-hairline px-4 py-2 text-sm text-mute"
             >
-              Выйти из аккаунта
+              Вийти з акаунту
             </button>
           </div>
         </Card>
@@ -184,9 +184,9 @@ export function SettingsPage() {
 
       {isTv ? null : <SteamPanel />}
 
-      <Card title="Фильмы и сериалы">
+      <Card title="Фільми та серіали">
         <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
-          Страна для «где смотреть» и цен
+          Країна для «де дивитися» та цін
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
           {REGIONS.map((r) => (
@@ -200,7 +200,7 @@ export function SettingsPage() {
           ))}
         </div>
         <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
-          Мои стриминги
+          Мої стрімінги
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
           {PLATFORMS.map((p) => {
@@ -224,14 +224,14 @@ export function SettingsPage() {
       </Card>
 
       {account && (!isTv || localGames > 0) ? (
-        <Card title="Резервная копия">
+        <Card title="Резервна копія">
           {isTv ? null : (
             <>
               <p className="mt-2 text-sm text-mute">
-                {items.length} фильмов и сериалов и {games.length}{" "}
-                {plural(games.length, "игра", "игры", "игр")} в аккаунте. Файл
-                можно загрузить обратно: совпадающие записи обновятся, остальные
-                останутся.
+                {items.length} фільмів і серіалів та {games.length}{" "}
+                {plural(games.length, "гра", "гри", "ігор")} в акаунті. Файл
+                можна завантажити назад: збіжні записи оновляться, інші
+                залишаться.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
@@ -239,10 +239,10 @@ export function SettingsPage() {
                   disabled={busy}
                   className="rounded-full border border-hairline px-4 py-2 text-sm"
                 >
-                  Скачать
+                  Завантажити
                 </button>
                 <label className="cursor-pointer rounded-full border border-hairline px-4 py-2 text-sm">
-                  Загрузить
+                  Імпортувати
                   <input
                     disabled={busy}
                     type="file"
@@ -264,8 +264,8 @@ export function SettingsPage() {
               className={isTv ? "mt-3" : "mt-5 border-t border-hairline pt-4"}
             >
               <p className="text-sm text-mute">
-                На этом устройстве остались игры из старой версии: {localGames}.
-                Если они твои, перенеси их в аккаунт.
+                На цьому пристрої залишилися ігри зі старої версії: {localGames}.
+                Якщо вони твої, перенеси їх в акаунт.
               </p>
               <button
                 disabled={busy}
@@ -273,11 +273,11 @@ export function SettingsPage() {
                   void action(async () => {
                     await moveLocalGames();
                     setLocalGames(localGamesCount());
-                  }, "Игры с устройства перенесены в аккаунт.")
+                  }, "Ігри з пристрою перенесено в акаунт.")
                 }
                 className="mt-3 rounded-full border border-hairline px-4 py-2 text-sm"
               >
-                Перенести в мой аккаунт
+                Перенести в мій акаунт
               </button>
             </div>
           ) : null}
@@ -285,29 +285,29 @@ export function SettingsPage() {
       ) : null}
 
       {isTv ? null : (
-        <Card title="Телевизор">
+        <Card title="Телевізор">
           <p className="mt-2 text-sm text-mute">
-            Umbra для Android TV: войди на телевизоре через этот аккаунт — по
-            QR-коду или коду с экрана.
+            Umbra для Android TV: увійди на телевізорі через цей акаунт — за
+            QR-кодом або кодом з екрана.
           </p>
           <Link
             to="/tv-link"
             className="mt-4 inline-block rounded-full border border-hairline px-4 py-2 text-sm"
           >
-            Войти на телевизоре
+            Увійти на телевізорі
           </Link>
         </Card>
       )}
 
-      <Card title="Приложение">
+      <Card title="Застосунок">
         <p className="mt-2 text-sm text-mute">
-          Новые версии загружаются сами. Сборка {APP_VERSION}.
+          Нові версії завантажуються самі. Збірка {APP_VERSION}.
         </p>
         <button
           onClick={checkUpdate}
           className="mt-4 rounded-full border border-hairline px-4 py-2 text-sm"
         >
-          Проверить обновления
+          Перевірити оновлення
         </button>
       </Card>
     </div>

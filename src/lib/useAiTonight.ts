@@ -72,26 +72,26 @@ export function errorText(error: unknown) {
   const code = error instanceof ApiError ? error.code : "";
   switch (code) {
     case "ai_limit":
-      return "Дневной лимит запросов к Claude исчерпан. Попробуй завтра или быстрый подбор.";
+      return "Денний ліміт запитів до Claude вичерпано. Спробуй завтра або швидкий підбір.";
     case "ai_no_credit":
-      return "На счёте Anthropic закончились средства — пополни баланс в console.anthropic.com.";
+      return "На рахунку Anthropic закінчилися кошти — поповни баланс у console.anthropic.com.";
     case "ai_key_rejected":
-      return "Anthropic не принял ключ. Проверь секрет ANTHROPIC_API_KEY.";
+      return "Anthropic не прийняв ключ. Перевір секрет ANTHROPIC_API_KEY.";
     case "ai_not_configured":
-      return "Claude ещё не подключён: нужен секрет ANTHROPIC_API_KEY.";
+      return "Claude ще не підключено: потрібен секрет ANTHROPIC_API_KEY.";
     case "ai_not_allowed":
-      return "Подбор с Claude не включён для этого аккаунта.";
+      return "Підбір із Claude не увімкнено для цього акаунту.";
     case "ai_busy":
-      return "Claude сейчас перегружен. Попробуй ещё раз через минуту.";
+      return "Claude зараз перевантажений. Спробуй ще раз через хвилину.";
     case "ai_refused":
-      return "Claude не стал отвечать на этот запрос. Попробуй ответить иначе.";
+      return "Claude не відповів на цей запит. Спробуй відповісти інакше.";
     case "sign_in_required":
     case "bad_token":
-      return "Войди в аккаунт, чтобы подбирал Claude.";
+      return "Увійди в акаунт, щоб підбирав Claude.";
     case "network":
-      return "Нет связи с сервером. Проверь интернет.";
+      return "Немає зв'язку з сервером. Перевір інтернет.";
     default:
-      return "Не получилось. Попробуй ещё раз.";
+      return "Не вдалося. Спробуй ще раз.";
   }
 }
 

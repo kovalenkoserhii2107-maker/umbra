@@ -16,7 +16,7 @@ import { localIso } from "../lib/releases";
 import { useAppState } from "../state";
 
 function years(n: number) {
-  return `${n} ${plural(n, "год", "года", "лет")}`;
+  return `${n} ${plural(n, "рік", "роки", "років")}`;
 }
 
 function Fact({ label, children }: { label: string; children: ReactNode }) {
@@ -68,8 +68,8 @@ function Biography({ person }: { person: PersonDetails }) {
   const long = text.length > 420;
   return (
     <Section
-      title="Биография"
-      aside={person.biography ? null : <Aside>на английском</Aside>}
+      title="Біографія"
+      aside={person.biography ? null : <Aside>англійською</Aside>}
     >
       <p
         lang={person.biography ? undefined : "en"}
@@ -83,7 +83,7 @@ function Biography({ person }: { person: PersonDetails }) {
           onClick={() => setOpen((v) => !v)}
           className="mt-1 text-sm text-accent"
         >
-          {open ? "Свернуть" : "Читать полностью"}
+          {open ? "Згорнути" : "Читати повністю"}
         </button>
       ) : null}
     </Section>
@@ -117,7 +117,7 @@ function WorkRow({ work, tab }: { work: Work; tab: string }) {
       <div className="min-w-0 flex-1 py-1">
         <p className="truncate">{work.title}</p>
         <p className="font-mono text-[11px] uppercase tracking-wider text-dim">
-          {year || "в работе"} · {work.type === "tv" ? "сериал" : "фильм"}
+          {year || "у виробництві"} · {work.type === "tv" ? "серіал" : "фільм"}
           {upcoming && year ? " · скоро" : ""}
         </p>
         {role ? (
@@ -129,7 +129,7 @@ function WorkRow({ work, tab }: { work: Work; tab: string }) {
           {mine.rating
             ? `★ ${mine.rating}`
             : mine.status === "watchlist"
-              ? "в списке"
+              ? "у списку"
               : "✓"}
         </span>
       ) : null}
@@ -149,7 +149,7 @@ export function PersonPage() {
 
   if (query.error) return <ErrorBox code={query.error} />;
   if (query.loading || !query.data)
-    return <p className="text-sm text-mute">Собираю фильмографию…</p>;
+    return <p className="text-sm text-mute">Збираю фільмографію…</p>;
 
   const person = query.data;
   const tabs = departmentTabs(works, person.gender);
@@ -197,23 +197,23 @@ export function PersonPage() {
               {person.name}
             </h1>
             <p className="mt-1 text-sm text-mute">
-              {works.length} {plural(works.length, "работа", "работы", "работ")}
+              {works.length} {plural(works.length, "робота", "роботи", "робіт")}
             </p>
           </div>
         </div>
         {person.birthday || person.place_of_birth || person.deathday ? (
           <div className="mt-4 space-y-2 border-t border-hairline pt-4">
             {person.birthday ? (
-              <Fact label={person.gender === 1 ? "Родилась" : "Родился"}>
+              <Fact label={person.gender === 1 ? "Народилася" : "Народився"}>
                 {dateLabel(person.birthday)}
                 {age !== null && !person.deathday ? ` · ${years(age)}` : ""}
               </Fact>
             ) : null}
             {person.place_of_birth ? (
-              <Fact label="Место рождения">{person.place_of_birth}</Fact>
+              <Fact label="Місце народження">{person.place_of_birth}</Fact>
             ) : null}
             {person.deathday ? (
-              <Fact label={person.gender === 1 ? "Умерла" : "Умер"}>
+              <Fact label={person.gender === 1 ? "Померла" : "Помер"}>
                 {dateLabel(person.deathday)}
                 {age !== null ? ` · в ${years(age)}` : ""}
               </Fact>
@@ -240,7 +240,7 @@ export function PersonPage() {
       <Biography person={person} />
 
       {famous.length >= 3 ? (
-        <Section title="Известные работы">
+        <Section title="Відомі роботи">
           <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
             {famous.map((w) => (
               <PosterCard
@@ -261,13 +261,13 @@ export function PersonPage() {
         </Section>
       ) : null}
 
-      <Section title="Фильмография" aside={<Aside>{list.length}</Aside>}>
+      <Section title="Фільмографія" aside={<Aside>{list.length}</Aside>}>
         <div className="row-scroll mb-4 flex gap-2 overflow-x-auto pb-1">
           <button
             className={chip(current === "all")}
             onClick={() => setTab("all")}
           >
-            Все · {works.length}
+            Всі · {works.length}
           </button>
           {tabs.map((t) => (
             <button
@@ -290,7 +290,7 @@ export function PersonPage() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-mute">В этой роли записей нет.</p>
+          <p className="text-sm text-mute">У цій ролі записів немає.</p>
         )}
       </Section>
     </div>

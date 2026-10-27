@@ -13,15 +13,15 @@ export function GuidePage() {
     <div className="rise space-y-8">
       <div>
         <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
-          справочник
+          довідник
         </p>
-        <h1 className="mt-1 text-3xl tracking-tight">Жанры и годы</h1>
+        <h1 className="mt-1 text-3xl tracking-tight">Жанри та роки</h1>
         <p className="mt-2 text-sm text-mute">
-          Без запроса — просто выбери, что смотреть.
+          Без запиту — просто обери, що дивитися.
         </p>
       </div>
       <section>
-        <h2 className="mb-3 text-lg">Жанры</h2>
+        <h2 className="mb-3 text-lg">Жанри</h2>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {SEARCH_GENRES.map((genre) => (
             <Link
@@ -35,7 +35,7 @@ export function GuidePage() {
         </div>
       </section>
       <section>
-        <h2 className="mb-3 text-lg">Десятилетия</h2>
+        <h2 className="mb-3 text-lg">Десятиліття</h2>
         <div className="flex flex-wrap gap-2">
           {DECADES.map((year) => (
             <Link
@@ -43,7 +43,7 @@ export function GuidePage() {
               to={`/guide/year/${year}`}
               className="rounded-full border border-hairline px-4 py-2 text-sm text-mute hover:text-ink"
             >
-              {year}-е
+              {year}-ті
             </Link>
           ))}
         </div>
@@ -71,8 +71,7 @@ export function GuideListPage() {
     () => catalog.browse("movie", 1, extra),
     [genreId, year],
   );
-  // Series have their own ids for a few genres (action → «Боевик и
-  // приключения», sci-fi and fantasy → «НФ и фэнтези»…), and their own dates.
+  // Series have their own ids for a few genres and their own dates.
   const shows = useAsync(
     () =>
       catalog.browse("tv", 1, {
@@ -109,17 +108,17 @@ export function GuideListPage() {
   return (
     <div className="rise">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
-        справочник
+        довідник
       </p>
       <h1 className="mt-1 text-3xl tracking-tight">
-        {genre?.label || (decade ? `${decade}-е` : "Подборка")}
+        {genre?.label || (decade ? `${decade}-ті` : "Добірка")}
       </h1>
       <div className="mt-4 flex gap-2">
         {(
           [
-            ["all", "Всё"],
-            ["movie", "Фильмы"],
-            ["tv", "Сериалы"],
+            ["all", "Все"],
+            ["movie", "Фільми"],
+            ["tv", "Серіали"],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -132,7 +131,7 @@ export function GuideListPage() {
         ))}
       </div>
       <div className="mt-6">
-        {items.length ? <Grid items={items} /> : <Empty text="Пока пусто." />}
+        {items.length ? <Grid items={items} /> : <Empty text="Поки порожньо." />}
       </div>
     </div>
   );

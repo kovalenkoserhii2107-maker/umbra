@@ -24,9 +24,9 @@ export function SyncStatus() {
   const bannerLabel =
     syncError ||
     (sync === "offline"
-      ? "Нет сети · изменения отправятся после подключения"
+      ? "Немає мережі · зміни відправляться після підключення"
       : sync === "error"
-        ? "Не удалось синхронизировать полку"
+        ? "Не вдалося синхронізувати полицю"
         : "");
 
   if (bannerLabel) {
@@ -38,7 +38,7 @@ export function SyncStatus() {
         <span>{bannerLabel}</span>
         {syncError ? (
           <button onClick={retrySync} className="underline">
-            Проверить соединение
+            Перевірити з'єднання
           </button>
         ) : null}
       </div>
@@ -47,9 +47,9 @@ export function SyncStatus() {
 
   const toastLabel =
     sync === "pending"
-      ? "Сохраняю изменения…"
+      ? "Зберігаю зміни…"
       : showSaved
-        ? "Все изменения сохранены"
+        ? "Усі зміни збережено"
         : "";
   if (!toastLabel) return null;
 

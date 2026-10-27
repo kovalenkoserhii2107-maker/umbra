@@ -204,7 +204,7 @@ export function ImageViewer({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Закрыть"
+          aria-label="Закрити"
           className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white/90 backdrop-blur-sm transition-all hover:bg-white/20 active:scale-95 sm:h-12 sm:w-12"
         >
           <svg
@@ -233,7 +233,7 @@ export function ImageViewer({
               e.stopPropagation();
               goToSlide(currentIndex - 1);
             }}
-            aria-label="Предыдущий кадр"
+            aria-label="Попередній кадр"
             className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-30 flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-black/60 text-white/90 border border-white/15 backdrop-blur-md shadow-lg transition-transform hover:bg-black/90 hover:scale-105 active:scale-95 tv:border-accent"
           >
             <svg
@@ -260,7 +260,7 @@ export function ImageViewer({
               e.stopPropagation();
               goToSlide(currentIndex + 1);
             }}
-            aria-label="Следующий кадр"
+            aria-label="Наступний кадр"
             className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-30 flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-black/60 text-white/90 border border-white/15 backdrop-blur-md shadow-lg transition-transform hover:bg-black/90 hover:scale-105 active:scale-95 tv:border-accent"
           >
             <svg

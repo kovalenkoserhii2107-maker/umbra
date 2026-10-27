@@ -156,7 +156,7 @@ export const Provider = memo(function Provider({
         <span
           className={`block text-[11px] ${focused ? "text-black/60" : "text-white/50"}`}
         >
-          {opens ? `${how} · OK — открыть` : how}
+          {opens ? `${how} · OK — відкрити` : how}
         </span>
       </span>
     </span>
@@ -285,7 +285,7 @@ export function Reader({
       className="tv-fade fixed inset-0 z-40 flex flex-col bg-black/[0.97] px-24 pb-10 pt-12 outline-none"
     >
       <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-accent">
-        рецензия
+        рецензія
       </p>
       <h2 className="mt-1 text-[26px] tracking-tight">{title}</h2>
       {sub ? <p className="text-[13px] text-white/50">{sub}</p> : null}
@@ -300,7 +300,7 @@ export function Reader({
         </div>
       </div>
       <p className="mt-4 text-[12px] text-white/40">
-        ▲▼ — листать · OK или «Назад» — закрыть
+        ▲▼ — гортати · OK або «Назад» — закрити
       </p>
     </div>
   );

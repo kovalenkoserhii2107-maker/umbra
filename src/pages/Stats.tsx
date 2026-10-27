@@ -163,7 +163,7 @@ function Periods({
   return (
     <div className="row-scroll mt-4 flex gap-2 overflow-x-auto pb-1">
       <button className={chip(year === null)} onClick={() => onChange(null)}>
-        Всё время
+        Весь час
       </button>
       {years.map((y) => (
         <button
@@ -198,7 +198,7 @@ function FilmStats() {
     [items, meta, year],
   );
   const seen = stats.movies + stats.shows;
-  const shareText = `Мои итоги${year ? ` ${year}` : ""} в Umbra: ${stats.movies} ${plural(stats.movies, "фильм", "фильма", "фильмов")}, ${stats.shows} ${plural(stats.shows, "сериал", "сериала", "сериалов")}, ≈${stats.hours} ч.${stats.genres[0] ? ` Любимый жанр — ${stats.genres[0].label.toLowerCase()}.` : ""}${stats.best[0] ? ` Лучшее: «${stats.best[0].title}» (${stats.best[0].rating}/10).` : ""}`;
+  const shareText = `Мої підсумки${year ? ` ${year}` : ""} в Umbra: ${stats.movies} ${plural(stats.movies, "фільм", "фільми", "фільмів")}, ${stats.shows} ${plural(stats.shows, "серіал", "серіали", "серіалів")}, ≈${stats.hours} год.${stats.genres[0] ? ` Улюблений жанр — ${stats.genres[0].label.toLowerCase()}.` : ""}${stats.best[0] ? ` Найкраще: «${stats.best[0].title}» (${stats.best[0].rating}/10).` : ""}`;
 
   return (
     <>
@@ -206,10 +206,10 @@ function FilmStats() {
         <Periods years={years} year={year} onChange={setYear} />
         {seen ? (
           <ShareButton
-            title={year ? `Итоги ${year}` : "Моя статистика"}
+            title={year ? `Підсумки ${year}` : "Моя статистика"}
             text={shareText}
             path="/"
-            label="Поделиться итогами"
+            label="Поділитися підсумками"
           />
         ) : null}
       </div>
@@ -217,48 +217,48 @@ function FilmStats() {
         <Empty
           text={
             items.length
-              ? "За этот период ничего не отмечено просмотренным."
-              : "Отметь первые фильмы просмотренными — здесь появится статистика."
+              ? "За цей період нічого не позначено переглянутим."
+              : "Познач перші фільми переглянутими — тут з'явиться статистика."
           }
         />
       ) : (
         <>
           <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Tile
-              label={plural(stats.movies, "фильм", "фильма", "фильмов")}
+              label={plural(stats.movies, "фільм", "фільми", "фільмів")}
               value={stats.movies}
             />
             <Tile
-              label={plural(stats.shows, "сериал", "сериала", "сериалов")}
+              label={plural(stats.shows, "серіал", "серіали", "серіалів")}
               value={stats.shows}
             />
             <Tile
-              label={loading ? "часов · считаю…" : "часов просмотра"}
+              label={loading ? "годин · рахую…" : "годин перегляду"}
               value={`≈${stats.hours}`}
             />
             <Tile
-              label="средняя оценка"
+              label="середня оцінка"
               value={
-                stats.average ? stats.average.toLocaleString("ru-RU") : "—"
+                stats.average ? stats.average.toLocaleString("uk-UA") : "—"
               }
             />
           </div>
           <p className="mt-2 text-xs text-dim">
-            Смотрю сейчас: {stats.watching} · в «Хочу посмотреть»:{" "}
+            Дивлюся зараз: {stats.watching} · у «Хочу подивитися»:{" "}
             {stats.watchlist}
-            {year ? " · год — по дате отметки в Umbra" : ""}
+            {year ? " · рік — за датою відмітки в Umbra" : ""}
           </p>
 
           {stats.best.length ? (
-            <Section title="Лучшее">
+            <Section title="Найкраще">
               <Cards cards={stats.best.map(filmCard)} />
             </Section>
           ) : null}
 
           {stats.ratings.some((b) => b.value) ? (
             <Section
-              title="Мои оценки"
-              hint="Сколько фильмов и сериалов получили каждую оценку. Нажми на строку — покажем, какие."
+              title="Мої оцінки"
+              hint="Скільки фільмів та серіалів отримали кожну оцінку. Натисни на рядок — покажемо, які."
             >
               <Breakdown<LibraryItem>
                 rows={stats.ratings}
@@ -270,8 +270,8 @@ function FilmStats() {
 
           {stats.genres.length ? (
             <Section
-              title="Любимые жанры"
-              hint="Сколько тайтлов и средняя оценка в жанре."
+              title="Улюблені жанри"
+              hint="Скільки тайтлів і середня оцінка в жанрі."
             >
               <Breakdown<LibraryItem>
                 rows={stats.genres as Bar[]}
@@ -279,11 +279,11 @@ function FilmStats() {
               />
             </Section>
           ) : loading ? (
-            <p className="mt-8 text-sm text-mute">Собираю жанры…</p>
+            <p className="mt-8 text-sm text-mute">Збираю жанри…</p>
           ) : null}
 
           {stats.decades.length ? (
-            <Section title="По годам выхода">
+            <Section title="За роками виходу">
               <Breakdown<LibraryItem> rows={stats.decades} card={filmCard} />
             </Section>
           ) : null}
@@ -306,7 +306,7 @@ const gameCard =
       href: `/games/${g.id}`,
       sub:
         show === "hours" && h
-          ? `${h.toLocaleString("ru-RU")} ч`
+          ? `${h.toLocaleString("uk-UA")} год`
           : show === "rating" && g.rating
             ? `${g.rating}/10`
             : show === "status"
@@ -320,12 +320,12 @@ function GameStats() {
   const years = useMemo(() => gameYears(games), [games]);
   const [year, setYear] = useState<number | null>(null);
   const s = useMemo(() => computeGameStats(games, year), [games, year]);
-  const shareText = `Мои игры${year ? ` за ${year}` : ""} в Umbra: ${s.total} ${plural(s.total, "игра", "игры", "игр")}, пройдено ${s.played}, ${s.hours.toLocaleString("ru-RU")} ч.${s.mostPlayed[0] ? ` Больше всего — «${s.mostPlayed[0].title}».` : ""}`;
+  const shareText = `Мої ігри${year ? ` за ${year}` : ""} в Umbra: ${s.total} ${plural(s.total, "гра", "гри", "ігор")}, пройдено ${s.played}, ${s.hours.toLocaleString("uk-UA")} год.${s.mostPlayed[0] ? ` Найбільше — «${s.mostPlayed[0].title}».` : ""}`;
 
   if (uid && !ready && !games.length)
     return (
       <p role="status" className="mt-6 text-sm text-mute">
-        Загружаю игры…
+        Завантажую ігри…
       </p>
     );
   return (
@@ -334,70 +334,70 @@ function GameStats() {
         <Periods years={years} year={year} onChange={setYear} />
         {s.total ? (
           <ShareButton
-            title={year ? `Игры ${year}` : "Мои игры"}
+            title={year ? `Ігри ${year}` : "Мої ігри"}
             text={shareText}
             path="/games"
-            label="Поделиться итогами"
+            label="Поділитися підсумками"
           />
         ) : null}
       </div>
       {!s.total ? (
-        <Empty text="Отметь игры или подключи Steam в настройках — здесь появится статистика." />
+        <Empty text="Познач ігри або підключи Steam у налаштуваннях — тут з'явиться статистика." />
       ) : (
         <>
           <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Tile
-              label={plural(s.total, "игра", "игры", "игр")}
+              label={plural(s.total, "гра", "гри", "ігор")}
               value={s.total}
             />
             <Tile label="пройдено" value={s.played} />
             <Tile
-              label="часов в играх"
-              value={s.hours.toLocaleString("ru-RU")}
+              label="годин в іграх"
+              value={s.hours.toLocaleString("uk-UA")}
             />
             <Tile
-              label="средняя оценка"
-              value={s.average ? s.average.toLocaleString("ru-RU") : "—"}
+              label="середня оцінка"
+              value={s.average ? s.average.toLocaleString("uk-UA") : "—"}
             />
           </div>
           <p className="mt-2 text-xs text-dim">
-            Играю сейчас: {s.playing} · в «Хочу поиграть»: {s.want}
+            Граю зараз: {s.playing} · у «Хочу пограти»: {s.want}
             {s.recentHours
-              ? ` · за 2 недели в Steam: ${s.recentHours.toLocaleString("ru-RU")} ч`
+              ? ` · за 2 тижні в Steam: ${s.recentHours.toLocaleString("uk-UA")} год`
               : ""}
           </p>
 
           {s.recent.length ? (
-            <Section title="Недавно играл" hint="Steam, последние две недели.">
+            <Section title="Нещодавно грав" hint="Steam, останні два тижні.">
               <Cards
                 cards={s.recent.map((g) => ({
                   ...gameCard("hours")(g),
-                  sub: `${(Math.round(g.steam!.recent / 6) / 10).toLocaleString("ru-RU")} ч за 2 нед.`,
+                  sub: `${(Math.round(g.steam!.recent / 6) / 10).toLocaleString("uk-UA")} год за 2 тиж.`,
                 }))}
               />
             </Section>
           ) : null}
 
           {s.mostPlayed.length ? (
-            <Section title="Больше всего часов">
+            <Section title="Найбільше годин">
               <Cards cards={s.mostPlayed.map(gameCard("hours"))} />
             </Section>
           ) : null}
 
           {s.best.length ? (
-            <Section title="Лучшее">
+            <Section title="Найкраще">
               <Cards cards={s.best.map(gameCard("rating"))} />
             </Section>
           ) : null}
 
-          <Section title="По статусам" hint="Нажми на строку — покажем игры.">
+          <Section title="За статусами" hint="Натисни на рядок — покажемо ігри.">
             <Breakdown<GameEntry> rows={s.statuses} card={gameCard("hours")} />
           </Section>
 
           {s.platforms.length ? (
             <Section
-              title="По платформам"
-              hint="Игр и часов на каждой платформе."
+              title="За платформами"
+              hint="Ігор та годин на кожній платформі."
             >
               <Breakdown<GameEntry>
                 rows={s.platforms}
@@ -408,8 +408,8 @@ function GameStats() {
 
           {s.ratings.some((b) => b.value) ? (
             <Section
-              title="Мои оценки"
-              hint="Сколько игр получили каждую оценку. Нажми на строку — покажем, какие."
+              title="Мої оцінки"
+              hint="Скільки ігор отримали кожну оцінку. Натисни на рядок — покажемо, які."
             >
               <Breakdown<GameEntry>
                 rows={s.ratings}
@@ -420,7 +420,7 @@ function GameStats() {
           ) : null}
 
           {s.genres.length ? (
-            <Section title="Жанры">
+            <Section title="Жанри">
               <Breakdown<GameEntry>
                 rows={s.genres as GameBar[]}
                 card={gameCard("rating")}
@@ -455,10 +455,10 @@ export function StatsPage() {
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
         статистика
       </p>
-      <h1 className="mt-1 text-3xl tracking-tight">Статистика и итоги</h1>
+      <h1 className="mt-1 text-3xl tracking-tight">Статистика та підсумки</h1>
       <div
         role="tablist"
-        aria-label="Раздел"
+        aria-label="Розділ"
         className="mt-4 flex max-w-sm rounded-full border border-hairline bg-card p-1"
       >
         <button
@@ -467,7 +467,7 @@ export function StatsPage() {
           onClick={() => choose("films")}
           className={tabClass(tab === "films")}
         >
-          Фильмы и сериалы
+          Фільми та серіали
         </button>
         <button
           role="tab"
@@ -475,7 +475,7 @@ export function StatsPage() {
           onClick={() => choose("games")}
           className={tabClass(tab === "games")}
         >
-          Игры
+          Ігри
         </button>
       </div>
       {tab === "games" ? <GameStats /> : <FilmStats />}

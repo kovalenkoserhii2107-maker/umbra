@@ -119,7 +119,7 @@ export function RowsScreen({
     })),
   ];
   const nav = useLanes(lanes, {
-    // A tab's screen starts on the menu (the app opens on «Лента»).
+    // A tab's screen starts on the menu (the app opens on «Стрічка»).
     lane: tab !== null ? "tabs" : rows[0]?.key,
     cols: { tabs: menu.index },
     remember: screenKey(location.pathname),

@@ -21,10 +21,10 @@ function useImdb(type: MediaType, id: number) {
 }
 
 const MINE: Record<LibraryItem["status"], string> = {
-  watchlist: "в «Хочу посмотреть»",
-  watching: "смотришь",
-  watched: "смотрел",
-  dropped: "бросил",
+  watchlist: "у «Хочу подивитися»",
+  watching: "дивишся",
+  watched: "дивився",
+  dropped: "покинув",
 };
 
 /** Building blocks shared by both evening pickers. */
@@ -46,7 +46,7 @@ export function Question({
     <section className="rise mt-6">
       <div className="flex items-center justify-between">
         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-dim">
-          {round && round > 1 ? `раунд ${round} · ` : ""}вопрос {step + 1} из 4
+          {round && round > 1 ? `раунд ${round} · ` : ""}питання {step + 1} з 4
         </p>
         <div className="flex gap-1.5" aria-hidden="true">
           {[0, 1, 2, 3].map((i) => (
@@ -148,13 +148,13 @@ export function PickCard({
           {titleOf(pick.item)}
         </Link>
         <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.12em] text-dim">
-          {[pick.type === "tv" ? "сериал" : "фильм", year, score]
+          {[pick.type === "tv" ? "серіал" : "фільм", year, score]
             .filter(Boolean)
             .join(" · ")}
         </p>
         {mine && mine.status !== "watchlist" ? (
           <p className="mt-1 inline-block rounded-full border border-ok/40 px-2 py-0.5 text-[11px] text-ok">
-            Ты {MINE[mine.status]}
+            Ти {MINE[mine.status]}
             {mine.rating !== null ? ` · ${mine.rating}/10` : ""}
           </p>
         ) : null}
@@ -167,7 +167,7 @@ export function PickCard({
         ) : null}
         {pick.where?.length ? (
           <p className="mt-1.5 text-xs text-ok">
-            Смотреть: {pick.where.join(", ")}
+            Дивитися: {pick.where.join(", ")}
           </p>
         ) : null}
         {pick.item.overview ? (
@@ -184,7 +184,7 @@ export function PickCard({
               onClick={onSave}
               className="rounded-full border border-hairline px-3 py-1 text-xs disabled:text-dim"
             >
-              {saved ? "В «Хочу посмотреть»" : "+ Хочу посмотреть"}
+              {saved ? "У «Хочу подивитися»" : "+ Хочу подивитися"}
             </button>
           )}
           {children}

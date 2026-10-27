@@ -9,8 +9,8 @@ const day = (seconds: number) =>
 
 export const hoursLabel = (minutes: number) =>
   minutes < 60
-    ? `${minutes} мин`
-    : `${(Math.round(minutes / 6) / 10).toLocaleString("ru-RU")} ч`;
+    ? `${minutes} хв`
+    : `${(Math.round(minutes / 6) / 10).toLocaleString("uk-UA")} год`;
 
 function Achievement({ a }: { a: SteamAchievement }) {
   return (
@@ -37,7 +37,7 @@ function Achievement({ a }: { a: SteamAchievement }) {
         <span
           className={`shrink-0 font-mono text-[11px] ${a.percent < 10 ? "text-accent" : "text-dim"}`}
         >
-          {a.percent.toLocaleString("ru-RU")}%
+          {a.percent.toLocaleString("uk-UA")}%
         </span>
       ) : null}
     </li>
@@ -59,14 +59,14 @@ export function SteamPlay({ gameId }: { gameId: number }) {
   const a = progress.data;
   const share = a?.total ? Math.round((a.achieved / a.total) * 100) : 0;
   return (
-    <Section title="Мой Steam">
+    <Section title="Мій Steam">
       <div className={`${CARD} p-4`}>
         <dl className="grid grid-cols-3 gap-3 text-center">
           {(
             [
-              ["Всего", play.minutes ? hoursLabel(play.minutes) : "—"],
-              ["За 2 недели", play.recent ? hoursLabel(play.recent) : "—"],
-              ["Последний запуск", day(play.lastPlayed) || "—"],
+              ["Усього", play.minutes ? hoursLabel(play.minutes) : "—"],
+              ["За 2 тижні", play.recent ? hoursLabel(play.recent) : "—"],
+              ["Останній запуск", day(play.lastPlayed) || "—"],
             ] as const
           ).map(([label, value]) => (
             <div key={label}>
@@ -80,9 +80,9 @@ export function SteamPlay({ gameId }: { gameId: number }) {
         {a && a.total ? (
           <div className="mt-4 border-t border-hairline pt-4">
             <div className="flex items-baseline justify-between text-sm">
-              <span>Достижения</span>
+              <span>Досягнення</span>
               <span className="font-mono text-mute">
-                {a.achieved} из {a.total} · {share}%
+                {a.achieved} з {a.total} · {share}%
               </span>
             </div>
             <div
@@ -91,7 +91,7 @@ export function SteamPlay({ gameId }: { gameId: number }) {
               aria-valuenow={share}
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-label="Получено достижений"
+              aria-label="Отримано досягнень"
             >
               <div
                 className="h-full rounded-full bg-accent"
@@ -101,7 +101,7 @@ export function SteamPlay({ gameId }: { gameId: number }) {
             {a.rarest.length ? (
               <>
                 <p className="mb-2 mt-4 font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
-                  Самые редкие из полученных
+                  Найрідкісніші з отриманих
                 </p>
                 <ul className="space-y-2">
                   {a.rarest.slice(0, 4).map((x) => (
@@ -113,7 +113,7 @@ export function SteamPlay({ gameId }: { gameId: number }) {
             {a.next.length ? (
               <>
                 <p className="mb-2 mt-4 font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
-                  Проще всего получить следующими
+                  Найпростіше отримати наступними
                 </p>
                 <ul className="space-y-2">
                   {a.next.map((x) => (
@@ -125,8 +125,8 @@ export function SteamPlay({ gameId }: { gameId: number }) {
           </div>
         ) : progress.error ? (
           <p className="mt-4 text-xs text-dim">
-            Достижения недоступны: в игре их нет или Steam скрывает их
-            настройками приватности.
+            Досягнення недоступні: у грі їх немає або Steam приховує їх
+            налаштуваннями приватності.
           </p>
         ) : null}
       </div>

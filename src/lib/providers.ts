@@ -58,11 +58,11 @@ export const PLATFORMS: Platform[] = [
 ];
 
 export const REGIONS = [
-  { code: "UA", label: "Украина" },
+  { code: "UA", label: "Україна" },
   { code: "US", label: "США" },
-  { code: "GB", label: "Великобритания" },
-  { code: "DE", label: "Германия" },
-  { code: "PL", label: "Польша" },
+  { code: "GB", label: "Велика Британія" },
+  { code: "DE", label: "Німеччина" },
+  { code: "PL", label: "Польща" },
 ] as const;
 
 export function platformBySlug(slug: string) {

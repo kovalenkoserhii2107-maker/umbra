@@ -58,14 +58,14 @@ const TARGETS: Target[] = [
   },
   {
     id: "sms",
-    label: "Сообщения",
+    label: "Повідомлення",
     tint: "#34c759",
     mark: "SMS",
     href: (text, url) => `sms:?&body=${encodeURIComponent(`${text}\n${url}`)}`,
   },
   {
     id: "mail",
-    label: "Почта",
+    label: "Пошта",
     tint: "#9e9e9e",
     mark: "@",
     href: (text, url, subject) =>
@@ -121,9 +121,9 @@ export function ShareSheet({
   async function copy() {
     try {
       await navigator.clipboard.writeText(url);
-      setCopied("Ссылка скопирована");
+      setCopied("Посилання скопійовано");
     } catch {
-      setCopied("Не удалось скопировать. Ссылка: " + url);
+      setCopied("Не вдалося скопіювати. Посилання: " + url);
     }
   }
 
@@ -144,18 +144,18 @@ export function ShareSheet({
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <button
         type="button"
-        aria-label="Закрыть"
+        aria-label="Закрити"
         onClick={onClose}
         className="absolute inset-0 bg-black/60"
       />
       <div
         role="dialog"
-        aria-label="Поделиться"
+        aria-label="Поділитися"
         className="relative w-full max-w-md rounded-t-3xl border border-hairline bg-card p-5 sm:rounded-3xl"
         style={{ paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
       >
         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-accent">
-          Поделиться
+          Поділитися
         </p>
         <p className="mt-1 line-clamp-2 text-lg leading-snug">{title}</p>
         <div className="mt-4 grid grid-cols-4 gap-1">
@@ -195,14 +195,14 @@ export function ShareSheet({
                 <path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8" />
               </svg>
             </span>
-            Ссылка
+            Посилання
           </button>
           {native ? (
             <button type="button" onClick={more} className={tile}>
               <span className="flex h-12 w-12 items-center justify-center rounded-full border border-hairline text-ink">
                 <ShareIcon className="h-5 w-5" />
               </span>
-              Ещё…
+              Ще…
             </button>
           ) : null}
         </div>
@@ -216,7 +216,7 @@ export function ShareSheet({
           onClick={onClose}
           className="mt-4 w-full rounded-full border border-hairline py-2.5 text-sm text-mute"
         >
-          Отмена
+          Скасувати
         </button>
       </div>
     </div>,
@@ -228,7 +228,7 @@ export function ShareButton({
   title,
   text,
   path,
-  label = "Поделиться",
+  label = "Поділитися",
   className,
   showLabel = false,
 }: {

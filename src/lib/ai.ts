@@ -19,11 +19,11 @@ function line(x: LibraryItem, meta: MetaMap, withRating: boolean) {
   const m = meta[metaKey(x)];
   const facts = [
     x.year,
-    x.type === "tv" ? "сериал" : "фильм",
+    x.type === "tv" ? "серіал" : "фільм",
     m?.genres.slice(0, 3).join("/"),
   ].filter(Boolean);
   const note = x.note.replace(/\s+/g, " ").trim().slice(0, 100);
-  return `- ${x.title} (${facts.join(", ")})${withRating && x.rating !== null ? ` — ${x.rating}/10` : ""}${note ? ` · заметка: «${note}»` : ""}`;
+  return `- ${x.title} (${facts.join(", ")})${withRating && x.rating !== null ? ` — ${x.rating}/10` : ""}${note ? ` · нотатка: «${note}»` : ""}`;
 }
 
 export function buildProfile(
@@ -48,34 +48,34 @@ export function buildProfile(
     .map(([g, t]) => `${g} ${t > 0 ? "+" : ""}${t.toFixed(1)}`);
 
   const parts = [
-    `Страна: ${region}. Подписки: ${services.map((s) => s.name).join(", ") || "не указаны"}.`,
-    `В библиотеке ${items.length} тайтлов: оценено ${rated.length}, смотрю ${by("watching").length}, хочу посмотреть ${by("watchlist").length}, бросил ${by("dropped").length}.`,
+    `Країна: ${region}. Передплати: ${services.map((s) => s.name).join(", ") || "не вказані"}.`,
+    `У бібліотеці ${items.length} тайтлів: оцінено ${rated.length}, дивлюся ${by("watching").length}, хочу подивитися ${by("watchlist").length}, закинув ${by("dropped").length}.`,
     taste.length
-      ? `Отношение к жанрам по оценкам (от -1 до +1): ${taste.join(", ")}.`
+      ? `Ставлення до жанрів за оцінками (від -1 до +1): ${taste.join(", ")}.`
       : "",
     rated.length
-      ? `Все мои оценки (из 10), от лучших:\n${rated
+      ? `Усі мої оцінки (з 10), від найкращих:\n${rated
           .map((x) => line(x, meta, true))
           .join("\n")}`
-      : "Оценок пока нет.",
+      : "Оцінок поки немає.",
     by("watching").length
-      ? `Смотрю сейчас:\n${by("watching")
+      ? `Дивлюся зараз:\n${by("watching")
           .map((x) => line(x, meta, false))
           .join("\n")}`
       : "",
     by("watchlist").length
-      ? `Хочу посмотреть:\n${by("watchlist")
+      ? `Хочу подивитися:\n${by("watchlist")
           .map((x) => line(x, meta, false))
           .join("\n")}`
       : "",
     by("dropped").length
-      ? `Бросил (не понравилось):\n${by("dropped")
+      ? `Закинув (не сподобалося):\n${by("dropped")
           .map((x) => line(x, meta, true))
           .join("\n")}`
       : "",
     // Titles only: enough not to suggest them again.
     plain.length
-      ? `Посмотрено без оценки (всё, что видел): ${plain.map((x) => `${x.title} (${x.year})`).join("; ")}.`
+      ? `Переглянуто без оцінки (усе, що бачив): ${plain.map((x) => `${x.title} (${x.year})`).join("; ")}.`
       : "",
   ].filter(Boolean);
   const text = parts.join("\n\n");

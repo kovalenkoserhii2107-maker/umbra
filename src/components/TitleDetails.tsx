@@ -171,7 +171,7 @@ export function AwardsLine({ omdb }: { omdb: OmdbScores | null }) {
         ★
       </span>
       <span>
-        <span className="text-mute">Награды · </span>
+        <span className="text-mute">Нагороди · </span>
         {text}
       </span>
     </p>
@@ -190,10 +190,10 @@ export function WatchOptions({
   const groups = providerGroups(region);
   return (
     <Section
-      title={`Где смотреть · ${regionCode}`}
+      title={`Де дивитися · ${regionCode}`}
       aside={
         region?.link ? (
-          <AsideLink href={region.link}>Все варианты ↗</AsideLink>
+          <AsideLink href={region.link}>Усі варіанти ↗</AsideLink>
         ) : null
       }
     >
@@ -227,12 +227,12 @@ export function WatchOptions({
               </div>
             </div>
           ))}
-          <p className="text-[11px] text-dim">Данные о площадках: JustWatch</p>
+          <p className="text-[11px] text-dim">Дані про платформи: JustWatch</p>
         </div>
       ) : (
         <p className="text-sm text-mute">
-          В этом регионе легальных площадок не найдено. Смени регион в
-          настройках.
+          У цьому регіоні легальних платформ не знайдено. Зміни регіон у
+          налаштуваннях.
         </p>
       )}
     </Section>
@@ -325,7 +325,7 @@ export function Gallery({ item }: { item: TitleDetails }) {
     .slice(0, 16);
   if (!stills.length) return null;
   return (
-    <Section title="Кадры">
+    <Section title="Кадри">
       <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
         {stills.map((img, i) => (
           <button
@@ -353,7 +353,7 @@ export function Gallery({ item }: { item: TitleDetails }) {
           }))}
           initialIndex={viewerIndex}
           onClose={() => setViewerIndex(null)}
-          title="Кадры"
+          title="Кадри"
         />
       ) : null}
     </Section>
@@ -391,7 +391,7 @@ export function Details({
   const rows = detailRows(item, media, omdb, region);
   if (!rows.length) return null;
   return (
-    <Section title="Подробности">
+    <Section title="Подробиці">
       <dl className={`${CARD} px-4`}>
         {rows.map(([label, value]) => (
           <Fact key={label} label={label}>
@@ -438,7 +438,7 @@ export function Crew({
 }) {
   if (!cards.length) return null;
   return (
-    <Section title="Съёмочная группа">
+    <Section title="Знімальна група">
       <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
         {cards.map(({ person, roles }) => (
           <PersonCard key={person.id} person={person} role={roles.join(", ")} />
@@ -607,7 +607,7 @@ export function LinksRow({
 }) {
   const links = externalLinks(item, media);
   return (
-    <Section title="Ссылки">
+    <Section title="Посилання">
       <div className="flex flex-wrap gap-2">
         {links.map((l) => (
           <a

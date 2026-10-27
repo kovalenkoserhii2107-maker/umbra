@@ -661,3 +661,10 @@ export function ErrorBox({
     </div>
   );
 }
+
+export {
+  ImageViewer,
+  type GalleryImage,
+  type ImageViewerProps,
+} from "./components/ImageViewer";
+

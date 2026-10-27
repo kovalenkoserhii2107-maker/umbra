@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Aside, AsideLink, CARD, Fact, Section } from "./TitleDetails";
+import { ImageViewer } from "./ImageViewer";
 import type { OpenCritic, Prices, SteamApp } from "../lib/api";
 import {
   gameLinks,
@@ -132,20 +133,21 @@ export function GameFacts({
 }
 
 export function Screens({ game }: { game: RawGame }) {
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const shots = [...(game.screenshots ?? []), ...(game.artworks ?? [])]
     .filter((s) => s.image_id)
     .slice(0, 16);
-  if (shots.length < 2) return null;
+  if (!shots.length) return null;
   return (
     <Section title="Скриншоты" aside={<Aside>{shots.length}</Aside>}>
       <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
         {shots.map((s, i) => (
-          <a
+          <button
             key={s.image_id}
-            href={imageUrl(s.image_id, "1080p")}
-            target="_blank"
-            rel="noreferrer"
-            className="w-64 shrink-0 sm:w-80"
+            type="button"
+            onClick={() => setViewerIndex(i)}
+            aria-label={`${game.name} — кадр ${i + 1}`}
+            className="w-64 shrink-0 text-left transition hover:opacity-90 active:scale-[0.99] sm:w-80"
           >
             <img
               src={imageUrl(s.image_id, "screenshot_big")}
@@ -154,9 +156,21 @@ export function Screens({ game }: { game: RawGame }) {
               decoding="async"
               className="aspect-video w-full rounded-xl border border-hairline object-cover"
             />
-          </a>
+          </button>
         ))}
       </div>
+      {viewerIndex !== null ? (
+        <ImageViewer
+          images={shots.map((s, i) => ({
+            src: imageUrl(s.image_id, "1080p"),
+            thumb: imageUrl(s.image_id, "screenshot_big"),
+            alt: `${game.name} — кадр ${i + 1}`,
+          }))}
+          initialIndex={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+          title="Скриншоты"
+        />
+      ) : null}
     </Section>
   );
 }

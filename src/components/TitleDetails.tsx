@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { PlatformChip, PosterCard, useAsync } from "../components";
+import { ImageViewer } from "./ImageViewer";
 import { PLATFORMS } from "../lib/providers";
 import {
   backdropUrl,
@@ -317,21 +318,22 @@ export function Videos({ videos }: { videos: Video[] }) {
 }
 
 export function Gallery({ item }: { item: TitleDetails }) {
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const stills = (item.images?.backdrops ?? [])
     // Language-free frames are stills; titled ones are mostly promo art.
     .sort((a, b) => Number(!!a.iso_639_1) - Number(!!b.iso_639_1))
     .slice(0, 16);
-  if (stills.length < 2) return null;
+  if (!stills.length) return null;
   return (
     <Section title="Кадры">
       <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
-        {stills.map((img) => (
-          <a
+        {stills.map((img, i) => (
+          <button
             key={img.file_path}
-            href={backdropUrl(img.file_path, "original")}
-            target="_blank"
-            rel="noreferrer"
-            className="w-64 shrink-0 sm:w-80"
+            type="button"
+            onClick={() => setViewerIndex(i)}
+            aria-label={`Кадр ${i + 1}`}
+            className="w-64 shrink-0 text-left transition hover:opacity-90 active:scale-[0.99] sm:w-80"
           >
             <img
               src={backdropUrl(img.file_path, "w780")}
@@ -339,9 +341,21 @@ export function Gallery({ item }: { item: TitleDetails }) {
               loading="lazy"
               className="aspect-video w-full rounded-xl border border-hairline object-cover"
             />
-          </a>
+          </button>
         ))}
       </div>
+      {viewerIndex !== null ? (
+        <ImageViewer
+          images={stills.map((img, i) => ({
+            src: backdropUrl(img.file_path, "original"),
+            thumb: backdropUrl(img.file_path, "w780"),
+            alt: `Кадр ${i + 1}`,
+          }))}
+          initialIndex={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+          title="Кадры"
+        />
+      ) : null}
     </Section>
   );
 }

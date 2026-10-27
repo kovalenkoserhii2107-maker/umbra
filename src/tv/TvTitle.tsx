@@ -20,7 +20,9 @@ import {
 import { useAuth } from "../lib/auth";
 import { loadFriendsOn, useFriendList } from "../lib/friends";
 import { Avatar, byInterest, sharedStatus } from "../components/FriendsIndex";
+import { ImageViewer } from "../components/ImageViewer";
 import {
+  backdropUrl,
   posterUrl,
   titleOf,
   tmdb,
@@ -315,6 +317,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
     (c) => !recommendations.some((r) => r.id === c.id),
   );
 
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [seasonNumber, setSeasonNumber] = useState(
     seasons[startSeason]?.season_number ?? 0,
   );
@@ -361,7 +364,11 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
       size: allVideos.length,
       onSelect: (i) => allVideos[i] && playTrailer(allVideos[i].key),
     },
-    { key: "stills", size: stills.length > 1 ? stills.length : 0 },
+    {
+      key: "stills",
+      size: stills.length > 0 ? stills.length : 0,
+      onSelect: (i) => setViewerIndex(i),
+    },
     {
       key: "cast",
       size: cast.length,
@@ -714,7 +721,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
           </Rail>
         ) : null}
 
-        {stills.length > 1 ? (
+        {stills.length > 0 ? (
           <Rail
             lane="stills"
             title="Кадры"
@@ -856,6 +863,18 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
             .join(" · ")}
           text={reading.content}
           onClose={() => setReading(null)}
+        />
+      ) : null}
+      {viewerIndex !== null ? (
+        <ImageViewer
+          images={stills.map((img, i) => ({
+            src: backdropUrl(img.file_path, "original"),
+            thumb: backdropUrl(img.file_path, "w780"),
+            alt: `Кадр ${i + 1}`,
+          }))}
+          initialIndex={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+          title="Кадры"
         />
       ) : null}
     </Stage>

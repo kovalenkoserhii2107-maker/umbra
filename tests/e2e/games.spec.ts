@@ -10,15 +10,15 @@ import {
 async function signIn(page: Page) {
   await page.goto("#/login");
   await page
-    .getByRole("button", { name: "Нет аккаунта — зарегистрироваться" })
+    .getByRole("button", { name: "Немає акаунту — зареєструватися" })
     .click();
-  await page.getByLabel("Имя", { exact: true }).fill("Gamer");
+  await page.getByLabel("Ім'я", { exact: true }).fill("Gamer");
   await page
     .getByLabel("Email", { exact: true })
     .fill(`g-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`);
   await page.getByLabel("Пароль", { exact: true }).fill("test-password-123");
   await page
-    .getByRole("button", { name: "Создать аккаунт", exact: true })
+    .getByRole("button", { name: "Створити акаунт", exact: true })
     .click();
   await expect(page).toHaveURL(/#\/$/);
 }
@@ -384,27 +384,27 @@ test("game card gathers ratings, Russian description and facts from every source
     }),
   ).toBeVisible();
   for (const [title, value] of [
-    ["OpenCritic — средняя оценка ведущих критиков", "93"],
-    ["Metascore — сводная оценка критиков", "93"],
-    ["Доля положительных отзывов в Steam", "97%"],
-    ["Оценка игроков IGDB", "9.3"],
+    ["OpenCritic — середня оцінка провідних критиків", "93"],
+    ["Metascore — зведена оцінка критиків", "93"],
+    ["Частка позитивних відгуків у Steam", "97%"],
+    ["Оцінка гравців IGDB", "9.3"],
   ])
     await expect(
       page.getByRole("link", { name: `${title}: ${value}` }),
     ).toBeVisible();
-  await expect(page.getByText("могучая")).toBeVisible();
+  await expect(page.getByText("могутня")).toBeVisible();
   await expect(page.getByText("Русское описание из Steam.")).toBeVisible();
   await expect(page.getByText("English summary from IGDB.")).toHaveCount(0);
   await expect(
     page.getByText("PEGI 18", { exact: true }).first(),
   ).toBeVisible();
 
-  const facts = page.locator("section", { hasText: "Подробности" });
-  await expect(facts).toContainText("19 мая 2015 · PC, PS4");
-  await expect(facts).toContainText("15 октября 2019 · Switch");
-  await expect(facts).toContainText("Сюжет 50 ч");
-  await expect(facts).toContainText("На 100% 170 ч");
-  await expect(facts).toContainText("интерфейс, субтитры");
+  const facts = page.locator("section", { hasText: "Подробиці" });
+  await expect(facts).toContainText("19 травня 2015 · PC, PS4");
+  await expect(facts).toContainText("15 жовтня 2019 · Switch");
+  await expect(facts).toContainText("Сюжет 50 год");
+  await expect(facts).toContainText("На 100% 170 год");
+  await expect(facts).toContainText("інтерфейс, субтитри");
   await expect(facts).toContainText("PEGI 18 · ESRB M");
   await expect(facts).toContainText("25 000");
   await expect(
@@ -412,26 +412,26 @@ test("game card gathers ratings, Russian description and facts from every source
   ).toHaveAttribute("href", "#/games/studio/908");
 
   await expect(page.getByText("An absolute triumph")).toBeVisible();
-  const stores = page.locator("section", { hasText: "Где купить" });
+  const stores = page.locator("section", { hasText: "Де купити" });
   await expect(stores.getByRole("link", { name: "Steam ↗" })).toHaveAttribute(
     "href",
     "https://store.steampowered.com/app/292030",
   );
   await expect(
     stores.getByRole("link", { name: /PlayStation Store/ }),
-  ).toContainText("поиск");
+  ).toContainText("пошук");
   await expect(
     stores.getByRole("link", { name: /Nintendo eShop/ }),
   ).toBeVisible();
   const gog = stores.getByRole("link", { name: /GOG/ }).first();
   await expect(gog).toContainText("−80%");
   await expect(gog).toContainText("7,99");
-  await expect(gog).toContainText("минимум в магазине");
-  await expect(stores).toContainText("Минимум за всё время: 5,99");
+  await expect(gog).toContainText("мінімум у магазині");
+  await expect(stores).toContainText("Мінімум за весь час: 5,99");
   await expect(
-    page.getByRole("heading", { name: "Серия «The Witcher»" }),
+    page.getByRole("heading", { name: "Серія «The Witcher»" }),
   ).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Дополнения" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Доповнення" })).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -452,24 +452,24 @@ test("feed puts popular new releases first and finds awaited games like GTA VI",
   await page.goto("#/games");
   const hero = (label: string) =>
     page.getByRole("link").filter({ hasText: label });
-  await expect(hero("главная новинка")).toContainText("Hit Release");
-  await expect(hero("самая ожидаемая")).toContainText("Grand Theft Auto VI");
-  await expect(hero("больше всех играют")).toContainText("Elden Ring");
+  await expect(hero("головна новинка")).toContainText("Hit Release");
+  await expect(hero("найочікуваніша")).toContainText("Grand Theft Auto VI");
+  await expect(hero("найбільше грають")).toContainText("Elden Ring");
   for (const title of [
-    "Популярные новинки",
-    "Сейчас популярно",
-    "Самые ожидаемые",
-    "Скоро выйдут",
-    "Недавно в Game Pass",
-    "Лучшие за год",
+    "Популярні новинки",
+    "Зараз популярно",
+    "Найочікуваніші",
+    "Скоро вийдуть",
+    "Нещодавно в Game Pass",
+    "Найкращі за рік",
   ])
     await expect(page.getByRole("heading", { name: title })).toBeVisible();
   const fresh = page.locator("section", {
-    has: page.getByRole("heading", { name: "Популярные новинки" }),
+    has: page.getByRole("heading", { name: "Популярні новинки" }),
   });
   await expect(fresh.getByRole("link").first()).toContainText("Hit Release");
   const awaited = page.locator("section", {
-    has: page.getByRole("heading", { name: "Самые ожидаемые" }),
+    has: page.getByRole("heading", { name: "Найочікуваніші" }),
   });
   await expect(awaited.getByRole("link").first()).toContainText(
     "Grand Theft Auto VI",
@@ -477,12 +477,12 @@ test("feed puts popular new releases first and finds awaited games like GTA VI",
   await expect(
     page
       .locator("section", {
-        has: page.getByRole("heading", { name: "Недавно в Game Pass" }),
+        has: page.getByRole("heading", { name: "Нещодавно в Game Pass" }),
       })
       .getByText("Halo Infinite"),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Скидки на ПК" }),
+    page.getByRole("heading", { name: "Знижки на ПК" }),
   ).toBeVisible();
   // The app does not zoom on phones.
   expect(
@@ -495,7 +495,7 @@ test("feed puts popular new releases first and finds awaited games like GTA VI",
   // A deal opens the game in Umbra.
   await page
     .locator("section", {
-      has: page.getByRole("heading", { name: "Скидки на ПК" }),
+      has: page.getByRole("heading", { name: "Знижки на ПК" }),
     })
     .getByRole("link", { name: /The Witcher 3/ })
     .click();
@@ -507,7 +507,7 @@ test("feed follows my platforms and remembers them", async ({ page }) => {
   await signIn(page);
   await page.goto("#/games");
   await expect(page.getByText("Hit Release").first()).toBeVisible();
-  const picker = page.getByRole("group", { name: "Мои платформы" });
+  const picker = page.getByRole("group", { name: "Мої платформи" });
   await picker.getByRole("button", { name: "Xbox" }).click();
   await picker.getByRole("button", { name: "Switch" }).click();
   await expect(picker.getByRole("button", { name: "Switch" })).toHaveAttribute(
@@ -522,7 +522,7 @@ test("feed follows my platforms and remembers them", async ({ page }) => {
   await page.reload();
   await expect(
     page
-      .getByRole("group", { name: "Мои платформы" })
+      .getByRole("group", { name: "Мої платформи" })
       .getByRole("button", { name: "Xbox" }),
   ).toHaveAttribute("aria-pressed", "false");
 });
@@ -533,13 +533,13 @@ test("search asks IGDB by name across the chosen platforms", async ({
   const seen = await mockApi(page);
   await signIn(page);
   await page.goto("#/games/search");
-  await page.getByLabel("Название игры").fill("witcher");
+  await page.getByLabel("Назва гри").fill("witcher");
   await expect(page.getByText("The Witcher 2")).toBeVisible();
   const query = seen.igdb.filter((q) => q.body.startsWith("search")).at(-1)!;
   expect(query.body).toContain('search "witcher"');
   expect(query.body).toContain("platforms = (6,167,48,169,49,508,130)");
   await page
-    .getByRole("group", { name: "Платформы" })
+    .getByRole("group", { name: "Платформи" })
     .getByRole("button", { name: "ПК" })
     .click();
   await expect
@@ -557,8 +557,8 @@ test("unknown game says so instead of showing another one", async ({
   await mockApi(page);
   await signIn(page);
   await page.goto("#/games/999999");
-  await expect(page.getByText("Игра не найдена.")).toBeVisible();
-  await expect(page.getByRole("link", { name: "К поиску игр" })).toBeVisible();
+  await expect(page.getByText("Гру не знайдено.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "До пошуку ігор" })).toBeVisible();
 });
 
 test("collection lives in the cloud: marks sync across tabs; old device entries move up on request", async ({
@@ -595,11 +595,11 @@ test("collection lives in the cloud: marks sync across tabs; old device entries 
   ).not.toBeNull();
   await other.goto("http://127.0.0.1:5187/umbra/#/settings");
   await expect(
-    other.getByText("На этом устройстве остались игры из старой версии: 1."),
+    other.getByText("На цьому пристрої залишилися ігри зі старої версії: 1."),
   ).toBeVisible();
-  await other.getByRole("button", { name: "Перенести в мой аккаунт" }).click();
+  await other.getByRole("button", { name: "Перенести в мій акаунт" }).click();
   await expect(
-    other.getByText("Игры с устройства перенесены в аккаунт."),
+    other.getByText("Ігри з пристрою перенесено в акаунт."),
   ).toBeVisible();
   await other.goto("http://127.0.0.1:5187/umbra/#/games/library");
   await expect(
@@ -617,16 +617,16 @@ test("collection lives in the cloud: marks sync across tabs; old device entries 
 
   await page.goto("#/games/1942");
   await expect(
-    page.getByRole("button", { name: "Хочу поиграть", exact: true }),
+    page.getByRole("button", { name: "Хочу пограти", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Пройдено", exact: true }).click();
   // The game is on PC, PS4 and Switch: the card asks where it was played.
-  const where = page.getByRole("group", { name: "Где играю" });
+  const where = page.getByRole("group", { name: "Де граю" });
   await where.getByRole("button", { name: "PlayStation" }).click();
-  await page.getByRole("button", { name: "9 из 10", exact: true }).click();
-  await page.getByPlaceholder("например, 40").fill("120");
-  await page.getByPlaceholder("Комментарий").fill("Шедевр");
-  await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await page.getByRole("button", { name: "9 з 10", exact: true }).click();
+  await page.getByPlaceholder("наприклад, 40").fill("120");
+  await page.getByPlaceholder("Коментар").fill("Шедевр");
+  await page.getByRole("button", { name: "Зберегти", exact: true }).click();
   await expect(page.getByText("«Шедевр»")).toBeVisible();
 
   const switcher = other.getByRole("group", { name: "Платформа" });
@@ -634,10 +634,10 @@ test("collection lives in the cloud: marks sync across tabs; old device entries 
     switcher.getByRole("button", { name: /PlayStation 1/ }),
   ).toBeVisible();
   await switcher.getByRole("button", { name: /PlayStation/ }).click();
-  await expect(other.getByText(/Пройдено · 9\/10 · 120 ч/)).toBeVisible();
+  await expect(other.getByText(/Пройдено · 9\/10 · 120 год/)).toBeVisible();
   await switcher.getByRole("button", { name: /Xbox/ }).click();
   await expect(
-    other.getByText("Здесь пока пусто", { exact: false }),
+    other.getByText("Тут поки порожньо", { exact: false }),
   ).toBeVisible();
   await other.reload();
   await expect(
@@ -714,7 +714,7 @@ test("Steam sign-in imports the library, wishlist, play time and achievements", 
           next: [
             {
               name: "Гвинт",
-              description: "Выиграть партию",
+              description: "Виграти партію",
               icon: "",
               percent: 61.5,
               unlocked: false,
@@ -729,13 +729,13 @@ test("Steam sign-in imports the library, wishlist, play time and achievements", 
   await signIn(page);
   // The collection has no Steam controls; they live in the settings.
   await page.goto("#/games/library");
-  await expect(page.getByRole("heading", { name: "Мои игры" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Мої ігри" })).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Войти через Steam" }),
+    page.getByRole("link", { name: "Увійти через Steam" }),
   ).toHaveCount(0);
   await page.goto("#/settings");
   await expect(
-    page.getByRole("link", { name: "Войти через Steam" }),
+    page.getByRole("link", { name: "Увійти через Steam" }),
   ).toHaveAttribute(
     "href",
     /steamcommunity\.com\/openid\/login\?.*return_to=http%3A%2F%2F127\.0\.0\.1%3A5187%2Fumbra%2F%3Fsteam%3D1/,
@@ -749,7 +749,7 @@ test("Steam sign-in imports the library, wishlist, play time and achievements", 
 
   // Steam sends the browser back to openid.return_to with openid.* parameters.
   const steamHref = (await page
-    .getByRole("link", { name: "Войти через Steam" })
+    .getByRole("link", { name: "Увійти через Steam" })
     .getAttribute("href"))!;
   const returnTo = new URL(steamHref).searchParams.get("openid.return_to")!;
   await page.goto(
@@ -758,7 +758,7 @@ test("Steam sign-in imports the library, wishlist, play time and achievements", 
   await expect(page).toHaveURL(/\/umbra\/#\/settings$/);
   await expect(page.getByText("Steam · Geralt")).toBeVisible();
   await expect(
-    page.getByText(/добавлено 3; 1 игра из Steam не нашлось в IGDB/),
+    page.getByText(/додано 3; 1 гра зі Steam не знайшлися в IGDB/),
   ).toBeVisible();
   await page.screenshot({
     path: ".ui-evidence/settings-mobile.png",
@@ -768,15 +768,15 @@ test("Steam sign-in imports the library, wishlist, play time and achievements", 
   const switcher = page.getByRole("group", { name: "Платформа" });
   await expect(switcher.getByRole("button", { name: /ПК 3/ })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Недавно играл" }),
+    page.getByRole("heading", { name: "Нещодавно грав" }),
   ).toBeVisible();
   // Steam refreshes by itself; there is no button for it.
-  await expect(page.getByRole("button", { name: "Обновить" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Оновити" })).toHaveCount(0);
   await expect(
     page.getByRole("link", { name: /Cyberpunk 2077/ }),
-  ).toContainText("Хочу поиграть");
+  ).toContainText("Хочу пограти");
   await expect(page.getByRole("link", { name: /Portal 2/ })).toContainText(
-    "В библиотеке · 10 ч",
+    "У бібліотеці · 10 год",
   );
   await page.screenshot({
     path: ".ui-evidence/game-library-mobile.png",
@@ -785,14 +785,14 @@ test("Steam sign-in imports the library, wishlist, play time and achievements", 
 
   // Games stats come from the same collection.
   await page.goto("#/stats?tab=games");
-  await expect(page.getByRole("tab", { name: "Игры" })).toHaveAttribute(
+  await expect(page.getByRole("tab", { name: "Ігри" })).toHaveAttribute(
     "aria-selected",
     "true",
   );
-  await expect(page.getByText("часов в играх")).toBeVisible();
+  await expect(page.getByText("годин в іграх")).toBeVisible();
   await expect(page.getByText("131", { exact: true })).toBeVisible();
   const platforms = page.locator("section", {
-    has: page.getByRole("heading", { name: "По платформам" }),
+    has: page.getByRole("heading", { name: "За платформами" }),
   });
   await platforms.getByRole("button", { name: /ПК/ }).click();
   await expect(platforms.getByRole("link", { name: /Portal 2/ })).toBeVisible();
@@ -803,14 +803,14 @@ test("Steam sign-in imports the library, wishlist, play time and achievements", 
 
   await page.goto("#/games/1942");
   const mine = page.locator("section", {
-    has: page.getByRole("heading", { name: "Мой Steam" }),
+    has: page.getByRole("heading", { name: "Мій Steam" }),
   });
-  await expect(mine).toContainText("121 ч");
-  await expect(mine).toContainText("39 из 78 · 50%");
+  await expect(mine).toContainText("121 год");
+  await expect(mine).toContainText("39 з 78 · 50%");
   await expect(mine).toContainText("Легенда");
   await expect(mine).toContainText("2,1%");
   await expect(
-    page.getByRole("button", { name: "Играю", exact: true }),
+    page.getByRole("button", { name: "Граю", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
 });
 
@@ -844,16 +844,16 @@ test("backup file carries the games: loading it restores them, saving it include
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify(backup)),
   });
-  await expect(page.getByText(/Коллекция импортирована/)).toBeVisible();
+  await expect(page.getByText(/Колекцію імпортовано/)).toBeVisible();
   await page.goto("#/games/library");
   await expect(
     page.getByRole("link", { name: /Ведьмак 3 \(из копии\)/ }),
   ).toBeVisible();
 
   await page.goto("#/settings");
-  await expect(page.getByText(/и 1 игра в аккаунте/)).toBeVisible();
+  await expect(page.getByText(/1 гра в акаунті/)).toBeVisible();
   const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Скачать" }).click();
+  await page.getByRole("button", { name: "Завантажити" }).click();
   const file = await (await download).createReadStream();
   let text = "";
   for await (const chunk of file) text += chunk;

@@ -42,15 +42,15 @@ export function daysUntil(date: string, today: string) {
   return Math.round(dayNumber(date) - dayNumber(today));
 }
 
-/** "сегодня", "завтра", "через 3 дня", "вчера", "5 дней назад". */
+/** "сьогодні", "завтра", "через 3 дні", "вчора", "5 днів тому". */
 export function relativeDay(date: string, today: string) {
   const days = daysUntil(date, today);
-  if (days === 0) return "сегодня";
+  if (days === 0) return "сьогодні";
   if (days === 1) return "завтра";
-  if (days === -1) return "вчера";
+  if (days === -1) return "учора";
   const n = Math.abs(days);
-  const span = `${n} ${plural(n, "день", "дня", "дней")}`;
-  return days > 0 ? `через ${span}` : `${span} назад`;
+  const span = `${n} ${plural(n, "день", "дні", "днів")}`;
+  return days > 0 ? `через ${span}` : `${span} тому`;
 }
 
 export function inReleaseWindow(

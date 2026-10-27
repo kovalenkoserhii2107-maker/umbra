@@ -31,16 +31,16 @@ import {
  * voice button type too.
  */
 
-type Layout = "ru" | "en" | "num";
+type Layout = "uk" | "en" | "num";
 
 /** Letters in alphabetical order, seven to a row, as on TV keyboards. */
 const KEYS: Record<Layout, string> = {
-  ru: "абвгдеёжзийклмнопрстуфхцчшщъыьэюя-.",
+  uk: "абвгґдеєжзиіїйклмнопрстуфхцчшщьюя-.",
   en: "abcdefghijklmnopqrstuvwxyz-'",
   num: "1234567890-:.,!?&'()#",
 };
 const LAYOUTS: Array<[Layout, string]> = [
-  ["ru", "АБВ"],
+  ["uk", "АБВ"],
   ["en", "ABC"],
   ["num", "123"],
 ];
@@ -76,7 +76,7 @@ export function TvSearch() {
   const [params, setParams] = useSearchParams();
   const q = params.get("q")?.trim() || "";
   const [text, setText] = useState(q);
-  const [layout, setLayout] = useState<Layout>("ru");
+  const [layout, setLayout] = useState<Layout>("uk");
   const [found, setFound] = useState<Found | null>(() => cache.get(q) ?? null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -254,7 +254,7 @@ export function TvSearch() {
         const tool = tools[i];
         if (tool === "voice") {
           if (voice === "listening") tvBridge()?.stopVoice();
-          else tvBridge()?.startVoice(layout === "en" ? "en-US" : "ru-RU");
+          else tvBridge()?.startVoice(layout === "en" ? "en-US" : "uk-UA");
         } else setLayout(tool as Layout);
       },
     }),
@@ -358,7 +358,7 @@ export function TvSearch() {
       {/* The line being typed. */}
       <div className="absolute left-12 top-[78px] w-[304px]">
         <div
-          aria-label="Поиск фильмов, сериалов и людей"
+          aria-label="Пошук фільмів, серіалів та людей"
           role="textbox"
           aria-readonly="true"
           data-value={text}
@@ -386,7 +386,7 @@ export function TvSearch() {
               ))
             ) : (
               <span className="mr-auto text-[15px] text-dim">
-                {voice === "listening" ? "Говори…" : "Название или имя"}
+                {voice === "listening" ? "Говори…" : "Назва або ім'я"}
               </span>
             )}
             <span
@@ -403,7 +403,7 @@ export function TvSearch() {
         </div>
         {voice === "error" ? (
           <p role="status" className="tv-rise mt-2 text-[13px] text-mute">
-            Не расслышал. Нажми на микрофон и скажи ещё раз.
+            Не розчув. Натисни на мікрофон і скажи ще раз.
           </p>
         ) : null}
       </div>
@@ -411,7 +411,7 @@ export function TvSearch() {
       {/* The keys. */}
       <div
         role="group"
-        aria-label="Клавиатура"
+        aria-label="Клавіатура"
         className="absolute left-12 top-[146px] w-[304px]"
       >
         <span
@@ -453,7 +453,7 @@ export function TvSearch() {
                       ) : null}
                       <Mic />
                     </span>
-                    {voice === "listening" ? "Слушаю" : "Голосом"}
+                    {voice === "listening" ? "Слухаю" : "Голосом"}
                   </>
                 ) : (
                   LAYOUTS.find(([id]) => id === tool)![1]
@@ -472,14 +472,14 @@ export function TvSearch() {
               </Key>
             )),
           )}
-          <Key span={2} on={at("edit", 0)} label="Стереть букву">
+          <Key span={2} on={at("edit", 0)} label="Стерти букву">
             ⌫
           </Key>
           <Key span={3} on={at("edit", 1)} className="text-[13px] text-mute">
-            пробел
+            пробіл
           </Key>
           <Key span={2} on={at("edit", 2)} className="text-[13px] text-mute">
-            очистить
+            очистити
           </Key>
         </div>
       </div>
@@ -490,7 +490,7 @@ export function TvSearch() {
           <div key={q ? (found?.used ?? "") : "popular"} className="px-4">
             {chips.length ? (
               <section data-lane="recent" className="pb-4 pt-2">
-                <h2 className="mb-2 text-[13px] text-mute">Недавние поиски</h2>
+                <h2 className="mb-2 text-[13px] text-mute">Нещодавні пошуки</h2>
                 <div className="flex gap-2">
                   {chips.map((chip, i) => (
                     <span
@@ -511,23 +511,23 @@ export function TvSearch() {
             ) : null}
             <h2 className="pb-1 pt-2 text-[17px] font-medium tracking-tight">
               {!q
-                ? "Популярно сегодня"
+                ? "Популярне сьогодні"
                 : nothing
-                  ? `Ничего не нашлось по «${q}»`
-                  : "Фильмы и сериалы"}
+                  ? `Нічого не знайшлося за «${q}»`
+                  : "Фільми та серіали"}
             </h2>
             {used ? (
               <p className="text-[13px] text-mute">
-                Показаны результаты для «{used}»
+                Показано результати для «{used}»
               </p>
             ) : null}
             {failed ? (
               <p className="mt-2 text-mute">
-                Поиск сейчас не отвечает. Проверь интернет.
+                Пошук зараз не відповідає. Перевір інтернет.
               </p>
             ) : nothing ? (
               <p className="mt-2 text-[15px] text-mute">
-                Проверь буквы или скажи название голосом.
+                Перевір літери або скажи назву голосом.
               </p>
             ) : null}
             {q && loading && !found ? <Placeholders /> : null}
@@ -574,7 +574,7 @@ export function TvSearch() {
                         name={person.name}
                         role={
                           person.known_for_department === "Acting"
-                            ? "актёр"
+                            ? "актор"
                             : undefined
                         }
                         photo={profileUrl(person.profile_path) || null}

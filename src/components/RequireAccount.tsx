@@ -79,7 +79,7 @@ export function RequireAccount({ children }: { children: ReactNode }) {
             curtainActive ? "opacity-100" : "pointer-events-none opacity-0"
           }`}
         >
-          <LoadingMotion kind="auth" label="Восстанавливаю вход…" />
+          <LoadingMotion kind="auth" label="Відновлюю вхід…" />
         </div>
       ) : null}
     </StartupReadyContext.Provider>

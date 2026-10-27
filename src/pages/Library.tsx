@@ -34,21 +34,21 @@ function FriendsLine({ type, id }: { type: MediaType; id: number }) {
 }
 
 const STATUSES: Array<{ id: "all" | Status; label: string }> = [
-  { id: "all", label: "Все" },
-  { id: "watching", label: "Смотрю" },
-  { id: "watched", label: "Просмотрено" },
-  { id: "watchlist", label: "Хочу посмотреть" },
-  { id: "dropped", label: "Брошено" },
+  { id: "all", label: "Всі" },
+  { id: "watching", label: "Дивлюся" },
+  { id: "watched", label: "Переглянуто" },
+  { id: "watchlist", label: "Хочу подивитися" },
+  { id: "dropped", label: "Покинуто" },
 ];
 
 function statusLine(item: LibraryItem) {
   const progress = progressOf(item);
-  if (item.status === "watchlist") return "хочу посмотреть";
+  if (item.status === "watchlist") return "хочу подивитися";
   if (item.status === "watching")
-    return progress ? `смотрю · ${episodeLabel(progress)}` : "смотрю";
+    return progress ? `дивлюся · ${episodeLabel(progress)}` : "дивлюся";
   if (item.status === "dropped")
-    return progress ? `брошен на ${episodeLabel(progress)}` : "брошен";
-  return item.rating ? `${item.rating}/10` : "просмотрено";
+    return progress ? `покинуто на ${episodeLabel(progress)}` : "покинуто";
+  return item.rating ? `${item.rating}/10` : "переглянуто";
 }
 
 export function LibraryPage() {
@@ -79,9 +79,9 @@ export function LibraryPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
-            коллекция
+            колекція
           </p>
-          <h1 className="mt-1 text-3xl tracking-tight">Фильмография</h1>
+          <h1 className="mt-1 text-3xl tracking-tight">Фільмографія</h1>
         </div>
         <div className="flex gap-2">
           <Link
@@ -94,7 +94,7 @@ export function LibraryPage() {
             to="/friends"
             className="rounded-full border border-hairline px-3 py-1.5 text-xs text-mute hover:text-ink"
           >
-            Друзья
+            Друзі
           </Link>
         </div>
       </div>
@@ -103,8 +103,8 @@ export function LibraryPage() {
         type="search"
         value={filters.q}
         onChange={(e) => set({ q: e.target.value })}
-        placeholder="Найти в коллекции"
-        aria-label="Найти в коллекции"
+        placeholder="Знайти в колекції"
+        aria-label="Знайти в колекції"
         className="mt-5 h-11 w-full rounded-2xl border border-hairline bg-card px-4 text-sm outline-none focus:border-accent"
       />
 
@@ -133,9 +133,9 @@ export function LibraryPage() {
           }
           className={select}
         >
-          <option value="all">Фильмы и сериалы</option>
-          <option value="movie">Фильмы</option>
-          <option value="tv">Сериалы</option>
+          <option value="all">Фільми та серіали</option>
+          <option value="movie">Фільми</option>
+          <option value="tv">Серіали</option>
         </select>
         <select
           aria-label="Жанр"
@@ -144,7 +144,7 @@ export function LibraryPage() {
           className={select}
         >
           <option value="">
-            {loading && !genres.length ? "Жанры…" : "Все жанры"}
+            {loading && !genres.length ? "Жанри…" : "Всі жанри"}
           </option>
           {genres.map((g) => (
             <option key={g} value={g}>
@@ -153,7 +153,7 @@ export function LibraryPage() {
           ))}
         </select>
         <select
-          aria-label="Оценка"
+          aria-label="Оцінка"
           value={filters.rating}
           onChange={(e) =>
             set({ rating: e.target.value as CollectionFilters["rating"] })
@@ -167,7 +167,7 @@ export function LibraryPage() {
           ))}
         </select>
         <select
-          aria-label="Годы выхода"
+          aria-label="Роки виходу"
           value={filters.decade}
           onChange={(e) =>
             set({ decade: e.target.value as CollectionFilters["decade"] })
@@ -181,7 +181,7 @@ export function LibraryPage() {
           ))}
         </select>
         <select
-          aria-label="Сортировка"
+          aria-label="Сортування"
           value={filters.sort}
           onChange={(e) =>
             set({ sort: e.target.value as CollectionFilters["sort"] })
@@ -199,8 +199,8 @@ export function LibraryPage() {
       <div className="mt-4 mb-4 flex items-center justify-between gap-3 text-xs text-mute">
         <span>
           {narrowed
-            ? `Найдено ${list.length} из ${items.length}`
-            : `Всего ${items.length}`}
+            ? `Знайдено ${list.length} з ${items.length}`
+            : `Усього ${items.length}`}
         </span>
         {narrowed ? (
           <button
@@ -208,15 +208,15 @@ export function LibraryPage() {
             onClick={() => setParams(new URLSearchParams(), { replace: true })}
             className="text-accent"
           >
-            Сбросить фильтры
+            Скинути фільтри
           </button>
         ) : null}
       </div>
 
       {items.length === 0 ? (
-        <Empty text="Пока пусто. Открой фильм и добавь его в просмотренные или в «Хочу посмотреть»." />
+        <Empty text="Поки порожньо. Відкрий фільм і додай його в переглянуті або в «Хочу подивитися»." />
       ) : list.length === 0 ? (
-        <Empty text="Под эти фильтры ничего не подходит." />
+        <Empty text="Під ці фільтри нічого не підходить." />
       ) : (
         <div className="space-y-2">
           {list.map((item) => (
@@ -237,7 +237,7 @@ export function LibraryPage() {
               <div className="min-w-0 flex-1 py-1">
                 <p className="truncate">{item.title}</p>
                 <p className="font-mono text-[11px] uppercase tracking-wider text-dim">
-                  {item.type === "tv" ? "сериал" : "фильм"}
+                  {item.type === "tv" ? "серіал" : "фільм"}
                   {item.year ? ` · ${item.year}` : ""} · {statusLine(item)}
                 </p>
                 <FriendsLine type={item.type} id={item.id} />

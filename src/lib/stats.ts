@@ -28,7 +28,7 @@ export function averageLabel(list: Array<{ rating: number | null }>) {
   const rated = list.filter((x) => x.rating !== null);
   if (!rated.length) return undefined;
   const avg = rated.reduce((s, x) => s + x.rating!, 0) / rated.length;
-  return `средняя ${avg.toLocaleString("ru-RU", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`;
+  return `середня ${avg.toLocaleString("uk-UA", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`;
 }
 
 /** Years in which something was marked as seen, newest first. */

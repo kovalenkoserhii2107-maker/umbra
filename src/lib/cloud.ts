@@ -17,7 +17,7 @@ import {
 } from "./library";
 function owned(uid: string) {
   if (!uid || firebaseAuth.currentUser?.uid !== uid)
-    throw new Error("Сессия изменилась. Войди снова.");
+    throw new Error("Сесія змінилася. Увійди знову.");
 }
 export function watchLibrary(
   uid: string,
@@ -44,7 +44,7 @@ export function watchLibrary(
       } catch {
         failed(
           new Error(
-            "В облаке есть некорректная запись. Экспортируй полку перед восстановлением.",
+            "У хмарі є некоректний запис. Експортуй полицю перед відновленням.",
           ),
         );
       }

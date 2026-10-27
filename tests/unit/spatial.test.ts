@@ -116,9 +116,9 @@ describe("watch on TV", () => {
     };
     const installed = { netflix: true, apple: true, prime: true };
     expect(watchApps(offers, installed)).toEqual([
-      { app: "netflix", name: "Netflix", offer: "по подписке" },
-      { app: "apple", name: "Apple TV", offer: "аренда" },
-      { app: "prime", name: "Amazon Video", offer: "аренда" },
+      { app: "netflix", name: "Netflix", offer: "за передплатою" },
+      { app: "apple", name: "Apple TV", offer: "оренда" },
+      { app: "prime", name: "Amazon Video", offer: "оренда" },
     ]);
     expect(watchApps(undefined, installed)).toEqual([]);
   });
@@ -133,7 +133,7 @@ describe("TV name for the phone", () => {
     ).toBe("BRAVIA 4K VH21");
     expect(
       tvDeviceName("Mozilla/5.0 (Linux; Android 10; K) Chrome/156.0 Mobile"),
-    ).toBe("Телевизор");
-    expect(tvDeviceName("Mozilla/5.0 (Macintosh)")).toBe("Телевизор");
+    ).toBe("Телевізор");
+    expect(tvDeviceName("Mozilla/5.0 (Macintosh)")).toBe("Телевізор");
   });
 });

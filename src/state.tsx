@@ -124,7 +124,7 @@ function SessionState({
   }, []);
   useEffect(() => {
     if (!writeStorage("umbra.settings", JSON.stringify(settings)))
-      setSyncError("Настройки не сохраняются на этом устройстве.");
+      setSyncError("Налаштування не зберігаються на цьому пристрої.");
     // Older releases kept a copy of the TMDB key on the device; drop it.
     writeStorage("umbra.tmdbKey", null);
   }, [settings]);
@@ -178,8 +178,8 @@ function SessionState({
         setSync("error");
         setSyncError(
           error.message.includes("permission")
-            ? "Облако отклонило доступ. Войди снова или обратись к владельцу приложения."
-            : "Не удалось прочитать полку. Проверь сеть и повтори попытку.",
+            ? "Хмара відхилила доступ. Увійди знову або звернися до власника застосунку."
+            : "Не вдалося прочитати полицю. Перевір мережу та повтори спробу.",
         );
       },
     );
@@ -197,7 +197,7 @@ function SessionState({
   useShareWithFriends(uid, items);
   function owner() {
     if (!uid || cloudUid() !== uid)
-      throw new Error("Войди в аккаунт, чтобы сохранить фильм.");
+      throw new Error("Увійди в акаунт, щоб зберегти фільм.");
     return uid;
   }
   function mutation(action: () => Promise<void>) {
@@ -209,8 +209,8 @@ function SessionState({
         setSync("error");
         setSyncError(
           (error as { code?: string }).code === "not-found"
-            ? "Этот фильм уже удалён на другом устройстве. Добавь его снова, если нужно."
-            : "Изменение не сохранилось в облаке. Повтори действие; при необходимости экспортируй полку.",
+            ? "Цей фільм уже вилучено на іншому пристрої. Додай його знову, якщо потрібно."
+            : "Зміна не збереглася в хмарі. Повтори дію; за потреби експортуй полицю.",
         );
       });
     } catch (error) {
@@ -237,7 +237,7 @@ function SessionState({
         const previous = items.find(
           (item) => item.id === id && item.type === type,
         );
-        if (!previous) throw new Error("Фильм отсутствует на полке.");
+        if (!previous) throw new Error("Фільм відсутній на полиці.");
         parseItem({ ...previous, ...patch });
         return patchItem(owner(), type, id, patch);
       }),
@@ -256,11 +256,11 @@ function SessionState({
         if (active.current) {
           setSync("error");
           setSyncError(
-            "Импорт завершился не полностью. Уже сохранённые записи остаются; файл можно импортировать повторно.",
+            "Імпорт завершився не повністю. Вже збережені записи залишаються; файл можна імпортувати повторно.",
           );
         }
         throw new Error(
-          "Не удалось завершить импорт. Проверь соединение и повтори попытку.",
+          "Не вдалося завершити імпорт. Перевір з'єднання та повтори спробу.",
         );
       }
     },

@@ -1,41 +1,41 @@
 import type { CreditWork, MediaType, PersonDetails } from "./tmdb";
 
 const JOBS: Record<string, string> = {
-  Director: "режиссёр",
-  "Co-Director": "сорежиссёр",
-  Screenplay: "сценарий",
-  Writer: "сценарий",
-  Teleplay: "сценарий",
+  Director: "режисер",
+  "Co-Director": "співрежисер",
+  Screenplay: "сценарій",
+  Writer: "сценарій",
+  Teleplay: "сценарій",
   Story: "сюжет",
-  Novel: "автор романа",
-  Characters: "автор персонажей",
-  Creator: "создатель",
+  Novel: "автор роману",
+  Characters: "автор персонажів",
+  Creator: "творець",
   Producer: "продюсер",
-  "Executive Producer": "исполнительный продюсер",
-  "Co-Producer": "сопродюсер",
+  "Executive Producer": "виконавчий продюсер",
+  "Co-Producer": "співпродюсер",
   "Original Music Composer": "композитор",
   Music: "композитор",
   Composer: "композитор",
   "Director of Photography": "оператор",
   Editor: "монтаж",
-  "Production Design": "художник-постановщик",
+  "Production Design": "художник-постановник",
   Casting: "кастинг",
 };
 
 export const jobLabel = (job?: string) =>
-  (job && JOBS[job]) || job?.toLowerCase() || "съёмочная группа";
+  (job && JOBS[job]) || job?.toLowerCase() || "знімальна група";
 
 const DEPARTMENTS: Record<string, [string, string]> = {
   // [label for a man or anyone, label for a woman]
-  Acting: ["Актёр", "Актриса"],
-  Directing: ["Режиссёр", "Режиссёр"],
+  Acting: ["Актор", "Акторка"],
+  Directing: ["Режисер", "Режисерка"],
   Writing: ["Сценарист", "Сценаристка"],
-  Production: ["Продюсер", "Продюсер"],
-  Sound: ["Композитор", "Композитор"],
-  Camera: ["Оператор", "Оператор"],
-  Editing: ["Монтажёр", "Монтажёр"],
-  Art: ["Художник", "Художница"],
-  Creator: ["Создатель", "Создательница"],
+  Production: ["Продюсер", "Продюсерка"],
+  Sound: ["Композитор", "Композиторка"],
+  Camera: ["Оператор", "Операторка"],
+  Editing: ["Монтажер", "Монтажерка"],
+  Art: ["Художник", "Художниця"],
+  Creator: ["Творець", "Творчиня"],
 };
 
 export function departmentLabel(department?: string, gender?: number) {
@@ -75,7 +75,7 @@ export function buildFilmography(person: PersonDetails): Work[] {
       ({
         id: credit.id,
         type,
-        title: credit.title || credit.name || "Без названия",
+        title: credit.title || credit.name || "Без назви",
         posterPath: credit.poster_path ?? null,
         date: (credit.release_date || credit.first_air_date || "").slice(0, 10),
         departments: [],
@@ -107,7 +107,7 @@ export function buildFilmography(person: PersonDetails): Work[] {
   return [...works.values()].sort(
     (a, b) =>
       (b.date || "9999").localeCompare(a.date || "9999") ||
-      a.title.localeCompare(b.title, "ru"),
+      a.title.localeCompare(b.title, "uk"),
   );
 }
 

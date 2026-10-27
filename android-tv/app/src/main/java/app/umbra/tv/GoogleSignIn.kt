@@ -18,9 +18,9 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import java.util.concurrent.Executor
 
 /**
- * Вход через Google-аккаунт, уже добавленный на телевизор: системный выбор
- * аккаунта → ID-токен Google → сайт входит в Firebase (signInWithCredential).
- * Внутри WebView Google вход не разрешает, поэтому он здесь, в приложении.
+ * Вхід через Google-акаунт, вже доданий на телевізор: системний вибір
+ * акаунту → ID-токен Google → сайт входить у Firebase (signInWithCredential).
+ * Усередині WebView Google вхід не дозволяє, тому він тут, у застосунку.
  */
 class GoogleSignIn(
     private val activity: Activity,

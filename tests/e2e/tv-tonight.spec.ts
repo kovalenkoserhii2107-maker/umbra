@@ -12,17 +12,17 @@ const cors = {
 
 async function register(page: Page) {
   await page.goto("?tv=1#/login");
-  await page.getByRole("button", { name: "Войти по email и паролю" }).click();
+  await page.getByRole("button", { name: "Увійти за email та паролем" }).click();
   await page
-    .getByRole("button", { name: "Нет аккаунта — зарегистрироваться" })
+    .getByRole("button", { name: "Немає акаунту — зареєструватися" })
     .click();
-  await page.getByLabel("Имя", { exact: true }).fill("Sofa");
+  await page.getByLabel("Ім'я", { exact: true }).fill("Sofa");
   await page
     .getByLabel("Email", { exact: true })
     .fill(`evening-${Date.now()}@example.com`);
   await page.getByLabel("Пароль", { exact: true }).fill("test-password-123");
   await page
-    .getByRole("button", { name: "Создать аккаунт", exact: true })
+    .getByRole("button", { name: "Створити акаунт", exact: true })
     .click();
   await expect(page).toHaveURL(/#\/$/);
 }
@@ -64,10 +64,10 @@ async function tmdb(context: BrowserContext) {
     const n = query.match(/^Film (\d+)$/);
     if (url.pathname === "/3/search/movie" && n)
       return route.fulfill({
-        json: page([film(1000 + Number(n[1]), `Фильм ${n[1]}`)]),
+        json: page([film(1000 + Number(n[1]), `Фільм ${n[1]}`)]),
       });
     if (url.pathname === "/3/search/movie" && query === "Knives Out")
-      return route.fulfill({ json: page([film(546554, "Достать ножи")]) });
+      return route.fulfill({ json: page([film(546554, "Ножі наголо")]) });
     // "Only on my services" is on by default: one film is on Netflix.
     const providers = url.pathname.match(
       /^\/3\/movie\/(\d+)\/watch\/providers$/,
@@ -127,22 +127,22 @@ test("TV evening with Claude: questions fly into the trail, picks are dealt, «�
         return route.fulfill({
           headers: cors,
           json: {
-            taste: "Тебе нравятся детективы с иронией.",
+            taste: "Тобі подобаються детективи з іронією.",
             intro: "",
             picks: [
               ...Array.from({ length: 6 }, (_, i) => ({
-                title: `Фильм ${i + 1}`,
+                title: `Фільм ${i + 1}`,
                 original_title: `Film ${i + 1}`,
                 year: 2020,
                 type: "movie",
                 reason: `Причина ${i + 1}.`,
               })),
               {
-                title: "Достать ножи",
+                title: "Ножі наголо",
                 original_title: "Knives Out",
                 year: 2020,
                 type: "movie",
-                reason: "Детектив с юмором.",
+                reason: "Детектив із гумором.",
               },
             ],
           },
@@ -151,10 +151,10 @@ test("TV evening with Claude: questions fly into the trail, picks are dealt, «�
       return route.fulfill({
         headers: cors,
         json: {
-          question: `Вопрос Claude ${n + 1}`,
+          question: `Питання Claude ${n + 1}`,
           options: [
-            { label: `Ответ ${n + 1}`, hint: "подсказка" },
-            { label: "Неважно", hint: "" },
+            { label: `Відповідь ${n + 1}`, hint: "підказка" },
+            { label: "Неважливо", hint: "" },
           ],
           allow_custom: true,
         },
@@ -167,26 +167,26 @@ test("TV evening with Claude: questions fly into the trail, picks are dealt, «�
 
   await page.goto("?tv=1#/tonight");
   await expect(page.locator('[data-screen="/tonight"]')).toBeVisible();
-  await expect.poll(() => onScreen(page)).toContain("С Claude");
+  await expect.poll(() => onScreen(page)).toContain("З Claude");
   await press(page, "Enter");
 
   // Four questions; each answer joins the trail at the top.
   for (let n = 1; n <= 4; n++) {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      `Вопрос Claude ${n}`,
+      `Питання Claude ${n}`,
     );
     for (let k = 1; k < n; k++)
-      await expect(page.getByText(`Ответ ${k}`, { exact: true })).toBeVisible();
-    await expect.poll(() => onScreen(page)).toContain(`Ответ ${n}`);
+      await expect(page.getByText(`Відповідь ${k}`, { exact: true })).toBeVisible();
+    await expect.poll(() => onScreen(page)).toContain(`Відповідь ${n}`);
     await press(page, "Enter");
   }
 
   // The picks: the focused one fills the screen with Claude's reason.
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Фильм 1", {
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Фільм 1", {
     timeout: 15_000,
   });
   await expect(
-    page.getByText("Тебе нравятся детективы с иронией."),
+    page.getByText("Тобі подобаються детективи з іронією."),
   ).toBeVisible();
   await expect(page.getByText("Причина 1.")).toBeVisible();
   expect(asked.map((a) => a.stage)).toEqual([
@@ -197,39 +197,39 @@ test("TV evening with Claude: questions fly into the trail, picks are dealt, «�
     "pick",
   ]);
   await press(page, "ArrowRight");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Фильм 2");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Фільм 2");
 
   // Down to the buttons of that pick: «Не то» sends it away, a new one comes.
   await press(page, "ArrowDown");
-  expect(await onScreen(page)).toContain("Подробнее");
+  expect(await onScreen(page)).toContain("Детальніше");
   await press(page, "ArrowRight", "ArrowRight", "ArrowRight");
-  expect(await onScreen(page)).toContain("Не то");
+  expect(await onScreen(page)).toContain("Не те");
   await press(page, "Enter");
-  await expect(page.getByText("Достать ножи").first()).toBeVisible();
+  await expect(page.getByText("Ножі наголо").first()).toBeVisible();
   await expect(
     page.locator(
       '[data-lane="picks"] .tv-deal, [data-lane="picks"] .tv-dismiss',
     ),
   ).toHaveCount(6);
-  await expect(page.getByText("Фильм 2", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Фільм 2", { exact: true })).toHaveCount(0);
 
   // «Хочу посмотреть» puts the focused pick on the shelf.
   await press(page, "ArrowUp");
   await expect(page.getByRole("heading", { level: 1 })).not.toHaveText(
-    "Фильм 2",
+    "Фільм 2",
   );
   // Its buttons start from the first again.
   await press(page, "ArrowDown");
-  expect(await onScreen(page)).toBe("Подробнее");
+  expect(await onScreen(page)).toBe("Детальніше");
   await press(page, "ArrowRight", "Enter");
-  await expect(page.getByText("✓ В «Хочу посмотреть»")).toBeVisible();
+  await expect(page.getByText("✓ У «Хочу подивитися»")).toBeVisible();
 
   // «Смотрел» asks for a score right away, starting from 5.
   const seen = await page.getByRole("heading", { level: 1 }).textContent();
   await press(page, "ArrowRight");
-  expect(await onScreen(page)).toBe("✓ Смотрел");
+  expect(await onScreen(page)).toBe("✓ Дивився");
   await press(page, "Enter");
-  await expect(page.getByText(`Как тебе «${seen}»?`)).toBeVisible();
+  await expect(page.getByText(`Як тобі «${seen}»?`)).toBeVisible();
   expect(await onScreen(page)).toBe("5");
   await press(page, "ArrowRight", "ArrowRight", "ArrowRight");
   expect(await onScreen(page)).toBe("8");
@@ -238,7 +238,7 @@ test("TV evening with Claude: questions fly into the trail, picks are dealt, «�
 
   // More: the next round goes to Claude with what was shown.
   await press(page, "ArrowDown", "ArrowDown");
-  expect(await onScreen(page)).toBe("Ещё варианты");
+  expect(await onScreen(page)).toBe("Ще варіанти");
   await press(page, "Enter");
   await expect.poll(() => asked.length).toBe(6);
   expect(asked[5].stage).toBe("pick");
@@ -263,43 +263,43 @@ test("TV quick evening: four questions, Back goes to the previous one, picks are
   await tmdb(context);
   await register(page);
   await page.goto("?tv=1#/tonight");
-  await expect.poll(() => onScreen(page)).toContain("Быстрый подбор");
+  await expect.poll(() => onScreen(page)).toContain("Швидкий підбір");
   await press(page, "Enter");
 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Какое настроение?",
+    "Який настрій?",
   );
   await press(page, "Enter");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Фильм или сериал?",
+    "Фільм чи серіал?",
   );
-  await expect(page.getByText("Посмеяться", { exact: true })).toBeVisible();
+  await expect(page.getByText("Посміятися", { exact: true })).toBeVisible();
   // The remote's Back: the previous question.
   expect(await page.evaluate(() => (window as any).umbraTvBack())).toBe(true);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Какое настроение?",
+    "Який настрій?",
   );
-  // Посмеяться, «Неважно» for the format, alone, «Неважно» for the age.
+  // Посміятися, «Неважливо» for the format, alone, «Неважливо» for the age.
   for (const [q, right] of [
-    ["Какое настроение?", 0],
-    ["Фильм или сериал?", 3],
-    ["С кем смотришь?", 0],
-    ["Свежее или проверенное?", 2],
+    ["Який настрій?", 0],
+    ["Фільм чи серіал?", 3],
+    ["З ким дивишся?", 0],
+    ["Свіже чи перевірене?", 2],
   ] as const) {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(q);
     await expect.poll(() => onScreen(page)).not.toBe("");
     for (let k = 0; k < right; k++) await press(page, "ArrowRight");
     await press(page, "Enter");
   }
-  await expect(page.getByText("Изменить ответы")).toBeVisible({
+  await expect(page.getByText("Змінити відповіді")).toBeVisible({
     timeout: 15_000,
   });
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Мальчишник в Вегасе",
   );
-  await expect(page.getByText("есть на Netflix")).toBeVisible();
+  await expect(page.getByText("є на Netflix")).toBeVisible();
   expect(await page.evaluate(() => (window as any).umbraTvBack())).toBe(true);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Что посмотреть вечером?",
+    "Що подивитися ввечері?",
   );
 });

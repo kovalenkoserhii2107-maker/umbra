@@ -43,19 +43,19 @@ export function Avatar({
 
 export function sharedStatus(r: SharedRating) {
   const progress = progressOf(r);
-  if (r.status === "watchlist") return "хочет посмотреть";
+  if (r.status === "watchlist") return "хоче подивитися";
   if (r.status === "watching")
-    return progress ? `смотрит · ${episodeLabel(progress)}` : "смотрит";
-  if (r.status === "dropped") return "бросил";
-  return r.rating ? `${r.rating}/10` : "посмотрел";
+    return progress ? `дивиться · ${episodeLabel(progress)}` : "дивиться";
+  if (r.status === "dropped") return "покинув";
+  return r.rating ? `${r.rating}/10` : "подивився";
 }
 
-/** Short label for a poster badge: "8", "хочет", "смотрит". */
+/** Short label for a poster badge: "8", "хоче", "дивиться". */
 export function shortStatus(r: SharedRating) {
   if (r.rating) return String(r.rating);
-  if (r.status === "watchlist") return "хочет";
-  if (r.status === "watching") return "смотрит";
-  if (r.status === "dropped") return "бросил";
+  if (r.status === "watchlist") return "хоче";
+  if (r.status === "watching") return "дивиться";
+  if (r.status === "dropped") return "покинув";
   return "✓";
 }
 
@@ -149,7 +149,7 @@ export function FriendBadge({
   return (
     <div
       title={title}
-      aria-label={`Друзья: ${title}`}
+      aria-label={`Друзі: ${title}`}
       className={`${className} flex items-center gap-1 rounded-full bg-black/75 py-0.5 pl-0.5 pr-2 backdrop-blur-sm`}
     >
       <span className="flex -space-x-1.5">

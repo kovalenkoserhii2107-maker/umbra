@@ -26,11 +26,11 @@ function Chips({ items }: { items: ReactNode[] }) {
 
 function russianLabel(r: RussianSupport) {
   const parts = [
-    r.interface ? "интерфейс" : null,
-    r.subtitles ? "субтитры" : null,
-    r.audio ? "озвучка" : null,
+    r.interface ? "інтерфейс" : null,
+    r.subtitles ? "субтитри" : null,
+    r.audio ? "озвучення" : null,
   ].filter(Boolean);
-  return parts.length ? parts.join(", ") : "нет";
+  return parts.length ? parts.join(", ") : "немає";
 }
 
 export function GameFacts({
@@ -50,7 +50,7 @@ export function GameFacts({
   const releases = releaseRows(game);
   if (releases.length)
     rows.push([
-      releases.length > 1 ? "Даты выхода" : "Дата выхода",
+      releases.length > 1 ? "Дати виходу" : "Дата виходу",
       <span className="block space-y-0.5">
         {releases.map((r) => (
           <span key={r.day} className="block">
@@ -63,8 +63,8 @@ export function GameFacts({
   const companies = (role: "developer" | "publisher") =>
     (game.involved_companies ?? []).filter((c) => c[role] && c.company?.name);
   for (const [role, label] of [
-    ["developer", "Разработчик"],
-    ["publisher", "Издатель"],
+    ["developer", "Розробник"],
+    ["publisher", "Видавець"],
   ] as const) {
     const list = companies(role);
     if (list.length)
@@ -86,7 +86,7 @@ export function GameFacts({
   const ttbRows = timeToBeatLabel(ttb);
   if (ttbRows.length)
     rows.push([
-      "Время прохождения",
+      "Час проходження",
       <span>
         {ttbRows.map(([label, value], i) => (
           <span key={label}>
@@ -97,30 +97,30 @@ export function GameFacts({
         ))}
       </span>,
     ]);
-  if (russian) rows.push(["Русский язык", russianLabel(russian)]);
+  if (russian) rows.push(["Російська мова", russianLabel(russian)]);
   const modes = (game.game_modes ?? []).map((m) => ru(m.name));
-  if (modes.length) rows.push(["Режимы", modes.join(", ")]);
+  if (modes.length) rows.push(["Режими", modes.join(", ")]);
   const multi = multiplayerLabel(game);
-  if (multi) rows.push(["Мультиплеер", multi]);
+  if (multi) rows.push(["Мультиплеєр", multi]);
   const views = (game.player_perspectives ?? []).map((m) => ru(m.name));
   if (views.length) rows.push(["Вид", views.join(", ")]);
-  if (ages.length) rows.push(["Возрастной рейтинг", ages.join(" · ")]);
+  if (ages.length) rows.push(["Віковий рейтинг", ages.join(" · ")]);
   const series = [...(game.collections ?? []), ...(game.franchises ?? [])]
     .map((c) => c.name)
     .filter((n, i, all): n is string => !!n && all.indexOf(n) === i);
-  if (series.length) rows.push(["Серия", series.join(", ")]);
+  if (series.length) rows.push(["Серія", series.join(", ")]);
   if (steam?.achievements)
-    rows.push(["Достижения Steam", String(steam.achievements)]);
+    rows.push(["Досягнення Steam", String(steam.achievements)]);
   if (steam?.players)
-    rows.push(["Сейчас играют в Steam", steam.players.toLocaleString("ru-RU")]);
+    rows.push(["Зараз грають у Steam", steam.players.toLocaleString("uk-UA")]);
   if (steam?.reviews)
     rows.push([
-      "Отзывы в Steam",
-      `${steamReviewLabel(steam.reviews.score)} · ${steam.reviews.total.toLocaleString("ru-RU")}`,
+      "Відгуки в Steam",
+      `${steamReviewLabel(steam.reviews.score)} · ${steam.reviews.total.toLocaleString("uk-UA")}`,
     ]);
   if (!rows.length) return null;
   return (
-    <Section title="Подробности">
+    <Section title="Подробиці">
       <dl className={`${CARD} px-4`}>
         {rows.map(([label, value]) => (
           <Fact key={label} label={label}>
@@ -139,7 +139,7 @@ export function Screens({ game }: { game: RawGame }) {
     .slice(0, 16);
   if (!shots.length) return null;
   return (
-    <Section title="Скриншоты" aside={<Aside>{shots.length}</Aside>}>
+    <Section title="Скріншоти" aside={<Aside>{shots.length}</Aside>}>
       <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
         {shots.map((s, i) => (
           <button
@@ -164,11 +164,11 @@ export function Screens({ game }: { game: RawGame }) {
           images={shots.map((s, i) => ({
             src: imageUrl(s.image_id, "1080p"),
             thumb: imageUrl(s.image_id, "screenshot_big"),
-            alt: `${game.name} — кадр ${i + 1}`,
+            alt: `${game.name} — скріншот ${i + 1}`,
           }))}
           initialIndex={viewerIndex}
           onClose={() => setViewerIndex(null)}
-          title="Скриншоты"
+          title="Скріншоти"
         />
       ) : null}
     </Section>
@@ -236,10 +236,10 @@ export function CriticReviews({ oc }: { oc: OpenCritic | null | undefined }) {
   if (!oc?.found || !oc.topReviews.length) return null;
   return (
     <Section
-      title="Рецензии критиков"
+      title="Рецензії критиків"
       aside={<AsideLink href={oc.url}>OpenCritic · {oc.reviews} ↗</AsideLink>}
     >
-      <p className="mb-2 text-xs text-dim">Самые читаемые · на английском</p>
+      <p className="mb-2 text-xs text-dim">Найпопулярніші · англійською</p>
       <div className="space-y-3">
         {oc.topReviews.slice(0, 4).map((r) => (
           <CriticCard key={`${r.outlet}-${r.url}`} review={r} />
@@ -256,7 +256,7 @@ function PcPrices({ prices }: { prices: Prices | null | undefined }) {
   if (prices === undefined)
     return (
       <p role="status" className="mb-3 text-sm text-mute">
-        Проверяю цены в магазинах ПК…
+        Перевіряю ціни в магазинах ПК…
       </p>
     );
   if (!prices?.found || !prices.deals.length) return null;
@@ -278,7 +278,7 @@ function PcPrices({ prices }: { prices: Prices | null | undefined }) {
               <span className="block truncate font-mono text-[10px] uppercase tracking-[0.12em] text-dim">
                 {[
                   d.drm.length ? d.drm.join(", ") : "",
-                  best ? "минимум в магазине" : "",
+                  best ? "мінімум у магазині" : "",
                   d.voucher ? `код ${d.voucher}` : "",
                 ]
                   .filter(Boolean)
@@ -294,7 +294,7 @@ function PcPrices({ prices }: { prices: Prices | null | undefined }) {
               <span
                 className={`block font-mono text-sm font-bold ${d.cut > 0 ? "text-ok" : ""}`}
               >
-                {d.price === 0 ? "бесплатно" : money(d.price, d.currency)}
+                {d.price === 0 ? "безкоштовно" : money(d.price, d.currency)}
               </span>
               {d.cut > 0 ? (
                 <span className="block font-mono text-[11px] text-dim line-through">
@@ -308,7 +308,7 @@ function PcPrices({ prices }: { prices: Prices | null | undefined }) {
       <div className="flex items-center justify-between gap-3 px-4 py-2.5 text-xs text-mute">
         <span>
           {low
-            ? `Минимум за всё время: ${money(low.amount, low.currency)}`
+            ? `Мінімум за весь час: ${money(low.amount, low.currency)}`
             : ""}
         </span>
         <a
@@ -340,7 +340,7 @@ export function GameLinks({
   const { stores, other } = gameLinks(game, steamId);
   if (part === "links")
     return (
-      <Section title="Ссылки">
+      <Section title="Посилання">
         <div className="flex flex-wrap gap-2">
           {other.map((l) => (
             <a
@@ -359,7 +359,7 @@ export function GameLinks({
   return (
     <>
       {stores.length ? (
-        <Section title="Где купить">
+        <Section title="Де купити">
           <PcPrices prices={prices} />
           <div className="flex flex-wrap gap-2">
             {stores.map((l) => (
@@ -372,14 +372,14 @@ export function GameLinks({
               >
                 {l.label}
                 <span className="text-accent">
-                  {l.search ? "поиск ↗" : "↗"}
+                  {l.search ? "пошук ↗" : "↗"}
                 </span>
               </a>
             ))}
           </div>
           {prices === null ? null : (
             <p className="mt-2 text-[11px] text-dim">
-              Цены — магазины ПК; консольные магазины открываются ссылкой.
+              Ціни — магазини ПК; консольні магазини відкриваються посиланням.
             </p>
           )}
         </Section>
@@ -392,12 +392,12 @@ export function PcRequirements({ steam }: { steam: SteamApp | null }) {
   const req = steam?.requirements;
   if (!req?.minimum && !req?.recommended) return null;
   return (
-    <Section title="Системные требования">
+    <Section title="Системні вимоги">
       <div className="grid gap-3 sm:grid-cols-2">
         {(
           [
-            ["Минимальные", req.minimum],
-            ["Рекомендуемые", req.recommended],
+            ["Мінімальні", req.minimum],
+            ["Рекомендовані", req.recommended],
           ] as const
         )
           .filter(([, text]) => text)
@@ -405,11 +405,11 @@ export function PcRequirements({ steam }: { steam: SteamApp | null }) {
             <details
               key={label}
               className={`${CARD} p-4`}
-              open={label === "Минимальные"}
+              open={label === "Мінімальні"}
             >
               <summary className="cursor-pointer text-sm">{label}</summary>
               <p className="mt-3 whitespace-pre-line text-sm leading-6 text-mute">
-                {text.replace(/^(Минимальные|Рекомендуемые):\s*/i, "")}
+                {text.replace(/^[^\n:]+:\s*/, "")}
               </p>
             </details>
           ))}

@@ -91,7 +91,7 @@ function years(item: Show, media: MediaType) {
   if (media !== "tv" || !first) return first;
   const last = yearOf((item as { last_air_date?: string }).last_air_date);
   if (item.in_production || item.status === "Returning Series")
-    return `${first} — н. в.`;
+    return `${first} — дотепер`;
   return last && last !== first ? `${first}–${last}` : first;
 }
 
@@ -105,7 +105,7 @@ export function TvTitle() {
     return (
       <Stage>
         <p className="absolute left-12 top-24 text-mute">
-          Не удалось открыть карточку. Нажми «Назад».
+          Не вдалося відкрити картку. Натисни «Назад».
         </p>
       </Stage>
     );
@@ -116,7 +116,7 @@ export function TvTitle() {
           <LoadingMotion
             key={`${media}-${id}`}
             kind="movie"
-            label="Собираю карточку…"
+            label="Збираю картку…"
           />
         </div>
       </Stage>
@@ -166,7 +166,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
   const actions: Action[] = [
     ...apps.map((a, i) => ({
       key: `watch-${a.app}`,
-      label: `▶ Смотреть в ${a.name}`,
+      label: `▶ Дивитися в ${a.name}`,
       accent: i === 0,
       run: () => launchTvApp(a.app, original || title),
     })),
@@ -174,7 +174,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
       ? [
           {
             key: "lampa",
-            label: "Открыть в Lampa",
+            label: "Відкрити в Lampa",
             accent: !apps.length,
             run: () => openInLampa(media, item.id),
           },
@@ -193,7 +193,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
       ? [
           {
             key: "want",
-            label: "＋ Хочу посмотреть",
+            label: "＋ Хочу подивитися",
             run: () =>
               upsert({
                 id: item.id,
@@ -211,7 +211,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
         ? [
             {
               key: "want",
-              label: "✓ В «Хочу посмотреть»",
+              label: "✓ У «Хочу подивитися»",
               run: () => remove(media, item.id),
             },
           ]
@@ -468,8 +468,8 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
       sub:
         critics.data?.tomatometer != null
           ? critics.data.tomatometer >= 60
-            ? "свежий"
-            : "гнилой"
+            ? "свіжий"
+            : "гнилий"
           : null,
       color: (critics.data?.tomatometer ?? 100) >= 60 ? "#fa320a" : "#0ac855",
     },
@@ -490,7 +490,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
     },
   ];
   const lead = crewRows(item).find(
-    (r) => r.role === "Режиссёр" || r.role === "Создатели",
+    (r) => r.role === "Режисер" || r.role === "Творці",
   );
   const stars = (item.credits?.cast ?? []).slice(0, 3).map((c) => c.name);
   const awards = awardsLabel(omdb.data?.awards);
@@ -514,7 +514,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
         <header className="relative px-12 pb-5 pt-12">
           <div className="w-[560px]">
             <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-accent">
-              {media === "tv" ? "сериал" : "фильм"}
+              {media === "tv" ? "серіал" : "фільм"}
             </p>
             <h1 className="mt-1 line-clamp-2 text-[36px] leading-[1.08] tracking-tight">
               {title}
@@ -574,15 +574,15 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
             {mine ? (
               <p className="mt-2 text-[13px] text-accent">
                 {mine.status === "watchlist"
-                  ? "В «Хочу посмотреть»"
+                  ? "У «Хочу подивитися»"
                   : mine.status === "watching"
                     ? progress
-                      ? `Смотрю · просмотрено до S${progress.season}E${progress.episode}`
-                      : "Смотрю"
+                      ? `Дивлюся · переглянуто до S${progress.season}E${progress.episode}`
+                      : "Дивлюся"
                     : mine.status === "watched"
-                      ? "Просмотрено"
-                      : "Брошено"}
-                {mine.rating ? ` · твоя оценка ${mine.rating}` : ""}
+                      ? "Переглянуто"
+                      : "Покинуто"}
+                {mine.rating ? ` · твоя оцінка ${mine.rating}` : ""}
               </p>
             ) : null}
           </div>
@@ -591,7 +591,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
             <RatingTiles tiles={tiles} />
             {friendList.length ? (
               <div className="mt-3 rounded-2xl bg-black/60 px-3 py-2">
-                <p className="text-[11px] text-white/60">Оценки друзей</p>
+                <p className="text-[11px] text-white/60">Оцінки друзів</p>
                 {friendList.map(({ friend, rating }) => (
                   <p
                     key={friend.uid}
@@ -623,7 +623,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
           </PillLane>
         ) : null}
 
-        <PillLane lane="rating" title="Твоя оценка">
+        <PillLane lane="rating" title="Твоя оцінка">
           {Array.from({ length: 10 }, (_, i) => (
             <span
               key={i}
@@ -644,7 +644,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
         {seasons.length > 1 ? (
           <Rail
             lane="seasons"
-            title="Сезоны"
+            title="Сезони"
             count={seasons.length}
             step={122}
             col={nav.col("seasons")}
@@ -666,7 +666,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
         {episodeList.length ? (
           <Rail
             lane="episodes"
-            title={`Сезон ${seasonNumber} · ${episodeList.length} ${plural(episodeList.length, "серия", "серии", "серий")} — OK отмечает просмотренное`}
+            title={`Сезон ${seasonNumber} · ${episodeList.length} ${plural(episodeList.length, "серія", "серії", "серій")} — OK позначає переглянуте`}
             count={episodeList.length}
             step={EPISODE_STEP}
             col={nav.col("episodes")}
@@ -690,7 +690,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
         {where.length ? (
           <Rail
             lane="where"
-            title={`Где смотреть · ${settings.region}`}
+            title={`Де дивитися · ${settings.region}`}
             count={where.length}
             step={PROVIDER_STEP}
             col={nav.col("where")}
@@ -710,7 +710,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
         {allVideos.length ? (
           <Rail
             lane="videos"
-            title={`Видео · ${allVideos.length}`}
+            title={`Відео · ${allVideos.length}`}
             count={allVideos.length}
             step={VIDEO_STEP}
             col={nav.col("videos")}
@@ -724,7 +724,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
         {stills.length > 0 ? (
           <Rail
             lane="stills"
-            title="Кадры"
+            title="Кадри"
             count={stills.length}
             step={STILL_STEP}
             col={nav.col("stills")}
@@ -742,7 +742,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
         {cast.length ? (
           <Rail
             lane="cast"
-            title="В ролях"
+            title="У ролях"
             count={cast.length}
             step={PERSON_STEP}
             col={nav.col("cast")}
@@ -762,7 +762,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
         {crew.length ? (
           <Rail
             lane="crew"
-            title="Съёмочная группа"
+            title="Знімальна група"
             count={crew.length}
             step={PERSON_STEP}
             col={nav.col("crew")}
@@ -783,7 +783,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
 
         {facts.length ? (
           <section data-lane="details" className="pb-5">
-            <PartTitle>Подробности</PartTitle>
+            <PartTitle>Подробиці</PartTitle>
             <Facts rows={facts} focused={at("details", 0)} />
           </section>
         ) : null}
@@ -791,7 +791,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
         {reviewList.length ? (
           <Rail
             lane="reviews"
-            title={`Рецензии зрителей TMDB · ${reviews.data!.total_results} · на английском — OK читать`}
+            title={`Рецензії глядачів TMDB · ${reviews.data!.total_results} · англійською — OK читати`}
             count={reviewList.length}
             step={REVIEW_STEP}
             col={nav.col("reviews")}
@@ -805,7 +805,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
         {parts.length ? (
           <Rail
             lane="franchise"
-            title={`${collection.data?.name || series?.name} · ${parts.length + 1} в серии`}
+            title={`${collection.data?.name || series?.name} · ${parts.length + 1} у серії`}
             count={parts.length}
             step={POSTER_STEP}
             col={nav.col("franchise")}
@@ -824,7 +824,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
         {recommendations.length ? (
           <Rail
             lane="recs"
-            title="Рекомендации"
+            title="Рекомендації"
             count={recommendations.length}
             step={POSTER_STEP}
             col={nav.col("recs")}
@@ -838,7 +838,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
         {similar.length ? (
           <Rail
             lane="similar"
-            title="Похожее"
+            title="Схоже"
             count={similar.length}
             step={POSTER_STEP}
             col={nav.col("similar")}
@@ -874,7 +874,7 @@ function TitleView({ item, media }: { item: Show; media: MediaType }) {
           }))}
           initialIndex={viewerIndex}
           onClose={() => setViewerIndex(null)}
-          title="Кадры"
+          title="Кадри"
         />
       ) : null}
     </Stage>

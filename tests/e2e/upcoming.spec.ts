@@ -3,15 +3,15 @@ import { test, expect, type Page } from "@playwright/test";
 async function register(page: Page) {
   await page.goto("#/login");
   await page
-    .getByRole("button", { name: "Нет аккаунта — зарегистрироваться" })
+    .getByRole("button", { name: "Немає акаунту — зареєструватися" })
     .click();
-  await page.getByLabel("Имя", { exact: true }).fill("Fan");
+  await page.getByLabel("Ім'я", { exact: true }).fill("Fan");
   await page
     .getByLabel("Email", { exact: true })
     .fill(`soon-${Date.now()}@example.com`);
   await page.getByLabel("Пароль", { exact: true }).fill("test-password-123");
   await page
-    .getByRole("button", { name: "Создать аккаунт", exact: true })
+    .getByRole("button", { name: "Створити акаунт", exact: true })
     .click();
   await expect(page).toHaveURL(/#\/$/);
 }
@@ -49,14 +49,14 @@ test("coming soon rows for films and series, popular first, with dates", async (
         json: list([
           {
             id: 901,
-            title: "Малый фильм",
+            title: "Малий фільм",
             release_date: inDays(1),
             popularity: 20,
             poster_path: "/a.jpg",
           },
           {
             id: 902,
-            title: "Главная премьера",
+            title: "Головна прем'єра",
             release_date: inDays(40),
             popularity: 400,
             poster_path: "/b.jpg",
@@ -68,7 +68,7 @@ test("coming soon rows for films and series, popular first, with dates", async (
         json: list([
           {
             id: 911,
-            name: "Новый сериал",
+            name: "Новий серіал",
             first_air_date: inDays(10),
             popularity: 60,
             poster_path: "/c.jpg",
@@ -80,7 +80,7 @@ test("coming soon rows for films and series, popular first, with dates", async (
         json: list([
           {
             id: 912,
-            name: "Большое возвращение",
+            name: "Велике повернення",
             popularity: 500,
             poster_path: "/d.jpg",
           },
@@ -90,7 +90,7 @@ test("coming soon rows for films and series, popular first, with dates", async (
       return route.fulfill({
         json: {
           id: 912,
-          name: "Большое возвращение",
+          name: "Велике повернення",
           next_episode_to_air: {
             air_date: inDays(20),
             season_number: 5,
@@ -103,29 +103,29 @@ test("coming soon rows for films and series, popular first, with dates", async (
 
   await register(page);
   const films = page.locator("section", {
-    has: page.getByRole("heading", { name: "Скоро выйдут фильмы" }),
+    has: page.getByRole("heading", { name: "Скоро вийдуть фільми" }),
   });
   const shows = page.locator("section", {
-    has: page.getByRole("heading", { name: "Скоро выйдут сериалы" }),
+    has: page.getByRole("heading", { name: "Скоро вийдуть серіали" }),
   });
   // The most anticipated first, the date under the poster.
   await expect(films.locator(".row-scroll a").first()).toContainText(
-    "Главная премьера",
+    "Головна прем'єра",
   );
   await expect(films).toContainText("завтра");
   await expect(shows.locator(".row-scroll a").first()).toContainText(
-    "Большое возвращение",
+    "Велике повернення",
   );
   await expect(shows.locator(".row-scroll a").first()).toContainText(
-    /сезон 5 · \d+ [а-я]+/,
+    /сезон 5 · \d+ [а-яіїєґ]+/,
   );
 
-  await shows.getByRole("link", { name: "Все" }).click();
+  await shows.getByRole("link", { name: "Усі" }).click();
   await expect(page).toHaveURL(/#\/feed\/upcoming-tv$/);
   await expect(
-    page.getByRole("heading", { name: "Скоро выйдут сериалы" }),
+    page.getByRole("heading", { name: "Скоро вийдуть серіали" }),
   ).toBeVisible();
-  await expect(page.getByText("Новый сериал")).toBeVisible();
+  await expect(page.getByText("Новий серіал")).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("#/");
   await shows.scrollIntoViewIfNeeded();

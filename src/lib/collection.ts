@@ -27,32 +27,32 @@ export const RATING_BANDS: Array<{
   min?: number;
   max?: number;
 }> = [
-  { id: "all", label: "Любая оценка" },
+  { id: "all", label: "Будь-яка оцінка" },
   { id: "9", label: "9–10", min: 9, max: 10 },
   { id: "7", label: "7–8", min: 7, max: 8 },
   { id: "5", label: "5–6", min: 5, max: 6 },
   { id: "1", label: "1–4", min: 1, max: 4 },
-  { id: "none", label: "Без оценки" },
+  { id: "none", label: "Без оцінки" },
 ];
 
 export const DECADES: Array<{
   id: CollectionFilters["decade"];
   label: string;
 }> = [
-  { id: "all", label: "Любые годы" },
-  { id: "2020", label: "2020-е" },
-  { id: "2010", label: "2010-е" },
-  { id: "2000", label: "2000-е" },
-  { id: "1990", label: "1990-е" },
-  { id: "older", label: "Раньше 1990" },
+  { id: "all", label: "Будь-які роки" },
+  { id: "2020", label: "2020-ті" },
+  { id: "2010", label: "2010-ті" },
+  { id: "2000", label: "2000-ні" },
+  { id: "1990", label: "1990-ті" },
+  { id: "older", label: "Раніше 1990" },
 ];
 
 export const SORTS: Array<{ id: CollectionFilters["sort"]; label: string }> = [
-  { id: "recent", label: "Недавно изменённые" },
-  { id: "rating", label: "По моей оценке" },
-  { id: "title", label: "По названию" },
-  { id: "newest", label: "Сначала новые" },
-  { id: "oldest", label: "Сначала старые" },
+  { id: "recent", label: "Нещодавно змінені" },
+  { id: "rating", label: "За моєю оцінкою" },
+  { id: "title", label: "За назвою" },
+  { id: "newest", label: "Спочатку нові" },
+  { id: "oldest", label: "Спочатку старі" },
 ];
 
 export function yearOfItem(item: LibraryItem, meta: MetaMap) {

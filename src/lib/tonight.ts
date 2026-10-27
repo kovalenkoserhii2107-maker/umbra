@@ -37,69 +37,69 @@ export const MOODS: Array<{
   movie: number[];
   tv: number[];
 }> = [
-  { id: "laugh", label: "Посмеяться", hint: "комедии", movie: [35], tv: [35] },
+  { id: "laugh", label: "Посміятися", hint: "комедії", movie: [35], tv: [35] },
   {
     id: "thrill",
-    label: "Пощекотать нервы",
-    hint: "триллеры, хорроры, детективы",
+    label: "Лоскотати нерви",
+    hint: "трилери, горори, детективи",
     movie: [53, 27, 9648],
     tv: [9648, 80],
   },
   {
     id: "think",
-    label: "Подумать",
-    hint: "драмы, загадки, история",
+    label: "Подумати",
+    hint: "драми, загадки, історія",
     movie: [18, 9648, 36, 99],
     tv: [18, 9648, 99],
   },
   {
     id: "cozy",
-    label: "Уютно и легко",
-    hint: "романтика, семейное, мультфильмы",
+    label: "Затишно і легко",
+    hint: "романтика, сімейне, мультфільми",
     movie: [10749, 10751, 16, 35],
     tv: [35, 10751, 16],
   },
   {
     id: "action",
-    label: "Драйв и экшен",
-    hint: "боевики, приключения",
+    label: "Драйв і екшн",
+    hint: "бойовики, пригоди",
     movie: [28, 12, 80],
     tv: [10759, 80],
   },
   {
     id: "wonder",
-    label: "Фантазия и космос",
-    hint: "фантастика, фэнтези",
+    label: "Фантазія і космос",
+    hint: "фантастика, фентезі",
     movie: [878, 14, 12],
     tv: [10765],
   },
   {
     id: "touch",
-    label: "Чтобы тронуло",
-    hint: "сильные драмы, мелодрамы",
+    label: "Щоб зворушило",
+    hint: "сильні драми, мелодрами",
     movie: [18, 10749],
     tv: [18],
   },
 ];
 
 export const FORMATS: Array<{ id: Format; label: string; hint: string }> = [
-  { id: "short", label: "Фильм до 1,5 часа", hint: "чтобы не засидеться" },
-  { id: "movie", label: "Фильм любой длины", hint: "" },
-  { id: "tv", label: "Сериал", hint: "пара серий" },
-  { id: "any", label: "Неважно", hint: "" },
+  { id: "short", label: "Фільм до 1,5 години", hint: "щоб не засиджуватися" },
+  { id: "movie", label: "Фільм будь-якої тривалості", hint: "" },
+  { id: "tv", label: "Серіал", hint: "пара серій" },
+  { id: "any", label: "Байдуже", hint: "" },
 ];
 
 export const COMPANIES: Array<{ id: Company; label: string }> = [
   { id: "solo", label: "Один" },
-  { id: "couple", label: "Вдвоём" },
-  { id: "friends", label: "С друзьями" },
-  { id: "family", label: "С семьёй и детьми" },
+  { id: "couple", label: "Удвох" },
+  { id: "friends", label: "З друзями" },
+  { id: "family", label: "Із сім'єю та дітьми" },
 ];
 
 export const ERAS: Array<{ id: Era; label: string }> = [
-  { id: "new", label: "Что-то свежее" },
-  { id: "classic", label: "Проверенная классика" },
-  { id: "any", label: "Неважно" },
+  { id: "new", label: "Щось свіже" },
+  { id: "classic", label: "Перевірена класика" },
+  { id: "any", label: "Байдуже" },
 ];
 
 /** Never offered to a family evening. */
@@ -228,16 +228,16 @@ export function rankTonight(
       bonus;
 
     const reasons: string[] = [];
-    if (c.from === "watchlist") reasons.push("из «Хочу посмотреть»");
+    if (c.from === "watchlist") reasons.push("із «Хочу подивитися»");
     if (c.like)
-      reasons.push(`похоже на «${c.like.title}» — твоя ${c.like.rating}/10`);
+      reasons.push(`схоже на «${c.like.title}» — твоя ${c.like.rating}/10`);
     const loved = (names as string[]).find(
       (n) => (ctx.taste.get(n) ?? 0) > 0.3,
     );
     if (loved && reasons.length < 2)
-      reasons.push(`ты высоко ценишь жанр «${loved.toLowerCase()}»`);
+      reasons.push(`ти високо цінуєш жанр «${loved.toLowerCase()}»`);
     if (votes >= 50 && (c.item.vote_average ?? 0) >= 7.5 && reasons.length < 2)
-      reasons.push(`зрители ставят ${c.item.vote_average!.toFixed(1)}`);
+      reasons.push(`глядачі ставлять ${c.item.vote_average!.toFixed(1)}`);
 
     const prev = best.get(key);
     if (!prev || prev.score < score)

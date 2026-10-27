@@ -119,12 +119,12 @@ function useRemoteRegistration() {
   }, [uid]);
 }
 
-/** Back twice within this time on «Лента» leaves the app. */
+/** Back twice within this time on «Стрічка» leaves the app. */
 const LEAVE_MS = 2000;
 
 /**
  * Back with nothing open on the screen: on another tab of the menu it goes
- * to «Лента» (the app never closes from there); on «Лента» the first press
+ * to «Стрічка» (the app never closes from there); on «Стрічка» the first press
  * says how to leave and a second one soon after closes the app. Title and
  * person pages keep going back in history.
  */
@@ -177,7 +177,7 @@ export default function TvApp() {
           role="status"
           className="tv-rise fixed bottom-10 left-1/2 z-50 -translate-x-1/2 rounded-full bg-black/80 px-6 py-3 text-[16px] text-ink shadow-[0_8px_30px_rgba(0,0,0,0.6)]"
         >
-          Нажмите «Назад» ещё раз, чтобы выйти
+          Натисніть «Назад» ще раз, щоб вийти
         </p>
       ) : null}
     </>

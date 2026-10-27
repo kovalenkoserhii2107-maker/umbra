@@ -147,8 +147,8 @@ function Intro({
           {
             key: "resume",
             icon: "↺",
-            title: "Вернуться к подборке",
-            text: "Последние варианты Claude ждут тебя",
+            title: "Повернутися до добірки",
+            text: "Останні варіанти Claude чекають на тебе",
             run: onResume,
           },
         ]
@@ -158,11 +158,11 @@ function Intro({
           {
             key: "ai",
             icon: "✦",
-            title: "С Claude",
+            title: "З Claude",
             text:
               ai === null
-                ? "Проверяю, на связи ли Claude…"
-                : "Четыре вопроса под твою полку — и фильмы, которые попадут",
+                ? "Перевіряю, чи на зв'язку Claude…"
+                : "Чотири питання під твою полицю — і фільми, які потраплять у ціль",
             run: () => ai && onMode("ai"),
           },
         ]
@@ -170,8 +170,8 @@ function Intro({
     {
       key: "quick",
       icon: "⚡",
-      title: "Быстрый подбор",
-      text: "Настроение, формат, компания — и подборка по твоим оценкам",
+      title: "Швидкий підбір",
+      text: "Настрій, формат, компанія — і добірка за твоїми оцінками",
       run: () => onMode("quick"),
     },
   ];
@@ -195,14 +195,14 @@ function Intro({
       />
       <div className="absolute left-12 top-[96px] w-[700px]">
         <p className="tv-rise font-mono text-[12px] uppercase tracking-[0.22em] text-accent">
-          подбор на вечер
+          підбір на вечір
         </p>
         <h1 className="mt-2 text-[42px] leading-[1.05] tracking-tight">
-          <Words text="Что посмотреть вечером?" />
+          <Words text="Що подивитися ввечері?" />
         </h1>
         <p className="tv-rise mt-3 text-[16px] text-white/70" style={i(4)}>
-          Четыре вопроса — и подборка, которая учитывает всё, что ты смотрел и
-          как оценивал.
+          Чотири питання — і добірка, яка враховує все, що ти дивився та
+          як оцінював.
         </p>
       </div>
       <div
@@ -247,12 +247,12 @@ function Intro({
       <div className="absolute left-0 top-[468px]">
         <PillLane lane="rewatch">
           <Pill focused={at("rewatch", 0)}>
-            {rewatch ? "✓ " : ""}Включать просмотренное
+            {rewatch ? "✓ " : ""}Включати переглянуте
           </Pill>
           <span className="self-center text-[13px] text-white/50">
             {rewatch
-              ? "Уже просмотренное тоже может попасть в подборку"
-              : "Только то, что ты ещё не видел"}
+              ? "Вже переглянуте теж може потрапити в добірку"
+              : "Тільки те, що ти ще не бачив"}
           </span>
         </PillLane>
       </div>
@@ -281,7 +281,7 @@ function Progress({ index, round }: { index: number; round: number }) {
         ))}
       </div>
       <p className="font-mono text-[12px] uppercase tracking-[0.16em] text-white/60">
-        {round > 1 ? `раунд ${round} · ` : ""}вопрос {index + 1} из 4
+        {round > 1 ? `раунд ${round} · ` : ""}питання {index + 1} з 4
       </p>
     </div>
   );
@@ -417,7 +417,7 @@ function Question({ view }: { view: QuestionView }) {
         </Rail>
       </div>
       <p className="absolute bottom-8 left-12 text-[13px] text-white/40">
-        ← → выбрать · OK ответить · «Назад» — предыдущий вопрос
+        ← → обрати · OK відповісти · «Назад» — попереднє питання
       </p>
     </>
   );
@@ -427,15 +427,15 @@ function Question({ view }: { view: QuestionView }) {
 
 const PHRASES = {
   ask: [
-    "Claude читает твои ответы…",
-    "Выбирает самый полезный следующий вопрос…",
+    "Claude читає твої відповіді…",
+    "Обирає найкорисніше наступне питання…",
   ],
   pick: [
-    "Смотрю твои оценки и любимое…",
-    "Ищу похожее на то, что тебе нравится…",
-    "Отсеиваю уже просмотренное…",
-    "Проверяю, где это посмотреть…",
-    "Собираю подборку на вечер…",
+    "Дивлюся твої оцінки та улюблене…",
+    "Шукаю схоже на те, що тобі подобається…",
+    "Відсіюю вже переглянуте…",
+    "Перевіряю, де це подивитися…",
+    "Збираю добірку на вечір…",
   ],
 };
 
@@ -539,7 +539,7 @@ function Thinking({
         <p key={n} className="tv-rise text-[22px] text-white/90">
           {phrases[n % phrases.length]}
         </p>
-        <p className="mt-2 text-[13px] text-white/45">Обычно это до минуты</p>
+        <p className="mt-2 text-[13px] text-white/45">Зазвичай це до хвилини</p>
       </div>
     </div>
   );
@@ -755,14 +755,14 @@ function Eclipse({
           ))}
         </div>
         <p className="font-mono text-[12px] uppercase tracking-[0.16em] text-white/60">
-          {round > 1 ? `раунд ${round} · ` : ""}готовлю вопрос {index + 1} из 4
+          {round > 1 ? `раунд ${round} · ` : ""}готую питання {index + 1} з 4
         </p>
       </div>
 
       <OrbitalSunrise />
       <div className="absolute inset-x-0 top-[400px] flex flex-col items-center">
         <p className="text-[22px] text-white/90 [text-shadow:0_2px_12px_rgba(0,0,0,0.9)]">
-          Claude выбирает следующий вопрос
+          Claude обирає наступне питання
           {[0, 1, 2].map((k) => (
             <span
               key={k}
@@ -786,7 +786,7 @@ function Eclipse({
           </div>
         ) : (
           <p className="mt-3 text-[14px] text-white/50">
-            Смотрю на твою полку: оценки, «Хочу посмотреть», брошенное
+            Дивлюся на твою полицю: оцінки, «Хочу подивитися», покинуте
           </p>
         )}
       </div>
@@ -823,7 +823,7 @@ function Results({
   picks: Pick[];
   /** What Claude understood about your taste. */
   taste?: string;
-  /** "Ещё варианты", "Уточнить"… */
+  /** "Ще варіанти", "Уточнити"… */
   extra: Action[];
   /** Seen, with the score picked right away (null — no score). */
   onSeen: (p: Pick, rating: number | null) => void;
@@ -852,7 +852,7 @@ function Results({
         ? [
             {
               key: "watch",
-              label: `▶ Смотреть в ${watch.name}`,
+              label: `▶ Дивитися в ${watch.name}`,
               accent: true,
               run: () =>
                 launchTvApp(
@@ -866,14 +866,14 @@ function Results({
         : []),
       {
         key: "open",
-        label: "Подробнее",
+        label: "Детальніше",
         run: () => navigate(`/title/${pick.type}/${pick.item.id}`),
       },
       ...(!mine
         ? [
             {
               key: "want",
-              label: "＋ Хочу посмотреть",
+              label: "＋ Хочу подивитися",
               run: () => upsert(watchlistEntry(pick)),
             },
           ]
@@ -881,7 +881,7 @@ function Results({
           ? [
               {
                 key: "want",
-                label: "✓ В «Хочу посмотреть»",
+                label: "✓ У «Хочу подивитися»",
                 run: () => remove(pick.type, pick.item.id),
               },
             ]
@@ -891,14 +891,14 @@ function Results({
         : [
             {
               key: "seen",
-              label: "✓ Смотрел",
+              label: "✓ Дивився",
               run: () => {
                 setRating(pick);
                 nav.focus("rate", 4);
               },
             },
           ]),
-      { key: "no", label: "✕ Не то", run: () => leave(pick, "dismiss") },
+      { key: "no", label: "✕ Не те", run: () => leave(pick, "dismiss") },
     ];
   };
   const pickAt = (cols: Record<string, number>) =>
@@ -907,7 +907,7 @@ function Results({
     (state) =>
       rating
         ? [
-            // 1–10 and «Без оценки»; the focus starts on 5.
+            // 1–10 and «Без оцінки»; the focus starts on 5.
             {
               key: "rate",
               size: 11,
@@ -995,13 +995,13 @@ function Results({
         {taste ? (
           <p className="tv-rise line-clamp-2 text-[13px] leading-snug text-accent/90">
             <span className="font-mono uppercase tracking-[0.14em]">
-              Claude понял:{" "}
+              Claude зрозумів:{" "}
             </span>
             {taste}
           </p>
         ) : (
           <p className="tv-rise font-mono text-[12px] uppercase tracking-[0.2em] text-accent">
-            подборка на вечер
+            добірка на вечір
           </p>
         )}
         {pick ? (
@@ -1010,13 +1010,13 @@ function Results({
               {titleOf(pick.item)}
             </h1>
             <p className="mt-2 text-[14px] text-white/70">
-              {[pick.type === "tv" ? "сериал" : "фильм", year, score]
+              {[pick.type === "tv" ? "серіал" : "фільм", year, score]
                 .filter(Boolean)
                 .join(" · ")}
               {pick.where?.length ? (
                 <span className="text-ok">
                   {" "}
-                  · есть на {pick.where.join(", ")}
+                  · є на {pick.where.join(", ")}
                 </span>
               ) : null}
             </p>
@@ -1086,7 +1086,7 @@ function Results({
             className="tv-rise flex items-center gap-2.5 px-12"
           >
             <p className="mr-2 max-w-[190px] truncate text-[15px] text-white/80">
-              Как тебе «{titleOf(rating.item)}»?
+              Як тобі «{titleOf(rating.item)}»?
             </p>
             {Array.from({ length: 10 }, (_, n) => (
               <span
@@ -1109,7 +1109,7 @@ function Results({
                   : "bg-white/10 text-white/70"
               }`}
             >
-              Без оценки
+              Без оцінки
             </span>
           </section>
         ) : (
@@ -1162,10 +1162,10 @@ const QUICK: Array<{
   title: string;
   options: Array<{ id: string; label: string; hint?: string }>;
 }> = [
-  { key: "mood", title: "Какое настроение?", options: MOODS },
-  { key: "format", title: "Фильм или сериал?", options: FORMATS },
-  { key: "company", title: "С кем смотришь?", options: COMPANIES },
-  { key: "era", title: "Свежее или проверенное?", options: ERAS },
+  { key: "mood", title: "Який настрій?", options: MOODS },
+  { key: "format", title: "Фільм чи серіал?", options: FORMATS },
+  { key: "company", title: "З ким дивишся?", options: COMPANIES },
+  { key: "era", title: "Свіже чи перевірене?", options: ERAS },
 ];
 
 export function TvTonight() {
@@ -1252,7 +1252,7 @@ export function TvTonight() {
               ? [
                   {
                     key: "retry",
-                    label: "Повторить",
+                    label: "Повторити",
                     accent: true,
                     run: claude.retry,
                   },
@@ -1260,10 +1260,10 @@ export function TvTonight() {
               : []),
             {
               key: "quick",
-              label: "Быстрый подбор",
+              label: "Швидкий підбір",
               run: () => begin("quick"),
             },
-            { key: "home", label: "К началу", run: toStart },
+            { key: "home", label: "До початку", run: toStart },
           ]}
         />
       );
@@ -1277,7 +1277,7 @@ export function TvTonight() {
             options: [
               ...claude.current.options,
               ...(claude.current.allow_custom && canVoice()
-                ? [{ label: "Сказать своими словами", voice: true }]
+                ? [{ label: "Сказати своїми словами", voice: true }]
                 : []),
             ],
             index: claude.answered,
@@ -1300,32 +1300,32 @@ export function TvTonight() {
           extra={[
             {
               key: "more",
-              label: "Ещё варианты",
+              label: "Ще варіанти",
               accent: true,
               run: () => claude.proceed("pick"),
             },
             {
               key: "ask",
-              label: "Уточнить (4 вопроса)",
+              label: "Уточнити (4 питання)",
               run: () => claude.proceed("ask"),
             },
-            { key: "again", label: "Начать заново", run: toStart },
+            { key: "again", label: "Почати заново", run: toStart },
           ]}
         />
       );
     else if (s)
       content = (
         <Message
-          text="Claude не нашёл ничего нового. Уточним?"
+          text="Claude не знайшов нічого нового. Уточнимо?"
           onBack={toStart}
           actions={[
             {
               key: "ask",
-              label: "Уточнить (4 вопроса)",
+              label: "Уточнити (4 питання)",
               accent: true,
               run: () => claude.proceed("ask"),
             },
-            { key: "home", label: "К началу", run: toStart },
+            { key: "home", label: "До початку", run: toStart },
           ]}
         />
       );
@@ -1368,11 +1368,11 @@ export function TvTonight() {
           actions={[
             {
               key: "again",
-              label: "Изменить ответы",
+              label: "Змінити відповіді",
               accent: true,
               run: () => begin("quick"),
             },
-            { key: "home", label: "К началу", run: toStart },
+            { key: "home", label: "До початку", run: toStart },
           ]}
         />
       );
@@ -1400,7 +1400,7 @@ export function TvTonight() {
               ? [
                   {
                     key: "more",
-                    label: "Ещё варианты",
+                    label: "Ще варіанти",
                     accent: true,
                     run: () => void quick.more(),
                   },
@@ -1408,24 +1408,24 @@ export function TvTonight() {
               : []),
             {
               key: "again",
-              label: "Изменить ответы",
+              label: "Змінити відповіді",
               run: () => begin("quick"),
             },
-            { key: "home", label: "К началу", run: toStart },
+            { key: "home", label: "До початку", run: toStart },
           ]}
         />
       ) : (
         <Message
-          text="Ничего не подошло. Попробуем другое настроение?"
+          text="Нічого не підійшло. Спробуємо інший настрій?"
           onBack={toStart}
           actions={[
             {
               key: "again",
-              label: "Изменить ответы",
+              label: "Змінити відповіді",
               accent: true,
               run: () => begin("quick"),
             },
-            { key: "home", label: "К началу", run: toStart },
+            { key: "home", label: "До початку", run: toStart },
           ]}
         />
       );

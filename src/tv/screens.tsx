@@ -47,7 +47,7 @@ const feedRow = (id: FeedId, data: { results: TmdbItem[] } | null): CardRow => {
   };
 };
 
-/** Лента: what you are watching and want to watch first, then the catalog. */
+/** Стрічка: what you are watching and want to watch first, then the catalog. */
 export function TvHome() {
   const { uid, libraryReady, items } = useAppState();
   const seed = tasteSeed(items);
@@ -100,14 +100,14 @@ export function TvHome() {
     const built: CardRow[] = [
       {
         key: "continue",
-        title: "Продолжить смотреть",
+        title: "Продовжити дивитися",
         cards: continueWatching(items, shows.data ?? {}).map((c) =>
           fromLibrary(c.item, c.next ? episodeLabel(c.next) : undefined),
         ),
       },
       {
         key: "watchlist",
-        title: "Хочу посмотреть",
+        title: "Хочу подивитися",
         cards: items
           .filter((x) => x.status === "watchlist")
           .sort(recent)
@@ -142,7 +142,7 @@ export function TvHome() {
       tab="/"
       rows={rows}
       empty={
-        failed ? "Каталог сейчас не отвечает. Проверь интернет." : "Загружаю…"
+        failed ? "Каталог зараз не відповідає. Перевір інтернет." : "Завантажую…"
       }
     />
   );
@@ -167,7 +167,7 @@ type Group = {
   options: Array<{ id: string; label: string }>;
 };
 
-/** Коллекция: the library as rows by status, with filters on top. */
+/** Колекція: the library as rows by status, with filters on top. */
 export function TvCollection() {
   const { items } = useAppState();
   const { meta } = useLibraryMeta(items);
@@ -180,36 +180,36 @@ export function TvCollection() {
       key: "type",
       label: "Тип",
       options: [
-        { id: "all", label: "Фильмы и сериалы" },
-        { id: "movie", label: "Фильмы" },
-        { id: "tv", label: "Сериалы" },
+        { id: "all", label: "Фільми та серіали" },
+        { id: "movie", label: "Фільми" },
+        { id: "tv", label: "Серіали" },
       ],
     },
     {
       key: "genre",
       label: "Жанр",
       options: [
-        { id: "", label: "Все жанры" },
+        { id: "", label: "Всі жанри" },
         ...genres.map((g) => ({ id: g, label: g })),
       ],
     },
-    { key: "rating", label: "Оценка", options: RATING_BANDS },
-    { key: "decade", label: "Годы", options: DECADES },
+    { key: "rating", label: "Оцінка", options: RATING_BANDS },
+    { key: "decade", label: "Роки", options: DECADES },
     { key: "sort", label: "Порядок", options: SORTS },
   ];
   /** Short labels for the chips; the full ones are in the list of choices. */
   const SHORT: Partial<Record<keyof Filters, string>> = {
-    type: "все",
-    genre: "все",
-    rating: "любая",
-    decade: "любые",
-    sort: "недавние",
+    type: "всі",
+    genre: "всі",
+    rating: "будь-яка",
+    decade: "будь-які",
+    sort: "нещодавні",
   };
   const valueOf = (g: Group) => {
     if (filters[g.key] === NO_FILTERS[g.key]) return SHORT[g.key];
     const label = g.options.find((o) => o.id === filters[g.key])?.label ?? "";
     return g.key === "sort"
-      ? label.replace(/^По |^Сначала /, "").toLowerCase()
+      ? label.replace(/^За |^Спочатку /, "").toLowerCase()
       : label;
   };
   const openGroup = groups.find((g) => g.key === open);
@@ -225,7 +225,7 @@ export function TvCollection() {
     return [
       {
         key: "watching",
-        title: "Смотрю",
+        title: "Дивлюся",
         cards: by("watching").map((x) =>
           fromLibrary(
             x,
@@ -235,19 +235,19 @@ export function TvCollection() {
       },
       {
         key: "watchlist",
-        title: "Хочу посмотреть",
+        title: "Хочу подивитися",
         cards: by("watchlist").map((x) => fromLibrary(x)),
       },
       {
         key: "watched",
-        title: "Просмотрено",
+        title: "Переглянуто",
         cards: by("watched").map((x) =>
           fromLibrary(x, x.rating ? `★ ${x.rating}` : undefined),
         ),
       },
       {
         key: "dropped",
-        title: "Брошено",
+        title: "Покинуто",
         cards: by("dropped").map((x) => fromLibrary(x)),
       },
     ];
@@ -263,8 +263,8 @@ export function TvCollection() {
       rows={rows}
       empty={
         filtered
-          ? "Под эти фильтры ничего нет. Поменяй их наверху."
-          : "Коллекция пока пуста. Открой фильм и нажми «Хочу посмотреть»."
+          ? "Під ці фільтри нічого немає. Зміни їх угорі."
+          : "Колекція поки порожня. Відкрий фільм і натисни «Хочу подивитися»."
       }
       toolbar={(focus) => ({
         lanes: [
@@ -324,7 +324,7 @@ export function TvCollection() {
                 );
               })}
               {filtered ? (
-                <Pill focused={at("filters", groups.length)}>Сбросить</Pill>
+                <Pill focused={at("filters", groups.length)}>Скинути</Pill>
               ) : null}
             </div>
             {openGroup ? (
@@ -388,8 +388,8 @@ export function TvPerson() {
     cardsOf(byCatalogRank(credits.filter((c) => c.media_type === type)), type);
   const rows: CardRow[] = useMemo(
     () => [
-      { key: "movies", title: "Фильмы", cards: of("movie") },
-      { key: "shows", title: "Сериалы", cards: of("tv") },
+      { key: "movies", title: "Фільми", cards: of("movie") },
+      { key: "shows", title: "Серіали", cards: of("tv") },
     ],
     [person.data],
   );
@@ -400,11 +400,11 @@ export function TvPerson() {
       heading={
         person.data ? (
           <p className="mb-3 font-mono text-[12px] uppercase tracking-[0.16em] text-accent">
-            {person.data.name} · фильмография
+            {person.data.name} · фільмографія
           </p>
         ) : null
       }
-      empty={person.error ? "Не удалось загрузить фильмографию." : "Загружаю…"}
+      empty={person.error ? "Не вдалося завантажити фільмографію." : "Завантажую…"}
     />
   );
 }

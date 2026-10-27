@@ -36,14 +36,14 @@ export type SharedRating = Pick<
 
 function me() {
   const uid = firebaseAuth.currentUser?.uid;
-  if (!uid) throw new Error("Войди в аккаунт.");
+  if (!uid) throw new Error("Увійди в акаунт.");
   return uid;
 }
 
 function person(uid: string, data: Record<string, unknown>): Person {
   return {
     uid,
-    name: typeof data.name === "string" && data.name ? data.name : "Без имени",
+    name: typeof data.name === "string" && data.name ? data.name : "Без імені",
     picture: typeof data.picture === "string" ? data.picture : "",
   };
 }
@@ -51,9 +51,9 @@ function person(uid: string, data: Record<string, unknown>): Person {
 export function friendsError(error: unknown) {
   const code = (error as { code?: string })?.code || "";
   if (code === "permission-denied")
-    return "Друзья пока недоступны: нет доступа к данным. Если ты владелец приложения, опубликуй новые правила Firestore.";
-  if (code === "unavailable") return "Нет связи. Повтори позже.";
-  return "Не удалось выполнить действие. Повтори попытку.";
+    return "Друзі поки недоступні: немає доступу до даних. Якщо ти власник застосунку, опублікуй нові правила Firestore.";
+  if (code === "unavailable") return "Немає зв'язку. Повтори пізніше.";
+  return "Не вдалося виконати дію. Повтори спробу.";
 }
 
 /** Public card that invite links show: name and picture only. */
@@ -74,7 +74,7 @@ export async function loadProfile(uid: string): Promise<Person | null> {
 /** Accept an invite: I share with them and ask them to share back. */
 export async function sendRequest(target: Person, mine: Omit<Person, "uid">) {
   const uid = me();
-  if (uid === target.uid) throw new Error("Это твоя собственная ссылка.");
+  if (uid === target.uid) throw new Error("Це твоє власне посилання.");
   const batch = writeBatch(firebaseDb);
   batch.set(doc(firebaseDb, "users", uid, "friends", target.uid), {
     name: target.name.slice(0, 100),
@@ -127,7 +127,7 @@ export async function acceptInvite(
   mine: Omit<Person, "uid">,
 ) {
   const uid = me();
-  if (uid === inviter.uid) throw new Error("Это твоя собственная ссылка.");
+  if (uid === inviter.uid) throw new Error("Це твоє власне посилання.");
   const batch = writeBatch(firebaseDb);
   batch.set(doc(firebaseDb, "users", uid, "friends", inviter.uid), {
     name: inviter.name.slice(0, 100),

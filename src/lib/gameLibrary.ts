@@ -67,14 +67,14 @@ let snapshot = readAll();
 function publish(next: GameShelfItem[]) {
   if (!writeStorage(KEY, JSON.stringify(next)))
     throw new Error(
-      "Не удалось сохранить игру. Проверь свободное место и доступ к хранилищу браузера.",
+      "Не вдалося зберегти гру. Перевір вільне місце та доступ до сховища браузера.",
     );
   snapshot = next;
   listeners.forEach((listener) => listener());
 }
 
 export function saveGame(item: GameShelfItem) {
-  if (!parseItem(item)) throw new Error("Проверь данные игры и оценку.");
+  if (!parseItem(item)) throw new Error("Перевір дані гри та оцінку.");
   publish([item, ...readAll().filter((row) => row.id !== item.id)]);
 }
 

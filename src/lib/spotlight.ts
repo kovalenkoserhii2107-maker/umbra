@@ -127,15 +127,15 @@ export function pickSpotlight({
       reason: "release",
       media: release.item.type,
       item: fromLibrary(release.item, release.details),
-      kicker: "Из «Хочу посмотреть»",
+      kicker: "З «Хочу подивитися»",
       note: `${
         release.kind === "season"
           ? `Сезон ${release.season}`
           : release.kind === "return"
-            ? `Продолжение ${release.season} сезона`
+            ? `Продовження ${release.season} сезону`
             : daysUntil(release.date, today) >= 0
-              ? "Выход"
-              : "Вышел"
+              ? "Вихід"
+              : "Вийшов"
       } ${dayMonthLabel(release.date)} · ${relativeDay(release.date, today)}`,
     };
   }
@@ -150,8 +150,8 @@ export function pickSpotlight({
       reason: "episode",
       media: "tv",
       item: fromLibrary(episode.item, episode.details),
-      kicker: `${premiere ? `Новый сезон ${episode.season}` : "Новая серия"} · S${episode.season}E${episode.episode} · ${relativeDay(episode.date, today)}`,
-      note: "Сериал из твоей коллекции",
+      kicker: `${premiere ? `Новий сезон ${episode.season}` : "Нова серія"} · S${episode.season}E${episode.episode} · ${relativeDay(episode.date, today)}`,
+      note: "Серіал із твоєї колекції",
     };
   }
   const owned = new Set(library.map((x) => `${x.type}:${x.id}`));
@@ -168,11 +168,11 @@ export function pickSpotlight({
       reason: "recommendation",
       media: (rec.media_type as MediaType) || seed.type,
       item: rec,
-      kicker: "Тебе может понравиться",
+      kicker: "Тобі може сподобатися",
       note:
         seed.status === "watched" && seed.rating
-          ? `Потому что ты оценил «${seed.title}» на ${seed.rating}/10`
-          : `Похоже на «${seed.title}» из твоей коллекции`,
+          ? `Тому що ти оцінив «${seed.title}» на ${seed.rating}/10`
+          : `Схоже на «${seed.title}» із твоєї колекції`,
     };
   }
   const hit = fresh(popular);
@@ -181,7 +181,7 @@ export function pickSpotlight({
       reason: "popular",
       media: hit.media_type === "tv" ? "tv" : "movie",
       item: hit,
-      kicker: "Популярно на этой неделе",
+      kicker: "Популярно цього тижня",
     };
   }
   return null;

@@ -55,16 +55,16 @@ export function multiplayerLabel(game: RawGame) {
   ) => modes.some((m) => m[key]);
   const parts: string[] = [];
   const online = max("onlinemax");
-  if (online > 1) parts.push(`онлайн до ${online} игроков`);
+  if (online > 1) parts.push(`онлайн до ${online} гравців`);
   if (has("onlinecoop")) {
     const coop = max("onlinecoopmax");
     parts.push(
-      coop > 1 ? `кооператив по сети до ${coop}` : "кооператив по сети",
+      coop > 1 ? `кооператив через мережу до ${coop}` : "кооператив через мережу",
     );
   }
-  if (has("campaigncoop")) parts.push("сюжет вдвоём и больше");
-  if (has("offlinecoop")) parts.push("кооператив на одном устройстве");
-  if (has("splitscreen")) parts.push("разделённый экран");
+  if (has("campaigncoop")) parts.push("сюжет удвох і більше");
+  if (has("offlinecoop")) parts.push("кооператив на одному пристрої");
+  if (has("splitscreen")) parts.push("розділений екран");
   return parts.join(", ");
 }
 
@@ -72,15 +72,15 @@ export function hours(seconds: number | null) {
   if (!seconds) return "";
   const h = seconds / 3600;
   return h < 1
-    ? `${Math.max(1, Math.round(h * 60))} мин`
-    : `${Math.round(h)} ч`;
+    ? `${Math.max(1, Math.round(h * 60))} хв`
+    : `${Math.round(h)} год`;
 }
 
 export function timeToBeatLabel(t: TimeToBeat | null) {
   if (!t) return [];
   return [
     ["Сюжет", hours(t.hastily)],
-    ["Сюжет и побочное", hours(t.normally)],
+    ["Сюжет і додаткове", hours(t.normally)],
     ["На 100%", hours(t.completely)],
   ].filter(([, v]) => v) as Array<[string, string]>;
 }
@@ -110,24 +110,24 @@ export function ageLabels(list: AgeRating[]) {
 }
 
 const STEAM_REVIEWS: Record<number, string> = {
-  9: "крайне положительные",
-  8: "очень положительные",
-  7: "положительные",
-  6: "в основном положительные",
-  5: "смешанные",
-  4: "в основном отрицательные",
-  3: "отрицательные",
-  2: "очень отрицательные",
-  1: "крайне отрицательные",
+  9: "вкрай позитивні",
+  8: "дуже позитивні",
+  7: "позитивні",
+  6: "переважно позитивні",
+  5: "змішані",
+  4: "переважно негативні",
+  3: "негативні",
+  2: "дуже негативні",
+  1: "вкрай негативні",
 };
 
 export const steamReviewLabel = (score: number) => STEAM_REVIEWS[score] || "";
 
 const TIERS: Record<string, { label: string; color: string }> = {
-  Mighty: { label: "могучая", color: "#ff6b3d" },
-  Strong: { label: "сильная", color: "#b07cff" },
-  Fair: { label: "средняя", color: "#4da3ff" },
-  Weak: { label: "слабая", color: "#7cbf6f" },
+  Mighty: { label: "могутня", color: "#ff6b3d" },
+  Strong: { label: "сильна", color: "#b07cff" },
+  Fair: { label: "середня", color: "#4da3ff" },
+  Weak: { label: "слабка", color: "#7cbf6f" },
 };
 
 export const tierOf = (tier: string | null) =>
@@ -152,8 +152,8 @@ const STORES: Array<[RegExp, string]> = [
 ];
 
 const OTHER: Array<[RegExp, string]> = [
-  [/wikipedia\.org/, "Википедия"],
-  [/fandom\.com/, "Вики фанатов"],
+  [/wikipedia\.org/, "Вікіпедія"],
+  [/fandom\.com/, "Вікі фанатів"],
   [/reddit\.com/, "Reddit"],
   [/discord\.(gg|com)/, "Discord"],
   [/twitch\.tv/, "Twitch"],
@@ -186,7 +186,7 @@ export function gameLinks(game: RawGame, steamId: number | null) {
     if (known) add(other, { label: known[1], href: url });
     else if (!official) {
       official = true;
-      other.unshift({ label: "Официальный сайт", href: url });
+      other.unshift({ label: "Офіційний сайт", href: url });
     }
   }
   if (steamId && !seen.has("Steam"))
@@ -226,7 +226,7 @@ export function gameLinks(game: RawGame, steamId: number | null) {
 /** "399 ₴", "$9.99"; prices keep cents only when they have them. */
 export function money(amount: number, currency: string) {
   try {
-    return new Intl.NumberFormat("ru-RU", {
+    return new Intl.NumberFormat("uk-UA", {
       style: "currency",
       currency,
       minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,

@@ -37,7 +37,7 @@ function Swipe({
         className={`absolute inset-0 flex items-center rounded-2xl px-5 text-sm ${dx > 0 ? "justify-start bg-ok/20 text-ok" : "justify-end bg-accent/20 text-accent"}`}
         style={{ opacity: Math.min(1, Math.abs(dx) / LIMIT) }}
       >
-        {dx > 0 ? "✓ Смотрел" : "Не то ✕"}
+        {dx > 0 ? "✓ Дивився" : "Не те ✕"}
       </div>
       <div
         className="relative"
@@ -112,7 +112,7 @@ function DoneRow({
       <div className="flex items-center justify-between gap-2">
         <p className="min-w-0 truncate text-sm">
           <span className={verdict === "seen" ? "text-ok" : "text-dim"}>
-            {verdict === "seen" ? "✓ Смотрел" : "✕ Не то"}
+            {verdict === "seen" ? "✓ Дивився" : "✕ Не те"}
           </span>{" "}
           · {title}
         </p>
@@ -121,19 +121,19 @@ function DoneRow({
           onClick={onUndo}
           className="shrink-0 text-xs text-mute underline"
         >
-          {verdict === "seen" ? "Отменить" : "Вернуть"}
+          {verdict === "seen" ? "Скасувати" : "Повернути"}
         </button>
       </div>
       {verdict === "seen" ? (
         <div className="mt-2">
           <p className="text-xs text-mute">
             {rating
-              ? `В коллекции с оценкой ${rating}/10`
-              : "Добавлено в коллекцию. Как тебе?"}
+              ? `У колекції з оцінкою ${rating}/10`
+              : "Додано в колекцію. Як тобі?"}
           </p>
           <div
             role="group"
-            aria-label={`Оценка «${title}»`}
+            aria-label={`Оцінка «${title}»`}
             className="mt-1.5 flex flex-wrap gap-1"
           >
             {Array.from({ length: 10 }, (_, i) => i + 1).map((r) => (
@@ -194,7 +194,7 @@ export function AiTonight({
       {error}{" "}
       {canRetry ? (
         <button type="button" onClick={retry} className="underline">
-          Повторить
+          Повторити
         </button>
       ) : null}
     </div>
@@ -204,19 +204,19 @@ export function AiTonight({
     return (
       <p role="status" className="mt-6 text-sm text-mute">
         {busy === "ask"
-          ? "Claude думает, что спросить…"
-          : "Claude подбирает фильмы и сериалы под тебя — это до минуты…"}
+          ? "Claude думає, що запитати…"
+          : "Claude підбирає фільми та серіали під тебе — це до хвилини…"}
       </p>
     );
 
   if (!session)
     return (
       <section className="rise mt-6 rounded-2xl border border-accent/40 bg-gradient-to-br from-accent/10 to-transparent p-5">
-        <h2 className="text-xl tracking-tight">Подбор с Claude</h2>
+        <h2 className="text-xl tracking-tight">Підбір з Claude</h2>
         <p className="mt-2 text-sm text-mute">
-          Claude изучит твою библиотеку — оценки, «Хочу посмотреть», брошенное —
-          и задаст четыре вопроса, каждый раз выбирая самый полезный. Потом
-          предложит фильмы и сериалы, а если не попадёт — можно уточнить ещё.
+          Claude вивчить твою бібліотеку — оцінки, «Хочу подивитися», покинуте —
+          і поставить чотири питання, щоразу обираючи найкорисніше. Потім
+          запропонує фільми та серіали, а якщо не вгадає — можна уточнити ще.
         </p>
         <button
           type="button"
@@ -224,7 +224,7 @@ export function AiTonight({
           data-tv-autofocus=""
           className="mt-4 rounded-full bg-accent px-5 py-2 text-sm text-black"
         >
-          Начать
+          Почати
         </button>
         {failure}
       </section>
@@ -260,8 +260,8 @@ export function AiTonight({
                 value={custom}
                 onChange={(e) => setCustom(e.target.value)}
                 maxLength={300}
-                placeholder="Или ответь своими словами"
-                aria-label="Свой ответ"
+                placeholder="Або дай відповідь своїми словами"
+                aria-label="Своя відповідь"
                 className="min-w-0 flex-1 rounded-2xl border border-hairline bg-card px-4 py-3 text-sm"
               />
               <button
@@ -269,7 +269,7 @@ export function AiTonight({
                 disabled={!custom.trim()}
                 className="rounded-2xl border border-hairline px-4 text-sm disabled:opacity-50"
               >
-                Ответить
+                Відповісти
               </button>
             </form>
           ) : null}
@@ -281,7 +281,7 @@ export function AiTonight({
           {session.taste ? (
             <div className="rounded-2xl border border-accent/30 bg-accent/5 p-4">
               <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-accent">
-                что я понял о твоём вкусе
+                що я зрозумів про твій смак
               </p>
               <p className="mt-1.5 text-sm leading-6">{session.taste}</p>
             </div>
@@ -290,8 +290,8 @@ export function AiTonight({
             <p className="mt-4 text-sm text-mute">{session.intro}</p>
           ) : null}
           <p className="mt-2 text-xs text-dim">
-            Уже видел — жми «✓ Смотрел» или смахни вправо: фильм попадёт в
-            коллекцию, а на его место придёт новый. Не то — влево.
+            Вже бачив — тисни «✓ Дивився» або смахни праворуч: тайтл потрапить у
+            колекцію, а на його місце прийде новий. Не те — ліворуч.
           </p>
           <div className="mt-4 space-y-3">
             {session.picks.map((p) => {
@@ -327,7 +327,7 @@ export function AiTonight({
                         onClick={() => judge(p, "seen")}
                         className="rounded-full border border-ok/50 px-3 py-1 text-xs text-ok"
                       >
-                        ✓ Смотрел
+                        ✓ Дивився
                       </button>
                     ) : null}
                     <button
@@ -335,7 +335,7 @@ export function AiTonight({
                       onClick={() => judge(p, "disliked")}
                       className="rounded-full border border-hairline px-3 py-1 text-xs text-mute"
                     >
-                      Не то
+                      Не те
                     </button>
                   </PickCard>
                 </Swipe>
@@ -348,21 +348,21 @@ export function AiTonight({
               onClick={() => proceed("ask")}
               className="rounded-full bg-accent px-4 py-2 text-sm text-black"
             >
-              Уточнить ещё (4 вопроса)
+              Уточнити ще (4 питання)
             </button>
             <button
               type="button"
               onClick={() => proceed("pick")}
               className="rounded-full border border-hairline px-4 py-2 text-sm"
             >
-              Ещё варианты
+              Ще варіанти
             </button>
             <button
               type="button"
               onClick={start}
               className="rounded-full px-4 py-2 text-sm text-mute"
             >
-              Начать заново
+              Почати заново
             </button>
           </div>
         </section>
@@ -370,13 +370,13 @@ export function AiTonight({
 
       {!current && !session.picks.length && !error ? (
         <div className="mt-6 text-sm text-mute">
-          Claude не нашёл ничего нового.{" "}
+          Claude не знайшов нічого нового.{" "}
           <button
             type="button"
             onClick={() => proceed("ask")}
             className="text-accent"
           >
-            Уточнить ещё
+            Уточнити ще
           </button>
         </div>
       ) : null}

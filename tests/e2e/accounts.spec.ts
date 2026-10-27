@@ -28,13 +28,13 @@ async function catalog(context: BrowserContext) {
 async function register(page: Page, email: string) {
   await page.goto("#/login");
   await page
-    .getByRole("button", { name: "Нет аккаунта — зарегистрироваться" })
+    .getByRole("button", { name: "Немає акаунту — зареєструватися" })
     .click();
-  await page.getByLabel("Имя", { exact: true }).fill("Tester");
+  await page.getByLabel("Ім'я", { exact: true }).fill("Tester");
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Пароль", { exact: true }).fill("test-password-123");
   await page
-    .getByRole("button", { name: "Создать аккаунт", exact: true })
+    .getByRole("button", { name: "Створити акаунт", exact: true })
     .click();
   await expect(page).toHaveURL(/#\/$/);
 }
@@ -43,7 +43,7 @@ async function login(page: Page, email: string) {
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Пароль", { exact: true }).fill("test-password-123");
   await page
-    .getByRole("button", { name: "Войти по почте", exact: true })
+    .getByRole("button", { name: "Увійти за поштою", exact: true })
     .click();
   await expect(page).toHaveURL(/#\/$/);
 }
@@ -60,55 +60,55 @@ test("two devices synchronize notes, ratings and deletions; a second account see
   await register(a, email);
   await login(b, email);
   await a.goto("#/title/movie/101");
-  await a.getByRole("button", { name: "Хочу посмотреть", exact: true }).click();
+  await a.getByRole("button", { name: "Хочу подивитися", exact: true }).click();
   await expect(
-    a.getByText("Все изменения сохранены", { exact: true }),
+    a.getByText("Усі зміни збережено", { exact: true }),
   ).toBeVisible();
   await b.goto("#/library");
-  await expect(b.getByRole("heading", { name: "Фильмография" })).toBeVisible();
+  await expect(b.getByRole("heading", { name: "Фільмографія" })).toBeVisible();
   await expect(b.getByText("Test Film", { exact: true })).toBeVisible();
-  await a.getByRole("button", { name: "В просмотренные", exact: true }).click();
-  await a.getByRole("radio", { name: "8 из 10" }).click();
-  await a.getByLabel("Комментарий", { exact: true }).fill("My private note");
-  await a.getByRole("button", { name: "Подтвердить", exact: true }).click();
+  await a.getByRole("button", { name: "У переглянуті", exact: true }).click();
+  await a.getByRole("radio", { name: "8 з 10" }).click();
+  await a.getByLabel("Коментар", { exact: true }).fill("My private note");
+  await a.getByRole("button", { name: "Підтвердити", exact: true }).click();
   await expect(b.getByText("My private note", { exact: true })).toBeVisible();
   await expect(b.getByText(/8\/10/)).toBeVisible();
   await device1.setOffline(true);
-  await a.getByRole("button", { name: "Изменить оценку", exact: true }).click();
-  await a.getByLabel("Комментарий", { exact: true }).fill("Offline note");
-  await a.getByRole("button", { name: "Подтвердить", exact: true }).click();
-  await expect(a.getByText(/Нет сети · изменения/)).toBeVisible();
+  await a.getByRole("button", { name: "Змінити оцінку", exact: true }).click();
+  await a.getByLabel("Коментар", { exact: true }).fill("Offline note");
+  await a.getByRole("button", { name: "Підтвердити", exact: true }).click();
+  await expect(a.getByText(/Немає мережі · зміни/)).toBeVisible();
   await device1.setOffline(false);
   await expect(b.getByText("Offline note", { exact: true })).toBeVisible();
   await a.reload();
   await expect(a.getByText("Offline note", { exact: true })).toBeVisible();
   await a
-    .getByRole("button", { name: "Убрать из коллекции", exact: true })
+    .getByRole("button", { name: "Вилучити з колекції", exact: true })
     .click();
-  await expect(b.getByText("Пока пусто.", { exact: false })).toBeVisible();
+  await expect(b.getByText("Поки порожньо.", { exact: false })).toBeVisible();
   await b.reload();
   await expect(b.getByText("Test Film", { exact: true })).toHaveCount(0);
-  await a.getByRole("button", { name: "Хочу посмотреть", exact: true }).click();
+  await a.getByRole("button", { name: "Хочу подивитися", exact: true }).click();
   await expect(
-    a.getByText("Все изменения сохранены", { exact: true }),
+    a.getByText("Усі зміни збережено", { exact: true }),
   ).toBeVisible();
   await a.goto("#/settings");
   await a
-    .getByRole("button", { name: "Выйти из аккаунта", exact: true })
+    .getByRole("button", { name: "Вийти з акаунту", exact: true })
     .click();
-  await expect(a.getByRole("heading", { name: "Вход в Umbra" })).toBeVisible();
+  await expect(a.getByRole("heading", { name: "Вхід в Umbra" })).toBeVisible();
   await register(a, `b-${Date.now()}@example.com`);
   await a.goto("#/library");
-  await expect(a.getByRole("heading", { name: "Фильмография" })).toBeVisible();
+  await expect(a.getByRole("heading", { name: "Фільмографія" })).toBeVisible();
   await expect(a.getByText("Test Film", { exact: true })).toHaveCount(0);
   await a.goto("#/settings");
   await a
-    .getByRole("button", { name: "Выйти из аккаунта", exact: true })
+    .getByRole("button", { name: "Вийти з акаунту", exact: true })
     .click();
-  await expect(a.getByRole("heading", { name: "Вход в Umbra" })).toBeVisible();
+  await expect(a.getByRole("heading", { name: "Вхід в Umbra" })).toBeVisible();
   await login(a, email);
   await a.goto("#/library");
-  await expect(a.getByRole("heading", { name: "Фильмография" })).toBeVisible();
+  await expect(a.getByRole("heading", { name: "Фільмографія" })).toBeVisible();
   await expect(a.getByText("Test Film", { exact: true })).toBeVisible();
   await device1.close();
   await device2.close();
@@ -120,22 +120,22 @@ test("an anonymous visitor sees only the sign-in screen until registration", asy
   await catalog(context);
   await page.goto("#/");
   await expect(
-    page.getByRole("heading", { name: "Вход в Umbra" }),
+    page.getByRole("heading", { name: "Вхід в Umbra" }),
   ).toBeVisible();
   await expect(page).toHaveURL(/#\/login\?next=%2F$/);
-  await expect(page.getByRole("link", { name: "Коллекция" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Колекція" })).toHaveCount(0);
   await page.goto("#/title/movie/101");
   await expect(page).toHaveURL(/#\/login\?next=%2Ftitle%2Fmovie%2F101$/);
   await page
-    .getByRole("button", { name: "Нет аккаунта — зарегистрироваться" })
+    .getByRole("button", { name: "Немає акаунту — зареєструватися" })
     .click();
-  await page.getByLabel("Имя", { exact: true }).fill("Tester");
+  await page.getByLabel("Ім'я", { exact: true }).fill("Tester");
   await page
     .getByLabel("Email", { exact: true })
     .fill(`c-${Date.now()}@example.com`);
   await page.getByLabel("Пароль", { exact: true }).fill("test-password-123");
   await page
-    .getByRole("button", { name: "Создать аккаунт", exact: true })
+    .getByRole("button", { name: "Створити акаунт", exact: true })
     .click();
   await expect(page).toHaveURL(/#\/title\/movie\/101$/);
   await expect(
@@ -151,7 +151,7 @@ test("Android install offer caught on the sign-in screen appears after registrat
   await catalog(context);
   await page.goto("#/login");
   await expect(
-    page.getByRole("heading", { name: "Вход в Umbra" }),
+    page.getByRole("heading", { name: "Вхід в Umbra" }),
   ).toBeVisible();
   // Chrome fires this once, usually while a new person is still signing in.
   const offer = () =>
@@ -168,24 +168,24 @@ test("Android install offer caught on the sign-in screen appears after registrat
       return event.defaultPrevented;
     });
   expect(await offer()).toBe(true);
-  await expect(page.getByText("Установить Umbra")).toHaveCount(0);
+  await expect(page.getByText("Встановити Umbra")).toHaveCount(0);
   await register(page, `i-${Date.now()}@example.com`);
-  await expect(page.getByText("Установить Umbra")).toBeVisible();
-  await page.getByRole("button", { name: "Установить", exact: true }).click();
+  await expect(page.getByText("Встановити Umbra")).toBeVisible();
+  await page.getByRole("button", { name: "Встановити", exact: true }).click();
   expect(
     await page.evaluate(
       () => (window as unknown as { prompted: number }).prompted,
     ),
   ).toBe(1);
-  await expect(page.getByText("Установить Umbra")).toHaveCount(0);
-  // Declining Chrome's dialog counts as «Позже»: no automatic prompt next time.
+  await expect(page.getByText("Встановити Umbra")).toHaveCount(0);
+  // Declining Chrome's dialog counts as «Пізніше»: no automatic prompt next time.
   await page.reload();
   await offer();
   await page.waitForTimeout(1000);
-  await expect(page.getByText("Установить Umbra")).toHaveCount(0);
+  await expect(page.getByText("Встановити Umbra")).toHaveCount(0);
   // The menu still installs on demand.
   await page.getByRole("button", { name: "Меню" }).click();
-  await page.getByRole("button", { name: "Установить приложение" }).click();
+  await page.getByRole("button", { name: "Встановити застосунок" }).click();
   expect(
     await page.evaluate(
       () => (window as unknown as { prompted: number }).prompted,
@@ -209,7 +209,7 @@ test("cached legacy profile cannot unlock the cabinet or import a previous user 
   });
   await page.goto("#/settings");
   await expect(
-    page.getByRole("heading", { name: "Вход в Umbra" }),
+    page.getByRole("heading", { name: "Вхід в Umbra" }),
   ).toBeVisible();
   await expect(page.getByText("Old Private Film", { exact: true })).toHaveCount(
     0,
@@ -230,7 +230,7 @@ test("production has one hashed entry and supports offline shell without clearin
   });
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: "Вход в Umbra" }),
+    page.getByRole("heading", { name: "Вхід в Umbra" }),
   ).toBeVisible();
   const entries = await page
     .locator('script[type="module"][src]')
@@ -255,7 +255,7 @@ test("production has one hashed entry and supports offline shell without clearin
   await context.setOffline(true);
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: "Вход в Umbra" }),
+    page.getByRole("heading", { name: "Вхід в Umbra" }),
   ).toBeVisible();
   expect(errors).toEqual([]);
   await context.close();
@@ -276,7 +276,7 @@ test("an installed PWA detects the next worker and activates it automatically", 
     );
     await page.reload();
     await expect(
-      page.getByRole("heading", { name: "Вход в Umbra" }),
+      page.getByRole("heading", { name: "Вхід в Umbra" }),
     ).toBeVisible();
     await writeFile("dist/sw.js", original + "\n/* update lifecycle test */\n");
     const reloaded = page.waitForEvent("load");
@@ -288,10 +288,10 @@ test("an installed PWA detects the next worker and activates it automatically", 
       .catch(() => undefined);
     await reloaded;
     await expect(
-      page.getByText("Доступна новая версия Umbra", { exact: true }),
+      page.getByText("Доступна нова версія Umbra", { exact: true }),
     ).toHaveCount(0);
     await expect(
-      page.getByRole("heading", { name: "Вход в Umbra" }),
+      page.getByRole("heading", { name: "Вхід в Umbra" }),
     ).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
     await page.screenshot({

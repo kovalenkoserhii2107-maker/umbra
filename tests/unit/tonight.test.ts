@@ -23,15 +23,15 @@ const lib = (over: Partial<LibraryItem>): LibraryItem => ({
   ...over,
 });
 const meta: MetaMap = {
-  "movie:1": { genres: ["комедия"], runtime: 90, date: "2020-01-01", at: 1 },
-  "movie:2": { genres: ["комедия"], runtime: 95, date: "2021-01-01", at: 1 },
-  "movie:3": { genres: ["ужасы"], runtime: 100, date: "2019-01-01", at: 1 },
+  "movie:1": { genres: ["комедія"], runtime: 90, date: "2020-01-01", at: 1 },
+  "movie:2": { genres: ["комедія"], runtime: 95, date: "2021-01-01", at: 1 },
+  "movie:3": { genres: ["жахи"], runtime: 100, date: "2019-01-01", at: 1 },
 };
 const names = new Map([
-  [35, "комедия"],
-  [27, "ужасы"],
-  [53, "триллер"],
-  [10751, "семейный"],
+  [35, "комедія"],
+  [27, "жахи"],
+  [53, "трилер"],
+  [10751, "сімейний"],
   [18, "драма"],
 ]);
 const answers: Answers = {
@@ -62,8 +62,8 @@ describe("evening picks", () => {
       ],
       meta,
     );
-    expect(taste.get("комедия")!).toBeCloseTo(((9.5 - 6.5) / 3.5) * (2 / 3));
-    expect(taste.get("ужасы")!).toBeLessThan(0);
+    expect(taste.get("комедія")!).toBeCloseTo(((9.5 - 6.5) / 3.5) * (2 / 3));
+    expect(taste.get("жахи")!).toBeLessThan(0);
   });
 
   it("keep the mood, skip what was seen, prefer the watchlist and loved lookalikes", () => {
@@ -82,12 +82,12 @@ describe("evening picks", () => {
     ];
     const picks = rankTonight(candidates, answers, {
       seen: new Set(["movie:14"]),
-      taste: new Map([["комедия", 0.5]]),
+      taste: new Map([["комедія", 0.5]]),
       names,
     });
     expect(picks.map((p) => p.item.id)).toEqual([11, 12, 10]);
-    expect(picks[0].reasons[0]).toBe("из «Хочу посмотреть»");
-    expect(picks[1].reasons[0]).toBe("похоже на «Мальчишник» — твоя 9/10");
+    expect(picks[0].reasons[0]).toBe("із «Хочу подивитися»");
+    expect(picks[1].reasons[0]).toBe("схоже на «Мальчишник» — твоя 9/10");
   });
 
   it("keep scary films away from a family evening and respect length and era", () => {
@@ -148,7 +148,7 @@ describe("evening picks", () => {
         names: loaded.names,
       });
       expect(picks.map((p) => p.item.id)).toEqual([77, 10]);
-      expect(picks[0].reasons[0]).toBe("из «Хочу посмотреть»");
+      expect(picks[0].reasons[0]).toBe("із «Хочу подивитися»");
     } finally {
       genresSpy.mockRestore();
       basicSpy.mockRestore();

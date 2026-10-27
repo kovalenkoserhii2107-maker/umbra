@@ -30,11 +30,11 @@ export type GameEntry = {
 };
 
 export const GAME_STATUSES: Array<{ id: GameStatus; label: string }> = [
-  { id: "playing", label: "Играю" },
-  { id: "want", label: "Хочу поиграть" },
+  { id: "playing", label: "Граю" },
+  { id: "want", label: "Хочу пограти" },
   { id: "played", label: "Пройдено" },
-  { id: "dropped", label: "Брошено" },
-  { id: "owned", label: "В библиотеке" },
+  { id: "dropped", label: "Покинуто" },
+  { id: "owned", label: "У бібліотеці" },
 ];
 
 export const statusLabel = (s: GameStatus) =>
@@ -47,7 +47,7 @@ const COVER = /^https:\/\/(images\.igdb\.com|[a-z0-9.-]+\.steamstatic\.com)\//;
 export function parseEntry(value: unknown): GameEntry {
   const v = (value ?? {}) as Record<string, unknown>;
   const fail = (what: string) => {
-    throw new Error(`Некорректная запись игры: ${what}`);
+    throw new Error(`Некоректний запис гри: ${what}`);
   };
   if (!Number.isSafeInteger(v.id) || Number(v.id) <= 0) fail("id");
   if (typeof v.title !== "string" || v.title.length > 500) fail("title");

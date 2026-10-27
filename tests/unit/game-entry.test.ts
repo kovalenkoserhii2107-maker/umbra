@@ -54,7 +54,7 @@ describe("game entries", () => {
     ]);
     expect(
       sortEntries(
-        [entry({ id: 3, title: "Ёлка" }), entry({ id: 4, title: "Альфа" })],
+        [entry({ id: 3, title: "Ялинка" }), entry({ id: 4, title: "Альфа" })],
         "title",
       ).map((e) => e.id),
     ).toEqual([4, 3]);

@@ -33,7 +33,7 @@ export function TvTitleActions({
           onClick={() => launchTvApp(a.app, title)}
           className="inline-flex h-11 items-center gap-2 rounded-full bg-accent px-5 text-base font-medium text-black"
         >
-          <span aria-hidden="true">▶</span> Смотреть в {a.name}
+          <span aria-hidden="true">▶</span> Дивитися в {a.name}
           <span className="text-sm font-normal text-black/60">· {a.offer}</span>
         </button>
       ))}

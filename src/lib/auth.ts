@@ -44,7 +44,7 @@ export function accountFromUser(user: User): Account {
   return {
     sub: user.uid,
     email: user.email || "",
-    name: user.displayName || user.email || "Аккаунт",
+    name: user.displayName || user.email || "Акаунт",
     picture: user.photoURL || "",
     verified: user.emailVerified,
   };
@@ -52,28 +52,28 @@ export function accountFromUser(user: User): Account {
 export function authError(error: unknown): string {
   const code = (error as { code?: string })?.code || "";
   const messages: Record<string, string> = {
-    "auth/invalid-credential": "Неверная почта или пароль.",
-    "auth/wrong-password": "Неверная почта или пароль.",
-    "auth/user-not-found": "Неверная почта или пароль.",
-    "auth/invalid-email": "Проверь адрес электронной почты.",
+    "auth/invalid-credential": "Невірна пошта або пароль.",
+    "auth/wrong-password": "Невірна пошта або пароль.",
+    "auth/user-not-found": "Невірна пошта або пароль.",
+    "auth/invalid-email": "Перевір адресу електронної пошти.",
     "auth/email-already-in-use":
-      "Эта почта уже зарегистрирована. Войди или восстанови пароль.",
-    "auth/weak-password": "Используй пароль не короче 8 символов.",
-    "auth/too-many-requests": "Слишком много попыток. Попробуй позже.",
+      "Ця пошта вже зареєстрована. Увійди або віднови пароль.",
+    "auth/weak-password": "Використовуй пароль не коротший за 8 символів.",
+    "auth/too-many-requests": "Забагато спроб. Спробуй пізніше.",
     "auth/network-request-failed":
-      "Нет связи. Проверь интернет и повтори попытку.",
-    "auth/popup-closed-by-user": "Вход отменён. Можно попробовать снова.",
-    "auth/cancelled-popup-request": "Окно входа уже открыто.",
+      "Немає зв'язку. Перевір інтернет і повтори спробу.",
+    "auth/popup-closed-by-user": "Вхід скасовано. Можна спробувати знову.",
+    "auth/cancelled-popup-request": "Вікно входу вже відкрито.",
     "auth/popup-blocked":
-      "Разреши всплывающее окно для входа Google или войди по почте.",
+      "Дозволь спливаюче вікно для входу Google або увійди за поштою.",
     "auth/unauthorized-domain":
-      "Вход с этого адреса пока не настроен. Попробуй другой способ входа.",
+      "Вхід із цієї адреси поки не налаштовано. Спробуй інший спосіб входу.",
     "auth/account-exists-with-different-credential":
-      "Войди способом, которым зарегистрировал эту почту.",
-    "auth/user-disabled": "Этот аккаунт отключён.",
-    "auth/operation-not-allowed": "Этот способ входа пока недоступен.",
+      "Увійди способом, яким реєстрував цю пошту.",
+    "auth/user-disabled": "Цей акаунт вимкнено.",
+    "auth/operation-not-allowed": "Цей спосіб входу поки недоступний.",
   };
-  return messages[code] || "Не удалось выполнить действие. Повтори попытку.";
+  return messages[code] || "Не вдалося виконати дію. Повтори спробу.";
 }
 export function listenAuth() {
   if (stop) return stop;
@@ -152,7 +152,7 @@ export async function registerWithEmail(
   } catch {
     publish({
       ...snapshot,
-      error: "Аккаунт создан. Имя не сохранилось; вход доступен.",
+      error: "Акаунт створено. Ім'я не збереглося; вхід доступний.",
     });
   }
 }

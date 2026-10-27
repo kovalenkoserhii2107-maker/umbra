@@ -33,12 +33,12 @@ export function certification(
 }
 
 const RELEASE_TYPES: Record<number, string> = {
-  1: "Премьера",
-  2: "Ограниченный прокат",
-  3: "В кино",
+  1: "Прем'єра",
+  2: "Обмежений прокат",
+  3: "У кіно",
   4: "Онлайн",
   5: "На дисках",
-  6: "На ТВ",
+  6: "На ТБ",
 };
 
 /** The first date of each release type in the region, in date order. */
@@ -62,27 +62,27 @@ export function regionalDates(item: TitleDetails, region: string) {
 }
 
 const STATUS: Record<string, string> = {
-  "Returning Series": "Продолжается",
-  Ended: "Завершён",
-  Canceled: "Закрыт",
-  Cancelled: "Закрыт",
-  "In Production": "В производстве",
-  Planned: "Запланирован",
-  Pilot: "Пилот",
-  Released: "Вышел",
+  "Returning Series": "Триває",
+  Ended: "Завершено",
+  Canceled: "Закрито",
+  Cancelled: "Закрито",
+  "In Production": "У виробництві",
+  Planned: "Заплановано",
+  Pilot: "Пілот",
+  Released: "Вийшов",
   "Post Production": "Постпродакшн",
-  Rumored: "Анонсирован",
+  Rumored: "Анонсовано",
 };
 export const statusLabel = (status?: string) =>
   (status && STATUS[status]) || null;
 
 const SHOW_TYPES: Record<string, string> = {
-  Miniseries: "Мини-сериал",
-  Documentary: "Документальный",
-  Reality: "Реалити-шоу",
+  Miniseries: "Мінісеріал",
+  Documentary: "Документальний",
+  Reality: "Реаліті-шоу",
   "Talk Show": "Ток-шоу",
-  News: "Новости",
-  Video: "Видео",
+  News: "Новини",
+  Video: "Відео",
 };
 export const showTypeLabel = (type?: string) =>
   (type && SHOW_TYPES[type]) || null;
@@ -90,7 +90,7 @@ export const showTypeLabel = (type?: string) =>
 function intlName(type: "language" | "region", code?: string) {
   if (!code) return null;
   try {
-    const name = new Intl.DisplayNames(["ru"], { type }).of(code);
+    const name = new Intl.DisplayNames(["uk"], { type }).of(code);
     return name && name !== code ? name : null;
   } catch {
     return null;
@@ -105,10 +105,10 @@ export function money(value?: number | string | null) {
     typeof value === "string" ? Number(value.replace(/[$,]/g, "")) : value || 0;
   if (!Number.isFinite(n) || n <= 0) return null;
   const fmt = (v: number, digits: number) =>
-    v.toLocaleString("ru-RU", { maximumFractionDigits: digits });
+    v.toLocaleString("uk-UA", { maximumFractionDigits: digits });
   if (n >= 1e9) return `$${fmt(n / 1e9, 1)} млрд`;
   if (n >= 1e6) return `$${fmt(n / 1e6, 0)} млн`;
-  return `$${fmt(n / 1e3, 0)} тыс.`;
+  return `$${fmt(n / 1e3, 0)} тис.`;
 }
 
 /**
@@ -140,23 +140,23 @@ export function detailRows(
     for (const d of regionalDates(item, region))
       rows.push([`${d.label} · ${region}`, d.date]);
   if (media === "tv" && item.first_air_date)
-    rows.push(["Первый эпизод", dateLabel(item.first_air_date)]);
+    rows.push(["Перший епізод", dateLabel(item.first_air_date)]);
   const lastAir = (item as { last_air_date?: string }).last_air_date;
   if (media === "tv" && lastAir && item.status !== "Returning Series")
-    rows.push(["Последний эпизод", dateLabel(lastAir)]);
+    rows.push(["Останній епізод", dateLabel(lastAir)]);
   if (media === "tv" && item.networks?.length)
     rows.push(["Канал", item.networks.map((n) => n.name).join(", ")]);
   if (countries.length)
     rows.push([
-      countries.length > 1 ? "Страны" : "Страна",
+      countries.length > 1 ? "Країни" : "Країна",
       countries.join(", "),
     ]);
   const lang = languageName(item.original_language);
-  if (lang) rows.push(["Язык оригинала", lang]);
-  if (languages.length > 1) rows.push(["Языки", languages.join(", ")]);
+  if (lang) rows.push(["Мова оригіналу", lang]);
+  if (languages.length > 1) rows.push(["Мови", languages.join(", ")]);
   if (item.production_companies?.length)
     rows.push([
-      "Студии",
+      "Студії",
       item.production_companies
         .slice(0, 6)
         .map((c) => c.name)
@@ -165,37 +165,37 @@ export function detailRows(
   const budget = money(item.budget);
   if (budget) rows.push(["Бюджет", budget]);
   const world = money(item.revenue);
-  if (world) rows.push(["Сборы в мире", world]);
+  if (world) rows.push(["Збори у світі", world]);
   const us = money(omdb?.boxOffice);
-  if (us) rows.push(["Сборы в США", us]);
+  if (us) rows.push(["Збори в США", us]);
   if (omdb?.rated && omdb.rated !== "Not Rated" && omdb.rated !== "Unrated")
     rows.push(["Рейтинг MPA", omdb.rated]);
   return rows;
 }
 
-/** "828 тыс. голосов", "1,2 млн голосов". */
+/** "828 тис. голосів", "1,2 млн голосів". */
 export function votesLabel(n?: number | null) {
   if (!n) return null;
-  const word = plural(n, "голос", "голоса", "голосов");
+  const word = plural(n, "голос", "голоси", "голосів");
   if (n >= 1e6)
-    return `${(n / 1e6).toLocaleString("ru-RU", { maximumFractionDigits: 1 })} млн голосов`;
-  if (n >= 1e3) return `${Math.round(n / 1e3)} тыс. голосов`;
+    return `${(n / 1e6).toLocaleString("uk-UA", { maximumFractionDigits: 1 })} млн голосів`;
+  if (n >= 1e3) return `${Math.round(n / 1e3)} тис. голосів`;
   return `${n} ${word}`;
 }
 
-/** Compact count for rating tiles: "828 тыс.", "1,2 млн", "639". */
+/** Компактний лічильник для плиток рейтингу: "828 тис.", "1,2 млн", "639". */
 export function votesShort(n?: number | null) {
   if (!n) return null;
   if (n >= 1e6)
-    return `${(n / 1e6).toLocaleString("ru-RU", { maximumFractionDigits: 1 })} млн`;
-  if (n >= 1e3) return `${Math.round(n / 1e3)} тыс.`;
+    return `${(n / 1e6).toLocaleString("uk-UA", { maximumFractionDigits: 1 })} млн`;
+  if (n >= 1e3) return `${Math.round(n / 1e3)} тис.`;
   return String(n);
 }
 
 const AWARD_NAMES: Array<[RegExp, string]> = [
   [/^Oscars?$/, "«Оскар»"],
-  [/^Primetime Emmys?$/, "«Эмми»"],
-  [/^Golden Globes?$/, "«Золотой глобус»"],
+  [/^Primetime Emmys?$/, "«Еммі»"],
+  [/^Golden Globes?$/, "«Золотий глобус»"],
   [/^BAFTA (Film |TV )?Awards?$/, "BAFTA"],
 ];
 
@@ -211,8 +211,8 @@ export function awardsLabel(text?: string | null) {
     const n = Number(head[2]);
     parts.push(
       head[1] === "Won"
-        ? `${name}: ${n} ${plural(n, "победа", "победы", "побед")}`
-        : `${name}: ${n} ${plural(n, "номинация", "номинации", "номинаций")}`,
+        ? `${name}: ${n} ${plural(n, "перемога", "перемоги", "перемог")}`
+        : `${name}: ${n} ${plural(n, "номінація", "номінації", "номінацій")}`,
     );
     rest = rest.slice(head[0].length);
   }
@@ -224,12 +224,12 @@ export function awardsLabel(text?: string | null) {
     const wins = Number(total[1] || 0);
     const noms = Number(total[2] || 0);
     const bits = [
-      wins ? `${wins} ${plural(wins, "награда", "награды", "наград")}` : "",
+      wins ? `${wins} ${plural(wins, "нагорода", "нагороди", "нагород")}` : "",
       noms
-        ? `${noms} ${plural(noms, "номинация", "номинации", "номинаций")}`
+        ? `${noms} ${plural(noms, "номінація", "номінації", "номінацій")}`
         : "",
     ].filter(Boolean);
-    if (bits.length) parts.push(`всего ${bits.join(" и ")}`);
+    if (bits.length) parts.push(`усього ${bits.join(" та ")}`);
   }
   return parts.length ? parts.join(" · ") : text;
 }
@@ -240,11 +240,11 @@ export type ProviderGroup = { label: string; providers: WatchProvider[] };
 export function providerGroups(region?: WatchGroup): ProviderGroup[] {
   if (!region) return [];
   const groups: Array<[keyof WatchGroup, string]> = [
-    ["flatrate", "По подписке"],
-    ["free", "Бесплатно"],
-    ["ads", "С рекламой"],
-    ["rent", "Аренда"],
-    ["buy", "Покупка"],
+    ["flatrate", "За передплатою"],
+    ["free", "Безкоштовно"],
+    ["ads", "З рекламою"],
+    ["rent", "Оренда"],
+    ["buy", "Купівля"],
   ];
   return groups
     .map(([key, label]) => {
@@ -281,10 +281,10 @@ export const VIDEO_TYPES: Record<string, string> = {
   Trailer: "Трейлер",
   Teaser: "Тизер",
   Clip: "Фрагмент",
-  Featurette: "О съёмках",
+  Featurette: "Про зйомки",
   "Behind the Scenes": "За кадром",
-  Bloopers: "Неудачные дубли",
-  "Opening Credits": "Вступление",
+  Bloopers: "Невдалі дублі",
+  "Opening Credits": "Заставка",
 };
 
 /** Official site, IMDb, TMDB, Wikidata and social pages. */
@@ -292,7 +292,7 @@ export function externalLinks(item: TitleDetails, media: MediaType) {
   const ids = item.external_ids || {};
   const links: Array<{ label: string; href: string }> = [];
   if (item.homepage && /^https?:\/\//.test(item.homepage))
-    links.push({ label: "Официальный сайт", href: item.homepage });
+    links.push({ label: "Офіційний сайт", href: item.homepage });
   if (ids.imdb_id)
     links.push({
       label: "IMDb",
@@ -326,7 +326,7 @@ const EXTRA_CREW: Array<[string, string[]]> = [
   ["Композитор", ["Original Music Composer", "Music", "Composer"]],
   ["Оператор", ["Director of Photography", "Cinematography"]],
   ["Монтаж", ["Editor"]],
-  ["Художник-постановщик", ["Production Design"]],
+  ["Художник-постановник", ["Production Design"]],
 ];
 
 /** Composer, cinematographer, editor and production designer. */
@@ -342,9 +342,9 @@ export function extraCrew(item: TitleDetails) {
 }
 
 const MAIN_CREW: Array<[string, string[]]> = [
-  ["Режиссёр", ["Director"]],
+  ["Режисер", ["Director"]],
   [
-    "Сценарий",
+    "Сценарій",
     [
       "Screenplay",
       "Writer",
@@ -354,7 +354,7 @@ const MAIN_CREW: Array<[string, string[]]> = [
       "Novel",
     ],
   ],
-  ["Продюсеры", ["Producer"]],
+  ["Продюсери", ["Producer"]],
 ];
 
 /** Director, creators, writers, producers, then composer, camera and the rest. */
@@ -368,8 +368,8 @@ export function crewRows(item: TitleDetails) {
   };
   const rows: Array<{ role: string; people: PersonRef[] }> = [];
   for (const [role, jobs] of MAIN_CREW) {
-    if (role === "Сценарий" && item.created_by?.length)
-      rows.push({ role: "Создатели", people: item.created_by });
+    if (role === "Сценарій" && item.created_by?.length)
+      rows.push({ role: "Творці", people: item.created_by });
     const people = pick(jobs);
     if (people.length) rows.push({ role, people });
   }
@@ -377,14 +377,14 @@ export function crewRows(item: TitleDetails) {
 }
 
 const ROLE_NAMES: Record<string, string> = {
-  Режиссёр: "режиссёр",
-  Создатели: "создатель",
-  Сценарий: "сценарий",
-  Продюсеры: "продюсер",
+  Режисер: "режисер",
+  Творці: "творець",
+  Сценарій: "сценарій",
+  Продюсери: "продюсер",
   Композитор: "композитор",
   Оператор: "оператор",
   Монтаж: "монтаж",
-  "Художник-постановщик": "художник-постановщик",
+  "Художник-постановник": "художник-постановник",
 };
 
 /**
@@ -394,7 +394,7 @@ const ROLE_NAMES: Record<string, string> = {
 export function crewCards(item: TitleDetails) {
   const cards = new Map<number, { person: PersonRef; roles: string[] }>();
   for (const row of crewRows(item)) {
-    const limit = row.role === "Продюсеры" ? 4 : 6;
+    const limit = row.role === "Продюсери" ? 4 : 6;
     for (const person of row.people.slice(0, limit)) {
       const role = ROLE_NAMES[row.role] || row.role.toLowerCase();
       const card = cards.get(person.id);

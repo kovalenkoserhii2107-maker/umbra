@@ -7,7 +7,7 @@ const g = (over: Partial<GameEntry>): GameEntry => ({
   title: "Game",
   cover: "",
   year: "2020",
-  genre: "Ролевая",
+  genre: "Рольова",
   platforms: ["pc"],
   status: "played",
   rating: null,
@@ -46,20 +46,20 @@ describe("game stats", () => {
       average: 9,
     });
     expect(s.statuses.map((b) => [b.label, b.value])).toEqual([
-      ["Хочу поиграть", 1],
+      ["Хочу пограти", 1],
       ["Пройдено", 2],
-      ["В библиотеке", 1],
+      ["У бібліотеці", 1],
     ]);
     expect(s.platforms.find((b) => b.label === "PlayStation")).toMatchObject({
       value: 2,
-      extra: "120 ч",
+      extra: "120 год",
     });
     expect(s.ratings[0]).toMatchObject({ label: "10", value: 2 });
     expect(s.ratings[0].items.map((x) => x.id)).toEqual([1, 4]);
     expect(s.genres[0]).toMatchObject({
-      label: "Ролевая",
+      label: "Рольова",
       value: 3,
-      extra: "средняя 10,0",
+      extra: "середня 10,0",
     });
     expect(s.mostPlayed.map((x) => x.id)).toEqual([1, 2]);
     expect(s.recent.map((x) => x.id)).toEqual([2]);

@@ -23,7 +23,7 @@ export function EmailAuth() {
       else {
         await resetPassword(email);
         setMessage(
-          "Если для этой почты доступно восстановление, мы отправили письмо. Проверь также «Спам».",
+          "Якщо для цієї пошти доступне відновлення, ми надіслали листа. Перевір також «Спам».",
         );
       }
     } catch (error) {
@@ -44,7 +44,7 @@ export function EmailAuth() {
       <fieldset disabled={busy} className="space-y-3">
         {mode === "register" ? (
           <label className="block text-sm">
-            Имя
+            Ім'я
             <input
               className={field}
               value={name}
@@ -87,12 +87,12 @@ export function EmailAuth() {
           className="w-full rounded-full border border-hairline px-4 py-3 text-sm disabled:opacity-60"
         >
           {busy
-            ? "Подожди…"
+            ? "Зачекай…"
             : mode === "register"
-              ? "Создать аккаунт"
+              ? "Створити акаунт"
               : mode === "reset"
-                ? "Восстановить пароль"
-                : "Войти по почте"}
+                ? "Відновити пароль"
+                : "Увійти за поштою"}
         </button>
         <button
           type="button"
@@ -100,8 +100,8 @@ export function EmailAuth() {
           className="w-full text-center text-xs text-mute"
         >
           {mode === "login"
-            ? "Нет аккаунта — зарегистрироваться"
-            : "Вернуться ко входу"}
+            ? "Немає акаунту — зареєструватися"
+            : "Повернутися до входу"}
         </button>
         {mode === "login" ? (
           <button
@@ -109,7 +109,7 @@ export function EmailAuth() {
             onClick={() => change("reset")}
             className="w-full text-center text-xs text-mute"
           >
-            Забыли пароль?
+            Забули пароль?
           </button>
         ) : null}
       </fieldset>

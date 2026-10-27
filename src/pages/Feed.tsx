@@ -76,7 +76,7 @@ export function FeedPage() {
     return () => io.disconnect();
   }, [done, loading, rows.length, error]);
 
-  if (!feed) return <Empty text="Раздел не найден." />;
+  if (!feed) return <Empty text="Розділ не знайдено." />;
   if (error && !rows.length)
     return <ErrorBox code={error} onRetry={() => retry((n) => n + 1)} />;
 
@@ -91,19 +91,19 @@ export function FeedPage() {
       </div>
       {error ? (
         <p role="alert" className="py-4 text-sm text-accent">
-          Не удалось загрузить следующую страницу.{" "}
+          Не вдалося завантажити наступну сторінку.{" "}
           <button onClick={() => retry((n) => n + 1)} className="underline">
-            Повторить
+            Повторити
           </button>{" "}
-          Перезагрузи раздел, когда соединение восстановится.
+          Перезавантаж розділ, коли з'єднання відновиться.
         </p>
       ) : null}
       <div ref={sentry} className="h-10" />
       {loading ? (
-        <p className="py-6 text-center text-sm text-mute">Подгружаю ещё…</p>
+        <p className="py-6 text-center text-sm text-mute">Завантажую ще…</p>
       ) : null}
       {done && !loading ? (
-        <p className="py-6 text-center text-sm text-dim">Это все</p>
+        <p className="py-6 text-center text-sm text-dim">Це все</p>
       ) : null}
     </div>
   );

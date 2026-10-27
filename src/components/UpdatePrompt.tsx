@@ -72,8 +72,8 @@ export function UpdatePrompt() {
     >
       <p className="text-sm">
         {ready
-          ? "Доступна новая версия Umbra"
-          : "Не удалось включить работу без сети. Проверь соединение."}
+          ? "Доступна нова версія Umbra"
+          : "Не вдалося увімкнути роботу без мережі. Перевір з'єднання."}
       </p>
       <div className="mt-3 flex gap-3 text-sm">
         {ready ? (
@@ -84,7 +84,7 @@ export function UpdatePrompt() {
             }}
             className="text-accent disabled:opacity-50"
           >
-            {sync === "pending" ? "Сохраняю изменения…" : "Обновить"}
+            {sync === "pending" ? "Зберігаю зміни…" : "Оновити"}
           </button>
         ) : null}
         <button
@@ -93,7 +93,7 @@ export function UpdatePrompt() {
             setError(false);
           }}
         >
-          Позже
+          Пізніше
         </button>
       </div>
     </aside>

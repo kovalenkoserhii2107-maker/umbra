@@ -54,10 +54,10 @@ function TonightEntry() {
     >
       <span className="min-w-0">
         <span className="block text-lg tracking-tight">
-          Что посмотреть вечером?
+          Що подивитися ввечері?
         </span>
         <span className="block text-sm text-mute">
-          4 вопроса — и подборка под настроение по твоим оценкам
+          4 питання — і добірка під настрій за твоїми оцінками
         </span>
       </span>
       <span aria-hidden="true" className="shrink-0 text-2xl text-accent">
@@ -115,7 +115,7 @@ function Featured({ spotlight }: { spotlight: Spotlight }) {
       <Link
         to={`/title/${media}/${item.id}`}
         aria-label={title}
-        // On TV the card's buttons get focus; "Подробнее" opens the title.
+        // On TV the card's buttons get focus; "Детальніше" opens the title.
         tabIndex={isTv ? -1 : undefined}
         className="absolute inset-0"
       />
@@ -133,7 +133,7 @@ function Featured({ spotlight }: { spotlight: Spotlight }) {
               to={`/title/${media}/${item.id}`}
               className={`${action} bg-accent text-black`}
             >
-              Подробнее
+              Детальніше
             </Link>
           ) : null}
           {mine ? null : (
@@ -142,7 +142,7 @@ function Featured({ spotlight }: { spotlight: Spotlight }) {
               onClick={want}
               className={`${action} bg-ink text-canvas`}
             >
-              <span aria-hidden="true">+</span> Хочу посмотреть
+              <span aria-hidden="true">+</span> Хочу подивитися
             </button>
           )}
           {trailer ? (
@@ -174,12 +174,12 @@ function FeaturedPlaceholder() {
 
 function whenLabel(date: string) {
   const days = daysUntil(date, localIso(new Date()));
-  if (days === 0) return "выход сегодня";
-  if (days === 1) return "выход завтра";
-  if (days === -1) return "вышел вчера";
+  if (days === 0) return "вихід сьогодні";
+  if (days === 1) return "вихід завтра";
+  if (days === -1) return "вийшов учора";
   const n = Math.abs(days);
-  const span = `${n} ${plural(n, "день", "дня", "дней")}`;
-  return days > 0 ? `выход через ${span}` : `вышел ${span} назад`;
+  const span = `${n} ${plural(n, "день", "дні", "днів")}`;
+  return days > 0 ? `вихід через ${span}` : `вийшов ${span} тому`;
 }
 
 function ReleaseCard({ release }: { release: Release }) {
@@ -216,7 +216,7 @@ function ReleaseCard({ release }: { release: Release }) {
           {kind === "season"
             ? `сезон ${season} · `
             : kind === "return"
-              ? `сезон ${season}, продолжение · `
+              ? `сезон ${season}, продовження · `
               : ""}
           {whenLabel(date)}
         </p>
@@ -237,10 +237,10 @@ function WatchlistReleases({
     <section className={`${animate ? "rise " : ""}mb-10`}>
       <div className="mb-3">
         <h2 className="text-lg font-medium tracking-tight">
-          Релизы из «Хочу посмотреть»
+          Релізи з «Хочу подивитися»
         </h2>
         <p className="mt-0.5 text-xs text-mute">
-          Выходят в ближайшую неделю или вышли за последнюю
+          Виходять найближчого тижня або вийшли за останній
         </p>
       </div>
       <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
@@ -285,10 +285,10 @@ function ContinueCard({ row }: { row: ContinueItem }) {
         <p className="mt-2 line-clamp-1 text-sm leading-snug">{item.title}</p>
         <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-accent">
           {available
-            ? "следующая серия"
+            ? "наступна серія"
             : date
-              ? `ждём · ${dayMonthLabel(date)}`
-              : "новых серий нет"}
+              ? `чекаємо · ${dayMonthLabel(date)}`
+              : "нових серій немає"}
         </p>
       </Link>
       {available && next ? (
@@ -297,7 +297,7 @@ function ContinueCard({ row }: { row: ContinueItem }) {
           onClick={() => update("tv", item.id, next)}
           className="mt-2 w-full rounded-full border border-hairline py-1.5 text-xs text-mute hover:border-accent hover:text-ink"
         >
-          ✓ Просмотрено
+          ✓ Переглянуто
         </button>
       ) : null}
     </div>
@@ -335,7 +335,7 @@ function ContinueRow({
   return (
     <section className={`${animate ? "rise " : ""}mb-10`}>
       <h2 className="mb-3 text-lg font-medium tracking-tight">
-        Продолжить смотреть
+        Продовжити дивитися
       </h2>
       <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
         {rows.map((row) => (

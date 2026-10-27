@@ -20,25 +20,25 @@ export type FeedMeta = {
 };
 
 export const FEEDS: FeedMeta[] = [
-  { id: "theaters", title: "Сейчас в кинотеатрах", type: "movie", more: true },
-  { id: "trending", title: "Популярные новинки", more: true },
-  { id: "airing", title: "Сериалы в эфире", type: "tv", more: true },
-  { id: "upcoming", title: "Скоро выйдут фильмы", type: "movie", more: true },
+  { id: "theaters", title: "Зараз у кінотеатрах", type: "movie", more: true },
+  { id: "trending", title: "Популярні новинки", more: true },
+  { id: "airing", title: "Серіали в ефірі", type: "tv", more: true },
+  { id: "upcoming", title: "Скоро вийдуть фільми", type: "movie", more: true },
   {
     id: "upcoming-tv",
-    title: "Скоро выйдут сериалы",
+    title: "Скоро вийдуть серіали",
     type: "tv",
     more: true,
   },
-  { id: "watchlist", title: "Хочу посмотреть", more: false },
+  { id: "watchlist", title: "Хочу подивитися", more: false },
   {
     id: "imdb250-movie",
-    title: "Топ 250 фильмов IMDb",
+    title: "Топ 250 фільмів IMDb",
     type: "movie",
     more: true,
   },
-  { id: "imdb250-tv", title: "Топ 250 сериалов IMDb", type: "tv", more: true },
-  { id: "recs", title: "Рекомендации", more: true },
+  { id: "imdb250-tv", title: "Топ 250 серіалів IMDb", type: "tv", more: true },
+  { id: "recs", title: "Рекомендації", more: true },
 ];
 
 export function feedById(id: string) {

@@ -71,11 +71,11 @@ export const Backdrop = memo(function Backdrop({
 });
 
 export const TABS = [
-  { to: "/", label: "Лента" },
-  { to: "/search", label: "Поиск" },
-  { to: "/tonight", label: "На вечер" },
-  { to: "/library", label: "Коллекция" },
-  { to: "/settings", label: "Профиль" },
+  { to: "/", label: "Стрічка" },
+  { to: "/search", label: "Пошук" },
+  { to: "/tonight", label: "На вечір" },
+  { to: "/library", label: "Колекція" },
+  { to: "/settings", label: "Профіль" },
 ] as const;
 
 /**
@@ -588,7 +588,7 @@ export const Episode = memo(function Episode({
         ) : null}
         {watched ? (
           <span className="absolute right-1.5 top-1.5 rounded-full bg-ok px-2 py-0.5 text-[11px] font-bold text-black">
-            ✓ просмотрено
+            ✓ переглянуто
           </span>
         ) : null}
       </div>

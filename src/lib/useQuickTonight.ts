@@ -118,7 +118,7 @@ export function useQuickTonight(rewatch: boolean) {
         () =>
           alive &&
           setError(
-            "Не удалось подобрать. Проверь интернет и попробуй ещё раз.",
+            "Не вдалося підібрати. Перевір інтернет і спробуй ще раз.",
           ),
       )
       .finally(() => alive && setBusy(false));

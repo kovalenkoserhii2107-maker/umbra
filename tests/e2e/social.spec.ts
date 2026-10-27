@@ -36,7 +36,7 @@ const episodes = [1, 2, 3].map((n) => ({
 }));
 const rich = {
   id: 303,
-  title: "Стражи Галактики. Часть 2",
+  title: "Вартові Галактики. Частина 2",
   original_title: "Guardians of the Galaxy Vol. 2",
   original_language: "en",
   release_date: "2017-04-19",
@@ -44,8 +44,8 @@ const rich = {
   status: "Released",
   vote_average: 7.6,
   vote_count: 21000,
-  overview: "Стражи пытаются удержать команду вместе.",
-  genres: [{ id: 28, name: "боевик" }],
+  overview: "Вартові намагаються втримати команду разом.",
+  genres: [{ id: 28, name: "бойовик" }],
   budget: 200000000,
   revenue: 863756051,
   homepage: "https://example.com/gotg2",
@@ -142,7 +142,7 @@ const rich = {
     page: 1,
     total_pages: 1,
     total_results: 1,
-    results: [{ id: 305, title: "Мстители: Война бесконечности" }],
+    results: [{ id: 305, title: "Месники: Війна нескінченності" }],
   },
   similar: { page: 1, total_pages: 1, total_results: 0, results: [] },
 };
@@ -194,7 +194,7 @@ async function catalog(context: BrowserContext) {
                 crew: [
                   {
                     id: 303,
-                    title: "Стражи Галактики. Часть 2",
+                    title: "Вартові Галактики. Частина 2",
                     media_type: "movie",
                     release_date: "2017-04-19",
                     job: "Director",
@@ -203,7 +203,7 @@ async function catalog(context: BrowserContext) {
                   },
                   {
                     id: 303,
-                    title: "Стражи Галактики. Часть 2",
+                    title: "Вартові Галактики. Частина 2",
                     media_type: "movie",
                     release_date: "2017-04-19",
                     job: "Screenplay",
@@ -212,7 +212,7 @@ async function catalog(context: BrowserContext) {
                   },
                   {
                     id: 301,
-                    title: "Стражи Галактики",
+                    title: "Вартові Галактики",
                     media_type: "movie",
                     release_date: "2014-07-30",
                     job: "Director",
@@ -227,13 +227,13 @@ async function catalog(context: BrowserContext) {
       return route.fulfill({
         json: {
           id: 10,
-          name: "Стражи Галактики (Коллекция)",
+          name: "Вартові Галактики (Колекція)",
           parts: [
-            { id: 301, title: "Стражи Галактики", release_date: "2014-07-30" },
+            { id: 301, title: "Вартові Галактики", release_date: "2014-07-30" },
             rich,
             {
               id: 304,
-              title: "Стражи Галактики. Часть 3",
+              title: "Вартові Галактики. Частина 3",
               release_date: "2023-05-03",
             },
           ],
@@ -286,15 +286,15 @@ async function catalog(context: BrowserContext) {
 async function register(page: Page, name: string) {
   await page.goto("#/login");
   await page
-    .getByRole("button", { name: "Нет аккаунта — зарегистрироваться" })
+    .getByRole("button", { name: "Немає акаунту — зареєструватися" })
     .click();
-  await page.getByLabel("Имя", { exact: true }).fill(name);
+  await page.getByLabel("Ім'я", { exact: true }).fill(name);
   await page
     .getByLabel("Email", { exact: true })
     .fill(`${name.toLowerCase()}-${Date.now()}@example.com`);
   await page.getByLabel("Пароль", { exact: true }).fill("test-password-123");
   await page
-    .getByRole("button", { name: "Создать аккаунт", exact: true })
+    .getByRole("button", { name: "Створити акаунт", exact: true })
     .click();
   await expect(page).toHaveURL(/#\/$/);
 }
@@ -311,7 +311,7 @@ test("friends invite, accept and see each other's ratings without notes", async 
   await register(a, "Anna");
 
   await a.goto("#/friends");
-  await a.getByRole("button", { name: "Пригласить друга" }).click();
+  await a.getByRole("button", { name: "Запросити друга" }).click();
   const telegram = await a
     .getByRole("link", { name: /Telegram/ })
     .getAttribute("href");
@@ -323,34 +323,34 @@ test("friends invite, accept and see each other's ratings without notes", async 
   const key = link.searchParams.get("t")!;
   expect(key).toMatch(/^[A-Za-z0-9]{24}$/);
   const uid = link.pathname.match(/^\/s\/invite\/([A-Za-z0-9]+)$/)![1];
-  await a.getByRole("button", { name: "Отмена" }).click();
+  await a.getByRole("button", { name: "Скасувати" }).click();
 
   // Boris opens the link (as the worker sends him on), signs up, and they
   // are friends at once: no request for Anna to accept.
   await b.goto(`#/friends/invite/${uid}?t=${key}`);
   await expect(b).toHaveURL(/#\/login\?next=/);
   await b
-    .getByRole("button", { name: "Нет аккаунта — зарегистрироваться" })
+    .getByRole("button", { name: "Немає акаунту — зареєструватися" })
     .click();
-  await b.getByLabel("Имя", { exact: true }).fill("Boris");
+  await b.getByLabel("Ім'я", { exact: true }).fill("Boris");
   await b
     .getByLabel("Email", { exact: true })
     .fill(`boris-${Date.now()}@example.com`);
   await b.getByLabel("Пароль", { exact: true }).fill("test-password-123");
-  await b.getByRole("button", { name: "Создать аккаунт", exact: true }).click();
+  await b.getByRole("button", { name: "Створити акаунт", exact: true }).click();
   await expect(b).toHaveURL(new RegExp(`#/friends/${uid}$`));
-  await expect(b.getByText("Вы теперь друзья")).toBeVisible();
+  await expect(b.getByText("Ви тепер друзі")).toBeVisible();
 
   await expect(a.getByRole("link", { name: /Boris/ })).toBeVisible();
-  await expect(a.getByText("Заявки в друзья")).toHaveCount(0);
+  await expect(a.getByText("Заявки в друзі")).toHaveCount(0);
 
   await a.goto("#/title/movie/101");
-  await a.getByRole("button", { name: "В просмотренные", exact: true }).click();
-  await a.getByRole("radio", { name: "8 из 10" }).click();
-  await a.getByLabel("Комментарий", { exact: true }).fill("Anna's secret note");
-  await a.getByRole("button", { name: "Подтвердить", exact: true }).click();
+  await a.getByRole("button", { name: "У переглянуті", exact: true }).click();
+  await a.getByRole("radio", { name: "8 з 10" }).click();
+  await a.getByLabel("Коментар", { exact: true }).fill("Anna's secret note");
+  await a.getByRole("button", { name: "Підтвердити", exact: true }).click();
   await expect(
-    a.getByText("Все изменения сохранены", { exact: true }),
+    a.getByText("Усі зміни збережено", { exact: true }),
   ).toBeVisible();
 
   await expect
@@ -360,7 +360,7 @@ test("friends invite, accept and see each other's ratings without notes", async 
         await b.reload();
         await b.getByRole("heading", { name: "Test Film" }).waitFor();
         await b.waitForTimeout(1500);
-        return b.getByText("Оценки друзей").count();
+        return b.getByText("Оцінки друзів").count();
       },
       { timeout: 20000 },
     )
@@ -368,7 +368,7 @@ test("friends invite, accept and see each other's ratings without notes", async 
   await expect(b.getByText("8/10")).toBeVisible();
   // The friend's mark also shows on posters in the feeds.
   await b.goto("#/");
-  await expect(b.getByLabel("Друзья: Anna: 8/10").first()).toBeVisible();
+  await expect(b.getByLabel("Друзі: Anna: 8/10").first()).toBeVisible();
   await expect(b.getByText("Anna's secret note")).toHaveCount(0);
   await b.goto("#/friends");
   await b.getByRole("link", { name: /Anna/ }).click();
@@ -385,7 +385,7 @@ test("series tracking, collection filters, stats and sharing", async ({
   await catalog(context);
   await register(page, "Viewer");
   await page.goto("#/title/tv/202");
-  const share = page.getByRole("button", { name: "Поделиться", exact: true });
+  const share = page.getByRole("button", { name: "Поділитися", exact: true });
   await share.click();
   await expect(page.getByRole("link", { name: /Telegram/ })).toHaveAttribute(
     "href",
@@ -394,11 +394,11 @@ test("series tracking, collection filters, stats and sharing", async ({
   // The sheet sits on the visible screen, not at the bottom of a long page.
   await page.setViewportSize({ width: 390, height: 500 });
   const sheet = await page
-    .getByRole("dialog", { name: "Поделиться" })
+    .getByRole("dialog", { name: "Поділитися" })
     .boundingBox();
   expect(sheet!.y).toBeGreaterThanOrEqual(0);
   expect(sheet!.y + sheet!.height).toBeLessThanOrEqual(501);
-  await page.getByRole("button", { name: "Отмена" }).click();
+  await page.getByRole("button", { name: "Скасувати" }).click();
   await page.setViewportSize({ width: 1280, height: 720 });
 
   await expect(page.getByText("93%").first()).toBeVisible();
@@ -409,43 +409,43 @@ test("series tracking, collection filters, stats and sharing", async ({
     page.getByRole("link", { name: /^Rotten Tomatoes.*: 93%$/ }),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "Смотрю", exact: true }).click();
-  await page.getByRole("checkbox", { name: "S1E2 просмотрена" }).click();
+  await page.getByRole("button", { name: "Дивлюся", exact: true }).click();
+  await page.getByRole("checkbox", { name: "S1E2 переглянута" }).click();
   await expect(
-    page.getByText("Просмотрено до S1E2 · дальше S1E3"),
+    page.getByText("Переглянуто до S1E2 · далі S1E3"),
   ).toBeVisible();
   await expect(
-    page.getByRole("checkbox", { name: "S1E1 просмотрена" }),
+    page.getByRole("checkbox", { name: "S1E1 переглянута" }),
   ).toHaveAttribute("aria-checked", "true");
   await expect(
-    page.getByText("Все изменения сохранены", { exact: true }),
+    page.getByText("Усі зміни збережено", { exact: true }),
   ).toBeVisible();
 
   await page.goto("#/");
-  await expect(page.getByText("Продолжить смотреть")).toBeVisible();
+  await expect(page.getByText("Продовжити дивитися")).toBeVisible();
   await expect(page.getByText("S1E3")).toBeVisible();
-  await page.getByRole("button", { name: "✓ Просмотрено" }).click();
-  await expect(page.getByText("новых серий нет")).toBeVisible();
+  await page.getByRole("button", { name: "✓ Переглянуто" }).click();
+  await expect(page.getByText("нових серій немає")).toBeVisible();
 
   await page.goto("#/library");
-  await page.getByRole("button", { name: /Смотрю · 1/ }).click();
+  await page.getByRole("button", { name: /Дивлюся · 1/ }).click();
   await expect(page).toHaveURL(/status=watching/);
-  await expect(page.getByText(/смотрю · S1E3/i)).toBeVisible();
+  await expect(page.getByText(/дивлюся · S1E3/i)).toBeVisible();
   await page.getByLabel("Тип").selectOption("movie");
   await expect(
-    page.getByText("Под эти фильтры ничего не подходит."),
+    page.getByText("Під ці фільтри нічого не підходить."),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Сбросить фильтры" }).click();
+  await page.getByRole("button", { name: "Скинути фільтри" }).click();
   await expect(page.getByText("Test Show")).toBeVisible();
 
   await page.goto("#/stats");
   await expect(
-    page.getByRole("heading", { name: "Статистика и итоги" }),
+    page.getByRole("heading", { name: "Статистика та підсумки" }),
   ).toBeVisible();
   await expect(page.getByText("≈2")).toBeVisible();
   // A row opens the titles behind its number.
   const genres = page.locator("section", {
-    has: page.getByRole("heading", { name: "Любимые жанры" }),
+    has: page.getByRole("heading", { name: "Улюблені жанри" }),
   });
   const drama = genres.getByRole("button", { name: /Драма/ });
   await expect(drama).toHaveAttribute("aria-expanded", "false");
@@ -462,23 +462,23 @@ test("title card shows everything TMDB and OMDb return", async ({
   await register(page, "Cinephile");
   await page.goto("#/title/movie/303");
   await expect(
-    page.getByRole("heading", { name: "Стражи Галактики. Часть 2" }),
+    page.getByRole("heading", { name: "Вартові Галактики. Частина 2" }),
   ).toBeVisible();
   await expect(
     page.getByText("Guardians of the Galaxy Vol. 2").first(),
   ).toBeVisible();
   await expect(page.getByText("16+", { exact: true })).toBeVisible();
-  await expect(page.getByText("828 тыс.", { exact: true })).toBeVisible();
+  await expect(page.getByText("828 тис.", { exact: true })).toBeVisible();
   await expect(page.getByText("93%").first()).toBeVisible();
   await expect(
-    page.getByText("«Оскар»: 1 номинация · всего 15 наград и 62 номинации"),
+    page.getByText("«Оскар»: 1 номінація · усього 15 нагород та 62 номінації"),
   ).toBeVisible();
-  await expect(page.getByText("По подписке")).toBeVisible();
-  await expect(page.getByText("Аренда")).toBeVisible();
+  await expect(page.getByText("За передплатою")).toBeVisible();
+  await expect(page.getByText("Оренда")).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Все варианты ↗" }),
+    page.getByRole("link", { name: "Усі варіанти ↗" }),
   ).toHaveAttribute("href", /watch\?locale=UA/);
-  await expect(page.getByText("22 августа 2017")).toBeVisible();
+  await expect(page.getByText("22 серпня 2017")).toBeVisible();
   await expect(page.locator('iframe[src*="vid-ru"]')).toHaveCount(1);
   await expect(page.getByText("$200 млн")).toBeVisible();
   await expect(page.getByText("$864 млн")).toBeVisible();
@@ -489,11 +489,11 @@ test("title card shows everything TMDB and OMDb return", async ({
     page.getByRole("link", { name: /Tyler Bates.*композитор/ }),
   ).toBeVisible();
   await expect(
-    page.getByText("Стражи Галактики. Часть 3").first(),
+    page.getByText("Вартові Галактики. Частина 3").first(),
   ).toBeVisible();
   await expect(page.getByText("A fun, heartfelt sequel.")).toBeVisible();
   await expect(
-    page.getByText("Мстители: Война бесконечности").first(),
+    page.getByText("Месники: Війна нескінченності").first(),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Wikidata ↗" })).toHaveAttribute(
     "href",
@@ -511,17 +511,17 @@ test("title card shows everything TMDB and OMDb return", async ({
   });
 
   // A crew card opens the person's page with their info and filmography.
-  await page.getByRole("link", { name: /James Gunn.*режиссёр/ }).click();
+  await page.getByRole("link", { name: /James Gunn.*режисер/ }).click();
   await expect(page).toHaveURL(/#\/person\/1$/);
   await expect(page.getByRole("heading", { name: "James Gunn" })).toBeVisible();
   await expect(page.getByText("St. Louis, Missouri, USA")).toBeVisible();
   await expect(
     page.getByText("James Gunn is an American filmmaker."),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Режиссёр · 2" })).toHaveClass(
+  await expect(page.getByRole("button", { name: "Режисер · 2" })).toHaveClass(
     /bg-ink/,
   );
-  await expect(page.getByText("режиссёр, сценарий")).toBeVisible();
+  await expect(page.getByText("режисер, сценарій")).toBeVisible();
   await expect(page.getByRole("link", { name: "IMDb ↗" })).toHaveAttribute(
     "href",
     /nm0348181/,

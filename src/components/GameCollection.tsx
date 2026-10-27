@@ -33,19 +33,19 @@ const chip = (on: boolean) =>
 
 function ago(ms: number) {
   const minutes = Math.round((Date.now() - ms) / 60000);
-  if (minutes < 1) return "только что";
-  if (minutes < 60) return `${minutes} мин назад`;
+  if (minutes < 1) return "щойно";
+  if (minutes < 60) return `${minutes} хв тому`;
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} ч назад`;
-  return `${Math.round(hours / 24)} дн назад`;
+  if (hours < 24) return `${hours} год тому`;
+  return `${Math.round(hours / 24)} дн тому`;
 }
 
 function report(r: SyncReport) {
   const parts = [
-    r.added ? `добавлено ${r.added}` : "",
-    r.updated ? `обновлено ${r.updated}` : "",
+    r.added ? `додано ${r.added}` : "",
+    r.updated ? `оновлено ${r.updated}` : "",
   ].filter(Boolean);
-  return `${parts.length ? parts.join(", ") : "новых игр нет"}${r.missing ? `; ${r.missing} ${plural(r.missing, "игра", "игры", "игр")} из Steam не нашлось в IGDB` : ""}.`;
+  return `${parts.length ? parts.join(", ") : "нових ігор немає"}${r.missing ? `; ${r.missing} ${plural(r.missing, "гра", "гри", "ігор")} зі Steam не знайшлися в IGDB` : ""}.`;
 }
 
 /** Connect Steam and see how fresh the import is; it refreshes by itself. */
@@ -63,12 +63,12 @@ export function SteamPanel() {
     if (!params) return;
     if (params.error === "state") {
       setError(
-        "Вход через Steam не подтвердился: он открылся в другой вкладке или окне. Нажми «Войти через Steam» ещё раз здесь же.",
+        "Вхід через Steam не підтвердився: його відкрито в іншій вкладці або вікні. Натисни «Увійти через Steam» ще раз тут же.",
       );
       return;
     }
     void (async () => {
-      setBusy("Проверяю вход через Steam…");
+      setBusy("Перевіряю вхід через Steam…");
       setError("");
       try {
         const { steamId } = await verifySteam(params);
@@ -83,7 +83,7 @@ export function SteamPanel() {
     })();
   }, [ready]);
 
-  const status = busy || (syncing ? "Обновляю игры из Steam…" : "");
+  const status = busy || (syncing ? "Оновлюю ігри зі Steam…" : "");
   const problem = error || syncError;
   return (
     <div className={`${CARD} p-5`}>
@@ -96,10 +96,10 @@ export function SteamPanel() {
             <p className="truncate text-sm">Steam · {steam.name}</p>
             <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-dim">
               {syncing
-                ? "обновляется…"
+                ? "оновлюється…"
                 : steam.syncedAt
-                  ? `обновлено ${ago(steam.syncedAt)}`
-                  : "ещё не загружено"}
+                  ? `оновлено ${ago(steam.syncedAt)}`
+                  : "ще не завантажено"}
             </p>
           </div>
           <button
@@ -110,23 +110,23 @@ export function SteamPanel() {
             }
             className="text-xs text-dim"
           >
-            Отключить
+            Відключити
           </button>
         </div>
       ) : (
         <div>
-          <p className="text-sm">Подключи Steam</p>
+          <p className="text-sm">Підключи Steam</p>
           <p className="mt-1 text-sm text-mute">
-            Подтянем все игры с часами, недавние игры, список желаемого и
-            достижения, и будем обновлять их сами при каждом заходе в раздел.
-            Профиль и игровая информация в Steam должны быть открыты.
+            Підтягнемо всі ігри з годинами, нещодавні ігри, список бажаного та
+            досягнення, і оновлюватимемо їх самі при кожному вході в розділ.
+            Профіль та ігрова інформація в Steam мають бути відкритими.
           </p>
           <a
             href={steamLoginUrl()}
             className="mt-3 inline-flex h-10 items-center gap-2 rounded-full bg-[#171a21] px-4 text-sm text-white ring-1 ring-[#66c0f4]/40 hover:ring-[#66c0f4]"
           >
             <span className="h-2 w-2 rounded-full bg-[#66c0f4]" />
-            Войти через Steam
+            Увійти через Steam
           </a>
         </div>
       )}
@@ -163,9 +163,9 @@ type PlatformFilter = "all" | (typeof PLATFORM_GROUPS)[number]["id"];
 function lastPlayed(e: GameEntry) {
   if (!e.steam?.lastPlayed) return "";
   const days = Math.floor((Date.now() / 1000 - e.steam.lastPlayed) / 86400);
-  if (days <= 0) return "сегодня";
-  if (days === 1) return "вчера";
-  if (days < 30) return `${days} дн назад`;
+  if (days <= 0) return "сьогодні";
+  if (days === 1) return "учора";
+  if (days < 30) return `${days} дн тому`;
   return dateLabel(
     new Date(e.steam.lastPlayed * 1000).toISOString().slice(0, 10),
   );
@@ -196,7 +196,7 @@ function Row({ e }: { e: GameEntry }) {
             {[
               statusLabel(e.status),
               e.rating ? `${e.rating}/10` : "",
-              hours ? `${hours.toLocaleString("ru-RU")} ч` : "",
+              hours ? `${hours.toLocaleString("uk-UA")} год` : "",
             ]
               .filter(Boolean)
               .join(" · ")}
@@ -204,7 +204,7 @@ function Row({ e }: { e: GameEntry }) {
         </p>
         {e.steam?.recent ? (
           <p className="mt-0.5 text-xs text-accent">
-            {hoursLabel(e.steam.recent)} за 2 недели · {lastPlayed(e)}
+            {hoursLabel(e.steam.recent)} за 2 тижні · {lastPlayed(e)}
           </p>
         ) : e.steam?.lastPlayed ? (
           <p className="mt-0.5 text-xs text-dim">запуск {lastPlayed(e)}</p>
@@ -252,8 +252,8 @@ export function GameCollection() {
   return (
     <>
       <p className="mb-4 text-sm text-mute">
-        {onPlatform.length} {plural(onPlatform.length, "игра", "игры", "игр")}
-        {totalHours ? ` · ${totalHours.toLocaleString("ru-RU")} ч` : ""}
+        {onPlatform.length} {plural(onPlatform.length, "гра", "гри", "ігор")}
+        {totalHours ? ` · ${totalHours.toLocaleString("uk-UA")} год` : ""}
         {` · ${statusCount("played")} пройдено`}
       </p>
       <div
@@ -267,7 +267,7 @@ export function GameCollection() {
           onClick={() => setPlatform("all")}
           className={chip(platform === "all")}
         >
-          Все <span className="opacity-60">{counts.all}</span>
+          Всі <span className="opacity-60">{counts.all}</span>
         </button>
         {PLATFORM_GROUPS.map((g) => (
           <button
@@ -291,7 +291,7 @@ export function GameCollection() {
           onClick={() => setStatus("all")}
           className={chip(status === "all")}
         >
-          Все статусы
+          Всі статуси
         </button>
         {GAME_STATUSES.filter((s) => statusCount(s.id)).map((s) => (
           <button
@@ -307,10 +307,10 @@ export function GameCollection() {
       <div className="mb-6 flex flex-wrap gap-2">
         {(
           [
-            ["recent", "Недавние"],
-            ["hours", "Больше часов"],
-            ["rating", "Оценка"],
-            ["title", "По названию"],
+            ["recent", "Нещодавні"],
+            ["hours", "Більше годин"],
+            ["rating", "Оцінка"],
+            ["title", "За назвою"],
           ] as Array<[LibrarySort, string]>
         ).map(([id, label]) => (
           <button
@@ -326,7 +326,7 @@ export function GameCollection() {
       {recent.length && status === "all" ? (
         <section className="mb-8">
           <h2 className="mb-3 text-lg font-medium tracking-tight">
-            Недавно играл
+            Нещодавно грав
           </h2>
           <div className="row-scroll flex gap-3 overflow-x-auto pb-2">
             {recent.map((g) => (
@@ -345,7 +345,7 @@ export function GameCollection() {
                   {g.title}
                 </p>
                 <p className="font-mono text-[10px] text-accent">
-                  {hoursLabel(g.steam!.recent)} за 2 недели
+                  {hoursLabel(g.steam!.recent)} за 2 тижні
                 </p>
               </Link>
             ))}
@@ -354,7 +354,7 @@ export function GameCollection() {
       ) : null}
       {!ready && !games.length ? (
         <p role="status" className="text-sm text-mute">
-          Загружаю коллекцию…
+          Завантажую колекцію…
         </p>
       ) : shown.length ? (
         <div className="space-y-2">
@@ -363,7 +363,7 @@ export function GameCollection() {
           ))}
         </div>
       ) : (
-        <Empty text="Здесь пока пусто. Открой игру и отметь её, или подключи Steam." />
+        <Empty text="Тут поки порожньо. Відкрий гру та відзнач її, або підключи Steam." />
       )}
     </>
   );

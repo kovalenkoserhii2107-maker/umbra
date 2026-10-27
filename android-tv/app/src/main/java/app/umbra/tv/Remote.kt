@@ -17,16 +17,16 @@ import com.google.firebase.messaging.RemoteMessage
 import org.json.JSONObject
 
 /**
- * Команды с телефона: «На телевизоре в Lampa». Приходят push-сообщением (FCM)
- * через наш сервер, даже когда Umbra закрыта, а телевизор спит. Сайт на
- * телевизоре регистрирует его на сервере тем, что отдаёт [Remote.info].
+ * Команди з телефона: «На телевізорі в Lampa». Надходять push-повідомленням (FCM)
+ * через наш сервер, навіть коли Umbra закрита, а телевізор спить. Сайт на
+ * телевізорі реєструє його на сервері тим, що віддає [Remote.info].
  */
 object Remote {
     @Volatile
     var token: String? = null
         private set
 
-    /** Вызывается, когда токен получен или сменился (сайт регистрирует телевизор заново). */
+    /** Викликається, коли токен отримано або змінено (сайт реєструє телевізор заново). */
     @Volatile
     var onToken: ((String) -> Unit)? = null
 
@@ -39,13 +39,13 @@ object Remote {
         onToken?.invoke(value)
     }
 
-    /** Lampa открывает карточку по адресу TMDB; intent — только ей, не браузеру. */
+    /** Lampa відкриває картку за адресою TMDB; intent — тільки їй, не браузеру. */
     fun lampaLink(type: String, id: String) =
         "intent://www.themoviedb.org/$type/$id#Intent;scheme=https;action=android.intent.action.VIEW;package=top.rootu.lampa;end"
 
     /**
-     * Что сайт отправляет серверу: токен, постоянный id телевизора, модель,
-     * есть ли Lampa и можно ли открывать её из фона (разрешение «Поверх других приложений»).
+     * Що сайт надсилає серверу: токен, постійний id телевізора, модель,
+     * чи є Lampa та чи можна відкривати її з фону (дозвіл «Поверх інших застосунків»).
      */
     fun info(context: Context): String {
         val lampa = ExternalLinks.APPS.first { it.slug == "lampa" }
@@ -66,7 +66,7 @@ class PushService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         val data = message.data
         if (data["action"] != "lampa") return
-        // Только тип и номер: чужую ссылку так не передать.
+        // Тільки тип і номер: чуже посилання так не передати.
         val type = data["type"]?.takeIf { it == "movie" || it == "tv" } ?: return
         val id = data["id"]?.takeIf { ID.matches(it) } ?: return
         startActivity(
@@ -83,8 +83,8 @@ class PushService : FirebaseMessagingService() {
 }
 
 /**
- * Будит экран (своё окно с turnScreenOn — wake lock телевизор не будит)
- * и, когда он включился, открывает карточку в Lampa.
+ * Будить екран (своє вікно з turnScreenOn — wake lock телевізор не будить)
+ * і, коли він увімкнувся, відкриває картку в Lampa.
  */
 class RemoteOpenActivity : Activity() {
 
@@ -108,7 +108,7 @@ class RemoteOpenActivity : Activity() {
         val power = getSystemService(PowerManager::class.java)
         val started = System.currentTimeMillis()
         fun open() {
-            // Экран включается не сразу; Lampa открываем, когда он уже горит.
+            // Екран вмикається не одразу; Lampa відкриваємо, коли він уже горить.
             if (!power.isInteractive && System.currentTimeMillis() - started < WAKE_WAIT) {
                 main.postDelayed(::open, 200)
                 return

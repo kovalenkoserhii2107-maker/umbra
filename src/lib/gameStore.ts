@@ -99,7 +99,7 @@ function bind(uid: string | null) {
         });
         if (!snap.metadata.fromCache) void repairEntries();
       },
-      () => set({ error: "Не удалось загрузить коллекцию игр." }),
+      () => set({ error: "Не вдалося завантажити колекцію ігор." }),
     ),
     onSnapshot(
       doc(firebaseDb, "users", uid, "links", "steam"),
@@ -138,7 +138,7 @@ export function useGameCollection() {
 function owner() {
   const uid = state.uid;
   if (!uid || firebaseAuth.currentUser?.uid !== uid)
-    throw new Error("Войди в аккаунт, чтобы сохранить игру.");
+    throw new Error("Увійди в акаунт, щоб зберегти гру.");
   return uid;
 }
 
@@ -218,11 +218,11 @@ export async function syncSteam(steamId?: string): Promise<SyncReport> {
   const uid = owner();
   // Right after linking, the link snapshot may not have arrived yet.
   const link = steamId ? { steamId } : state.steam;
-  if (!link) throw new Error("Steam не подключён.");
+  if (!link) throw new Error("Steam не підключено.");
   const lib = await steamLibrary(link.steamId);
   if (lib.private)
     throw new Error(
-      "Steam не показывает игры. Открой в настройках приватности Steam «Доступ к игровой информации: открытый».",
+      "Steam не показує ігри. Відкрий у налаштуваннях приватності Steam «Доступ до ігрової інформації: відкритий».",
     );
   const appIds = [
     ...new Set([...lib.games.map((g) => g.appId), ...lib.wishlist]),
@@ -295,18 +295,18 @@ export async function syncSteam(steamId?: string): Promise<SyncReport> {
 }
 
 const STEAM_ERRORS: Record<string, string> = {
-  steam_cancelled: "Вход через Steam отменён.",
-  steam_rejected: "Steam не подтвердил вход. Попробуй ещё раз.",
-  steam_invalid: "Ответ Steam не прошёл проверку. Попробуй ещё раз.",
+  steam_cancelled: "Вхід через Steam скасовано.",
+  steam_rejected: "Steam не підтвердив вхід. Спробуй ще раз.",
+  steam_invalid: "Відповідь Steam не пройшла перевірку. Спробуй ще раз.",
   steam_private:
-    "Профиль Steam закрыт. Открой профиль и игровую информацию в настройках приватности Steam.",
+    "Профіль Steam закритий. Відкрий профіль та ігрову інформацію в налаштуваннях приватності Steam.",
 };
 
 export function steamErrorText(e: unknown) {
   const code = (e as { code?: string })?.code || "";
   return (
     STEAM_ERRORS[code] ||
-    (e instanceof Error ? e.message : "Не удалось связаться со Steam.")
+    (e instanceof Error ? e.message : "Не вдалося зв'язатися зі Steam.")
   );
 }
 

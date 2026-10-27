@@ -86,11 +86,11 @@ export function cardsOf(items: TmdbItem[], type?: MediaType): Card[] {
   return cards;
 }
 
-/** "2021 · фильм · ★ 7.8 · Фантастика, Драма" */
+/** "2021 · фільм · ★ 7.8 · Фантастика, Драма" */
 export function metaLine(card: Card, imdb?: string | null) {
   return [
     card.year,
-    card.type === "tv" ? "сериал" : "фильм",
+    card.type === "tv" ? "серіал" : "фільм",
     imdb ? `IMDb ${imdb}` : card.vote ? `★ ${card.vote.toFixed(1)}` : null,
     card.genres?.length ? card.genres.join(", ") : null,
   ]

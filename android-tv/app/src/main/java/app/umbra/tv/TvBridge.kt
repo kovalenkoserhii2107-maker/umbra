@@ -6,9 +6,9 @@ import android.webkit.JavascriptInterface
 import org.json.JSONObject
 
 /**
- * JS-мост `window.UmbraTV` для сайта в TV-режиме.
- * Вызывается из WebView в фоновом потоке — работу переносим в главный.
- * Отвечает только нашему сайту: остальные адреса в WebView не открываются вовсе.
+ * JS-міст `window.UmbraTV` для сайту в TV-режимі.
+ * Викликається з WebView у фоновому потоці — роботу переносимо в головний.
+ * Відповідає тільки нашому сайту: інші адреси у WebView не відкриваються зовсім.
  */
 class TvBridge(private val activity: MainActivity) {
 
@@ -17,7 +17,7 @@ class TvBridge(private val activity: MainActivity) {
     @JavascriptInterface
     fun version(): String = if (activity.isTrustedPage) BuildConfig.VERSION_NAME else ""
 
-    /** Какие стриминги установлены: {"youtube":true,"netflix":false,…}. */
+    /** Які стрімінги встановлені: {"youtube":true,"netflix":false,…}. */
     @JavascriptInterface
     fun installedApps(): String {
         if (!activity.isTrustedPage) return "{}"
@@ -26,7 +26,7 @@ class TvBridge(private val activity: MainActivity) {
         return result.toString()
     }
 
-    /** Открыть ссылку в приложении телевизора (YouTube, Netflix…). */
+    /** Відкрити посилання в застосунку телевізора (YouTube, Netflix…). */
     @JavascriptInterface
     fun openExternal(url: String): Boolean {
         if (!activity.isTrustedPage) return false
@@ -34,7 +34,7 @@ class TvBridge(private val activity: MainActivity) {
         return true
     }
 
-    /** Запустить приложение стриминга, по возможности сразу с поиском. */
+    /** Запустити застосунок стрімінгу, за можливості одразу з пошуком. */
     @JavascriptInterface
     fun launchApp(slug: String, query: String?): Boolean {
         if (!activity.isTrustedPage) return false
@@ -44,7 +44,7 @@ class TvBridge(private val activity: MainActivity) {
         return true
     }
 
-    /** Для команд с телефона: токен push, id и модель телевизора, Lampa, запуск из фона. */
+    /** Для команд із телефона: токен push, id та модель телевізора, Lampa, запуск із фону. */
     @JavascriptInterface
     fun remoteInfo(): String {
         if (!activity.isTrustedPage) return "{}"
@@ -54,21 +54,21 @@ class TvBridge(private val activity: MainActivity) {
     @JavascriptInterface
     fun voiceAvailable(): Boolean = activity.isTrustedPage && activity.voiceAvailable
 
-    /** Начать голосовой ввод; результат придёт событием `umbratv` (type: "voice"). */
+    /** Почати голосове введення; результат надійде подією `umbratv` (type: "voice"). */
     @JavascriptInterface
     fun startVoice(language: String?) {
         if (!activity.isTrustedPage) return
         main.post { if (activity.isTrustedPage) activity.startVoice(language) }
     }
 
-    /** Вход через Google-аккаунт телевизора; ответ — событие `umbratv` (type: "google"). */
+    /** Вхід через Google-акаунт телевізора; відповідь — подія `umbratv` (type: "google"). */
     @JavascriptInterface
     fun googleSignIn() {
         if (!activity.isTrustedPage) return
         main.post { if (activity.isTrustedPage) activity.googleSignIn() }
     }
 
-    /** Закрыть приложение: сайт решает когда («Назад» дважды на «Ленте»). */
+    /** Закрити застосунок: сайт вирішує коли («Назад» двічі на «Стрічці»). */
     @JavascriptInterface
     fun exitApp() {
         if (!activity.isTrustedPage) return

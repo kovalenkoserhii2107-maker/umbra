@@ -75,8 +75,8 @@ function PhoneSignIn() {
           stage: "error",
           message:
             e instanceof ApiError && e.code === "network"
-              ? "Нет связи с сервером. Проверь интернет на телевизоре."
-              : "Вход с телефона сейчас недоступен.",
+              ? "Немає зв’язку з сервером. Перевір інтернет на телевізорі."
+              : "Вхід з телефону зараз недоступний.",
         });
         timer = window.setTimeout(() => alive && next(), 15_000);
         return;
@@ -100,7 +100,7 @@ function PhoneSignIn() {
             return;
           }
           if (answer.status === "denied")
-            return next("Вход отклонён на телефоне. Вот новый код.");
+            return next("Вхід відхилено на телефоні. Ось новий код.");
           if (answer.status !== "pending") return next();
         } catch {
           // A dropped request: try again on the next tick.
@@ -117,7 +117,7 @@ function PhoneSignIn() {
 
   return (
     <section className="flex flex-col items-center rounded-3xl border border-hairline bg-card p-6 text-center">
-      <h2 className="text-lg">С телефона</h2>
+      <h2 className="text-lg">З телефону</h2>
       {state.stage === "waiting" ? (
         <>
           <div className="mt-4">
@@ -125,12 +125,12 @@ function PhoneSignIn() {
           </div>
           <p
             className="mt-4 font-mono text-2xl tracking-[0.2em] text-ink"
-            aria-label="Код для входа"
+            aria-label="Код для входу"
           >
             {prettyCode(state.code.code)}
           </p>
           <p className="mt-3 max-w-xs text-sm text-mute">
-            Наведи камеру телефона на QR — откроется Umbra. Нажми «Подтвердить».
+            Наведи камеру телефона на QR — відкриється Umbra. Натисни «Підтвердити».
           </p>
           {state.note ? (
             <p role="status" className="mt-2 text-sm text-accent">
@@ -140,7 +140,7 @@ function PhoneSignIn() {
         </>
       ) : state.stage === "signing" ? (
         <p role="status" className="mt-6 text-mute">
-          Телефон подтвердил. Вхожу…
+          Телефон підтвердив. Входжу…
         </p>
       ) : state.stage === "error" ? (
         <p role="alert" className="mt-6 max-w-xs text-sm text-accent">
@@ -158,10 +158,10 @@ function PhoneSignIn() {
 
 const GOOGLE_ERRORS: Record<string, string> = {
   no_account:
-    "На телевизоре нет аккаунта Google. Добавь его в настройках телевизора или войди с телефона.",
+    "На телевізорі немає акаунту Google. Додай його в налаштуваннях телевізора або увійди з телефону.",
   failed:
-    "Не получилось войти через Google. Попробуй ещё раз или войди с телефона.",
-  unsupported: "Не получилось войти через Google. Войди с телефона.",
+    "Не вдалося увійти через Google. Спробуй ще раз або увійди з телефону.",
+  unsupported: "Не вдалося увійти через Google. Увійди з телефону.",
 };
 
 /** The Google account already on the TV, chosen in the system dialog. */
@@ -215,7 +215,7 @@ function GoogleOnTv() {
             d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"
           />
         </svg>
-        {busy ? "Выбери аккаунт…" : "Войти через Google"}
+        {busy ? "Обери акаунт…" : "Увійти через Google"}
       </button>
       {error ? (
         <p role="alert" className="text-sm text-accent">
@@ -234,9 +234,9 @@ export function TvLogin({ error }: { error?: string | null }) {
     <div className="rise mx-auto grid max-w-4xl grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center gap-8 py-4">
       <div>
         <BrandLockup />
-        <h1 className="mt-6 text-3xl tracking-tight">Вход в Umbra</h1>
+        <h1 className="mt-6 text-3xl tracking-tight">Вхід в Umbra</h1>
         <p className="mt-2 text-mute">
-          Полка, оценки и заметки — те же, что на телефоне.
+          Полиця, оцінки та нотатки — ті самі, що й на телефоні.
         </p>
         {error ? (
           <p role="alert" className="mt-3 text-accent">
@@ -256,7 +256,7 @@ export function TvLogin({ error }: { error?: string | null }) {
               onClick={() => setEmail(true)}
               className="h-12 w-full rounded-full border border-hairline px-6 text-mute"
             >
-              Войти по email и паролю
+              Увійти за email та паролем
             </button>
           )}
         </div>

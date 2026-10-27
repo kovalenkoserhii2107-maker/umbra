@@ -17,11 +17,11 @@ type State =
 function problem(e: unknown) {
   const code = e instanceof ApiError ? e.code : "";
   if (code === "tv_code_expired" || code === "bad_code")
-    return "Код устарел или набран с ошибкой. На телевизоре уже новый — отсканируй его ещё раз.";
-  if (code === "tv_answered") return "На этот код уже ответили.";
+    return "Код застарів або введений з помилкою. На телевізорі вже новий — відскануй його ще раз.";
+  if (code === "tv_answered") return "На цей код уже відповіли.";
   if (code === "network")
-    return "Нет связи. Проверь интернет и попробуй ещё раз.";
-  return "Не получилось. Попробуй ещё раз.";
+    return "Немає зв’язку. Перевір інтернет і спробуй ще раз.";
+  return "Не вдалося. Спробуй ще раз.";
 }
 
 /** Typing the code by hand, when the QR cannot be scanned. */
@@ -37,7 +37,7 @@ function CodeForm({ onSubmitCode }: { onSubmitCode: (code: string) => void }) {
       }}
     >
       <label className="block text-sm text-mute" htmlFor="tv-code">
-        Код с экрана телевизора
+        Код з екрана телевізора
       </label>
       <input
         id="tv-code"
@@ -55,7 +55,7 @@ function CodeForm({ onSubmitCode }: { onSubmitCode: (code: string) => void }) {
         disabled={code.length !== 8}
         className="w-full rounded-full bg-accent py-3 text-black disabled:opacity-50"
       >
-        Дальше
+        Далі
       </button>
     </form>
   );
@@ -90,7 +90,7 @@ export function TvLinkPage() {
         else
           setState({
             stage: "error",
-            message: "На этот код уже ответили.",
+            message: "На цей код уже відповіли.",
           });
       })
       .catch((e) => alive && setState({ stage: "error", message: problem(e) }));
@@ -112,36 +112,36 @@ export function TvLinkPage() {
   return (
     <div className="rise mx-auto max-w-md py-6 text-center">
       <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
-        Телевизор
+        Телевізор
       </p>
-      <h1 className="mt-2 text-3xl tracking-tight">Вход на телевизоре</h1>
+      <h1 className="mt-2 text-3xl tracking-tight">Вхід на телевізорі</h1>
       {!code ? (
         <>
           <p className="mt-3 text-sm text-mute">
-            Открой Umbra на телевизоре и отсканируй QR-код камерой телефона —
-            или введи код с экрана.
+            Відкрий Umbra на телевізорі та відскануй QR-код камерою телефона —
+            або введи код з екрана.
           </p>
           <CodeForm onSubmitCode={openCode} />
         </>
       ) : state.stage === "loading" ? (
         <p role="status" className="mt-8 text-sm text-mute">
-          Проверяю код…
+          Перевіряю код…
         </p>
       ) : state.stage === "ask" || state.stage === "sending" ? (
         <div className="mt-6 rounded-3xl border border-hairline bg-card p-6">
-          <p className="text-lg">Войти в Umbra на телевизоре?</p>
+          <p className="text-lg">Увійти в Umbra на телевізорі?</p>
           <p className="mt-4 text-2xl">{state.info.device}</p>
           <p className="mt-1 font-mono text-lg tracking-[0.2em] text-mute">
             {prettyCode(code)}
           </p>
           <p className="mt-4 text-sm text-mute">
-            Телевизор войдёт в аккаунт{" "}
+            Телевізор увійде в акаунт{" "}
             <span className="text-ink">{account?.email || account?.name}</span>:
-            увидит полку, оценки и заметки.
+            побачить полицю, оцінки та нотатки.
           </p>
           <p className="mt-3 rounded-2xl bg-accent/10 px-4 py-3 text-sm text-accent">
-            Подтверждай, только если этот код сейчас на экране твоего
-            телевизора.
+            Підтверджуй, тільки якщо цей код зараз на екрані твого
+            телевізора.
           </p>
           <div className="mt-6 grid grid-cols-2 gap-3">
             <button
@@ -151,8 +151,8 @@ export function TvLinkPage() {
               className="rounded-full border border-hairline py-3 disabled:opacity-50"
             >
               {state.stage === "sending" && !state.approve
-                ? "Отказываю…"
-                : "Отказать"}
+                ? "Відхиляю…"
+                : "Відхилити"}
             </button>
             <button
               type="button"
@@ -161,8 +161,8 @@ export function TvLinkPage() {
               className="rounded-full bg-accent py-3 text-black disabled:opacity-50"
             >
               {state.stage === "sending" && state.approve
-                ? "Подтверждаю…"
-                : "Подтвердить"}
+                ? "Підтверджую…"
+                : "Підтвердити"}
             </button>
           </div>
         </div>
@@ -170,11 +170,11 @@ export function TvLinkPage() {
         <div className="mt-8">
           <p role="status" className="text-lg">
             {state.approved
-              ? "Готово — телевизор входит в твой аккаунт."
-              : "Вход отклонён. Телевизор не получил доступ."}
+              ? "Готово — телевізор входить у твій акаунт."
+              : "Вхід відхилено. Телевізор не отримав доступ."}
           </p>
           <Link to="/" className="mt-6 inline-block text-accent">
-            На главную
+            На головну
           </Link>
         </div>
       ) : (

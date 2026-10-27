@@ -28,7 +28,7 @@ export type GameStats = {
   best: GameEntry[];
 };
 
-const hoursText = (h: number) => `${Math.round(h).toLocaleString("ru-RU")} ч`;
+const hoursText = (h: number) => `${Math.round(h).toLocaleString("uk-UA")} год`;
 
 const sumHours = (list: GameEntry[]) =>
   list.reduce((s, g) => s + (playedHours(g) ?? 0), 0);
@@ -84,7 +84,7 @@ export function computeGameStats(
   for (const g of list)
     if (g.genre) genreRows.set(g.genre, [...(genreRows.get(g.genre) || []), g]);
   const genres = [...genreRows.entries()]
-    .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], "ru"))
+    .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], "uk"))
     .slice(0, 8)
     .map(([label, items]) => ({
       label,

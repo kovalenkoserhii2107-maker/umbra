@@ -112,7 +112,7 @@ async function tmdbPreview(
   const tmdb =
     d.vote_count && d.vote_average ? d.vote_average.toFixed(1) : null;
   const facts = [
-    kind === "tv" ? "Сериал" : "Фильм",
+    kind === "tv" ? "Серіал" : "Фільм",
     year,
     d.genres?.[0]?.name,
     tmdb ? `TMDB ${tmdb}` : "",
@@ -163,7 +163,7 @@ async function gamePreview(deps: Deps, id: number): Promise<Preview | null> {
     ? String(new Date(g.first_release_date * 1000).getUTCFullYear())
     : "";
   const facts = [
-    "Игра",
+    "Гра",
     year,
     g.genres?.[0]?.name,
     g.aggregated_rating && g.aggregated_rating_count
@@ -195,7 +195,7 @@ export function sharePage(
 ) {
   const title = escape(preview?.title || "Umbra");
   const description = escape(
-    preview?.description || "Фильмы, сериалы и игры в Umbra",
+    preview?.description || "Фільми, серіали та ігри в Umbra",
   );
   const link = escape(target);
   const image = preview?.image
@@ -204,7 +204,7 @@ export function sharePage(
 <meta name="twitter:image" content="${escape(preview.image)}">`
     : "";
   return `<!doctype html>
-<html lang="ru"><head><meta charset="utf-8">
+<html lang="uk"><head><meta charset="utf-8">
 <title>${title} — Umbra</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="${description}">
@@ -219,7 +219,7 @@ ${image}
 <meta http-equiv="refresh" content="0;url=${link}">
 <style>body{background:#000;color:#fcfcfc;font:16px system-ui,sans-serif;padding:24px}a{color:#ff9e64}</style>
 </head><body>
-<p><a href="${link}">${linkText ? escape(linkText) : `Открыть «${title}» в Umbra`}</a></p>
+<p><a href="${link}">${linkText ? escape(linkText) : `Відкрити «${title}» в Umbra`}</a></p>
 <script>location.replace(${JSON.stringify(target).replace(/</g, "\\u003c")})</script>
 </body></html>`;
 }
@@ -245,9 +245,9 @@ export function inviteResponse(
   const base = site.endsWith("/") ? site : `${site}/`;
   const who = name.replace(/\s+/g, " ").trim().slice(0, 40);
   const preview: Preview = {
-    title: who ? `${who} зовёт тебя в Umbra` : "Приглашение в Umbra",
+    title: who ? `${who} кличе тебе в Umbra` : "Запрошення в Umbra",
     description:
-      "Добавляйтесь в друзья и смотрите оценки друг друга: фильмы и сериалы. Подбор на вечер с ИИ, коллекция и где смотреть — бесплатно.",
+      "Додавайтеся в друзі та дивіться оцінки одне одного: фільми та серіали. Підбір на вечір зі ШІ, колекція та де дивитися — безкоштовно.",
     image: `${base}og-invite.png`,
   };
   return new Response(
@@ -255,7 +255,7 @@ export function inviteResponse(
       preview,
       `${base}#/friends/invite/${uid}${/^[A-Za-z0-9]{24}$/.test(token) ? `?t=${token}` : ""}`,
       self,
-      "Открыть приглашение в Umbra",
+      "Відкрити запрошення в Umbra",
     ),
     {
       headers: {

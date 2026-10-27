@@ -34,13 +34,13 @@ export default defineConfig({
       manifest: {
         name: "Umbra",
         short_name: "Umbra",
-        description: "Личная коллекция фильмов, сериалов и игр",
+        description: "Особиста колекція фільмів, серіалів та ігор",
         theme_color: "#000000",
         background_color: "#000000",
         display: "standalone",
         start_url: "/umbra/",
         scope: "/umbra/",
-        lang: "ru",
+        lang: "uk",
         icons: [
           {
             src: "icon-192.png",

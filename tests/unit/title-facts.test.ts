@@ -74,9 +74,9 @@ describe("title facts", () => {
 
   it("lists regional release dates in order", () => {
     expect(regionalDates(movie, "UA")).toEqual([
-      { label: "Премьера", date: "19 апреля 2017" },
-      { label: "В кино", date: "4 мая 2017" },
-      { label: "Онлайн", date: "22 августа 2017" },
+      { label: "Прем'єра", date: "19 квітня 2017" },
+      { label: "У кіно", date: "4 травня 2017" },
+      { label: "Онлайн", date: "22 серпня 2017" },
     ]);
     expect(regionalDates(movie, "PL")).toEqual([]);
   });

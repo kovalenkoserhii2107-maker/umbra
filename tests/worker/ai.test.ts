@@ -176,7 +176,7 @@ describe("AI picker", () => {
     expect(sent.fallbacks).toBe("default");
     expect(sent.output_config.effort).toBe("medium");
     expect(sent.output_config.format.type).toBe("json_schema");
-    expect(sent.system[1].text).toContain("Зодиак");
+    expect(sent.system[1].text).toContain("Зодіак");
     expect(sent.system[1].cache_control).toEqual({ type: "ephemeral" });
     expect(sent.messages[0].content).toContain("question 1 of 4");
     expect(sent).not.toHaveProperty("tool_choice");

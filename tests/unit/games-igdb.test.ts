@@ -52,7 +52,7 @@ const game: RawGame = {
 };
 
 describe("IGDB data", () => {
-  it("turns a raw game into a summary with Russian genres", () => {
+  it("turns a raw game into a summary with Ukrainian genres", () => {
     expect(toSummary(game)).toEqual({
       id: 1,
       name: "Resident Evil 4",
@@ -60,7 +60,7 @@ describe("IGDB data", () => {
       released: 1679616000,
       year: 2023,
       platforms: [6, 167, 169],
-      genres: ["Шутер", "Приключения"],
+      genres: ["Шутер", "Пригоди"],
       critics: 92,
       users: 8.8,
       type: 8,
@@ -101,10 +101,10 @@ describe("IGDB data", () => {
 describe("game facts", () => {
   it("groups release dates by day and keeps the first one per platform", () => {
     expect(releaseRows(game)).toEqual([
-      { day: "2023-03-24", date: "24 марта 2023", platforms: ["PC", "PS5"] },
+      { day: "2023-03-24", date: "24 березня 2023", platforms: ["PC", "PS5"] },
       {
         day: "2023-11-14",
-        date: "14 ноября 2023",
+        date: "14 листопада 2023",
         platforms: ["Series X|S"],
       },
     ]);
@@ -125,17 +125,17 @@ describe("game facts", () => {
     ).toEqual(["PC", "PS5", "PS4", "XONE", "Switch"]);
   });
 
-  it("formats prices in Russian style", () => {
-    expect(money(7.99, "USD").replace(/\s/g, " ")).toBe("7,99 $");
-    expect(money(399, "UAH").replace(/\s/g, " ")).toBe("399 ₴");
+  it("formats prices in Ukrainian style", () => {
+    expect(money(7.99, "USD").replace(/\s/g, " ")).toBe("7,99 USD");
+    expect(money(399, "UAH").replace(/\s/g, " ")).toBe("399 грн");
   });
 
   it("describes multiplayer and time to beat", () => {
     expect(multiplayerLabel(game)).toBe(
-      "онлайн до 4 игроков, кооператив по сети до 2",
+      "онлайн до 4 гравців, кооператив через мережу до 2",
     );
-    expect(hours(16 * 3600 + 1200)).toBe("16 ч");
-    expect(hours(1200)).toBe("20 мин");
+    expect(hours(16 * 3600 + 1200)).toBe("16 год");
+    expect(hours(1200)).toBe("20 хв");
     expect(
       timeToBeatLabel({
         hastily: 54000,
@@ -144,8 +144,8 @@ describe("game facts", () => {
         count: 10,
       }),
     ).toEqual([
-      ["Сюжет", "15 ч"],
-      ["Сюжет и побочное", "20 ч"],
+      ["Сюжет", "15 год"],
+      ["Сюжет і додаткове", "20 год"],
     ]);
   });
 

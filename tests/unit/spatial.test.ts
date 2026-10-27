@@ -116,9 +116,9 @@ describe("watch on TV", () => {
     };
     const installed = { netflix: true, apple: true, prime: true };
     expect(watchApps(offers, installed)).toEqual([
-      { app: "netflix", name: "Netflix", offer: "по подписке" },
-      { app: "apple", name: "Apple TV", offer: "аренда" },
-      { app: "prime", name: "Amazon Video", offer: "аренда" },
+      { app: "netflix", name: "Netflix", offer: "за передплатою" },
+      { app: "apple", name: "Apple TV", offer: "оренда" },
+      { app: "prime", name: "Amazon Video", offer: "оренда" },
     ]);
     expect(watchApps(undefined, installed)).toEqual([]);
   });

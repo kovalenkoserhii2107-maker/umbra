@@ -84,14 +84,14 @@ describe("title facts", () => {
   it("translates OMDb awards and keeps unknown formats", () => {
     expect(
       awardsLabel("Nominated for 1 Oscar. 15 wins & 62 nominations total"),
-    ).toBe("«Оскар»: 1 номинация · всего 15 наград и 62 номинации");
+    ).toBe("«Оскар»: 1 номінація · усього 15 нагород та 62 номінації");
     expect(awardsLabel("Won 3 Oscars. 120 wins & 200 nominations total")).toBe(
-      "«Оскар»: 3 победы · всего 120 наград и 200 номинаций",
+      "«Оскар»: 3 перемоги · усього 120 нагород та 200 номінацій",
     );
     expect(awardsLabel("Won 2 Primetime Emmys. 5 wins total")).toBe(
-      "«Эмми»: 2 победы · всего 5 наград",
+      "«Еммі»: 2 перемоги · усього 5 нагород",
     );
-    expect(awardsLabel("3 nominations total")).toBe("всего 3 номинации");
+    expect(awardsLabel("3 nominations total")).toBe("усього 3 номінації");
     expect(awardsLabel("Won the Palme d'Or")).toBe("Won the Palme d'Or");
     expect(awardsLabel(null)).toBeNull();
   });
@@ -101,8 +101,8 @@ describe("title facts", () => {
     expect(money("$389,813,101")).toBe("$390 млн");
     expect(money(1_234_000_000)).toMatch(/^\$1,2 млрд$/);
     expect(money(0)).toBeNull();
-    expect(votesLabel(828114)).toBe("828 тыс. голосов");
-    expect(votesLabel(2_400_000)).toMatch(/^2,4 млн голосов$/);
+    expect(votesLabel(828114)).toBe("828 тис. голосів");
+    expect(votesLabel(2_400_000)).toMatch(/^2,4 млн голосів$/);
     expect(votesLabel(21)).toBe("21 голос");
   });
 
@@ -117,9 +117,9 @@ describe("title facts", () => {
         (g) => [g.label, g.providers.length],
       ),
     ).toEqual([
-      ["По подписке", 1],
-      ["Аренда", 1],
-      ["Покупка", 1],
+      ["За передплатою", 1],
+      ["Оренда", 1],
+      ["Купівля", 1],
     ]);
     const v = (key: string, type: string, lang: string) => ({
       key,

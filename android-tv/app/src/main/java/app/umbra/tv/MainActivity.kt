@@ -22,9 +22,9 @@ import android.widget.Toast
 import org.json.JSONObject
 
 /**
- * Umbra для Android TV: сайт в TV-режиме (?tv=1) внутри WebView.
- * Пульт: стрелки и OK обрабатывает сайт (пространственная навигация),
- * «Назад» — сначала сайту (закрыть клавиатуру/окно), затем назад по истории, на первом экране — выход.
+ * Umbra для Android TV: сайт у TV-режимі (?tv=1) всередині WebView.
+ * Пульт: стрілки та OK обробляє сайт (просторова навігація),
+ * «Назад» — спочатку сайту (закрити клавіатуру/вікно), потім назад по історії, на першому екрані — вихід.
  */
 class MainActivity : Activity() {
 
@@ -37,7 +37,7 @@ class MainActivity : Activity() {
     private var fullscreenView: View? = null
     private var fullscreenCallback: WebChromeClient.CustomViewCallback? = null
 
-    /** Открыта страница нашего сайта — только ей доступен JS-мост. */
+    /** Відкрита сторінка нашого сайту — тільки їй доступний JS-міст. */
     @Volatile
     var isTrustedPage = false
         private set
@@ -47,10 +47,10 @@ class MainActivity : Activity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Отладка WebView через chrome://inspect — только в debug-сборке.
+        // Налагодження WebView через chrome://inspect — тільки в debug-збірці.
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
 
-        // Debug-сборку можно направить на dev-сервер: adb shell am start -n app.umbra.tv.dev/app.umbra.tv.MainActivity -e url http://…
+        // Debug-збірку можна спрямувати на dev-сервер: adb shell am start -n app.umbra.tv.dev/app.umbra.tv.MainActivity -e url http://…
         val override = if (BuildConfig.DEBUG) intent.getStringExtra(EXTRA_URL) else null
         site = Uri.parse(override ?: BuildConfig.SITE_URL)
 
@@ -61,12 +61,12 @@ class MainActivity : Activity() {
 
         web.settings.apply {
             javaScriptEnabled = true
-            domStorageEnabled = true // localStorage и IndexedDB (кэш Firestore)
+            domStorageEnabled = true // localStorage та IndexedDB (кеш Firestore)
             @Suppress("DEPRECATION")
             databaseEnabled = true
-            mediaPlaybackRequiresUserGesture = false // трейлеры запускаются кнопкой пульта
+            mediaPlaybackRequiresUserGesture = false // трейлери запускаються кнопкою пульта
             cacheMode = WebSettings.LOAD_DEFAULT
-            setSupportMultipleWindows(false) // target=_blank → обычная навигация → наш перехват
+            setSupportMultipleWindows(false) // target=_blank → звичайна навігація → наше перехоплення
             textZoom = 100
             userAgentString = "$userAgentString UmbraTV/${BuildConfig.VERSION_NAME}"
         }
@@ -78,7 +78,7 @@ class MainActivity : Activity() {
         web.webChromeClient = Chrome()
         voice = Voice(this) { state, text -> emit("voice", JSONObject().put("state", state).put("text", text)) }
         google = GoogleSignIn(this) { state, text -> emit("google", JSONObject().put("state", state).put("text", text)) }
-        // Токен push для команд с телефона: когда он готов, сайт регистрирует телевизор.
+        // Токен push для команд із телефона: коли він готовий, сайт реєструє телевізор.
         Remote.onToken = { runOnUiThread { emit("remote", JSONObject().put("state", "token").put("text", "")) } }
         Remote.start()
 
@@ -119,14 +119,14 @@ class MainActivity : Activity() {
         return super.onKeyDown(keyCode, event)
     }
 
-    /** «Назад»: полноэкранное видео → сайт (window.umbraTvBack) → история → выход. */
+    /** «Назад»: повноекранне відео → сайт (window.umbraTvBack) → історія → вихід. */
     private fun onRemoteBack() {
         if (fullscreenView != null) {
             fullscreenCallback?.onCustomViewHidden()
             return
         }
-        // Историю спрашиваем у страницы (Navigation API): у WebView она расходится
-        // с историей HashRouter, и web.canGoBack() бывает false там, где назад есть куда.
+        // Історію запитуємо в сторінки (Navigation API): у WebView вона розходиться
+        // з історією HashRouter, і web.canGoBack() буває false там, де назад є куди.
         web.evaluateJavascript(BACK_SCRIPT) { result ->
             when (result?.trim('"')) {
                 "site", "history" -> Unit
@@ -135,7 +135,7 @@ class MainActivity : Activity() {
         }
     }
 
-    // ---- Внешние ссылки и мост ----
+    // ---- Зовнішні посилання та міст ----
 
     fun openExternal(url: String) {
         if (!ExternalLinks.open(this, url)) Toast.makeText(this, R.string.no_app, Toast.LENGTH_SHORT).show()
@@ -172,7 +172,7 @@ class MainActivity : Activity() {
         }
     }
 
-    /** Событие для сайта: window.addEventListener("umbratv", e => e.detail). */
+    /** Подія для сайту: window.addEventListener("umbratv", e => e.detail). */
     private fun emit(type: String, payload: JSONObject) {
         if (!isTrustedPage) return
         val detail = payload.put("type", type).toString()
@@ -216,7 +216,7 @@ class MainActivity : Activity() {
         }
     }
 
-    /** Полноэкранное видео (встроенный плеер YouTube и т. п.). */
+    /** Повноекранне відео (вбудований плеєр YouTube тощо). */
     private inner class Chrome : WebChromeClient() {
         override fun onShowCustomView(view: View, callback: CustomViewCallback) {
             fullscreenView = view
@@ -237,14 +237,14 @@ class MainActivity : Activity() {
     private companion object {
         const val EXTRA_URL = "url"
 
-        /** site — сайт сам обработал «Назад» (закрыл окно/клавиатуру), history — шаг назад, none — некуда. */
+        /** site — сайт сам обробив «Назад» (закрив вікно/клавіатуру), history — крок назад, none — нікуди. */
         const val BACK_SCRIPT = """(function(){try{
             if (window.umbraTvBack && window.umbraTvBack()) return 'site';
             if ((window.navigation && navigation.canGoBack) || (window.history.state && window.history.state.idx > 0)) { history.back(); return 'history'; }
         }catch(e){} return 'none';})()"""
         const val REQUEST_MIC = 1
 
-        /** Остаются внутри приложения: страницы входа Firebase. */
+        /** Залишаються всередині застосунку: сторінки входу Firebase. */
         val INTERNAL_HOSTS = setOf("umbra-18ba8.firebaseapp.com", "umbra-18ba8.web.app")
     }
 }

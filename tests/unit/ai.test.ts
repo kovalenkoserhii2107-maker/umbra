@@ -52,16 +52,16 @@ describe("AI picker on the client", () => {
       "UA",
       [{ id: 8, name: "Netflix" } as never],
     );
-    expect(text).toContain("Страна: UA. Подписки: Netflix.");
-    expect(text).toContain("- Зодиак (2007, фильм, триллер) — 9/10");
-    expect(text).toContain("Бросил (не понравилось):\n- Сумерки");
+    expect(text).toContain("Країна: UA. Передплати: Netflix.");
+    expect(text).toContain("- Зодиак (2007, фільм, триллер) — 9/10");
+    expect(text).toContain("Закинув (не сподобалося):\n- Сумерки");
     expect(text).toContain(
-      "Разделение (2020, сериал) · заметка: «все советуют»",
+      "Разделение (2020, серіал) · нотатка: «все советуют»",
     );
     expect(text).toContain(
-      "Посмотрено без оценки (всё, что видел): Аватар (2009).",
+      "Переглянуто без оцінки (усе, що бачив): Аватар (2009).",
     );
-    expect(text).toContain("Все мои оценки (из 10), от лучших:\n- Зодиак");
+    expect(text).toContain("Усі мої оцінки (з 10), від найкращих:\n- Зодиак");
     expect(text).toContain("триллер +");
   });
 
@@ -83,18 +83,18 @@ describe("AI picker on the client", () => {
       if (query === "Knives Out" && year === 2019)
         return {
           results: [
-            { id: 9, title: "Другой", release_date: "2005-01-01" },
-            { id: 546554, title: "Достать ножи", release_date: "2019-11-27" },
+            { id: 9, title: "Інший", release_date: "2005-01-01" },
+            { id: 546554, title: "Ножі наголо", release_date: "2019-11-27" },
           ],
         };
       if (query === "Severance" && !year)
-        return { results: [{ id: 95396, name: "Разделение" }] };
+        return { results: [{ id: 95396, name: "Розрив" }] };
       return { results: [] };
     });
     expect(
       (
         await findPick({
-          title: "Достать ножи",
+          title: "Ножі наголо",
           original_title: "Knives Out",
           year: 2019,
           type: "movie",
@@ -106,21 +106,21 @@ describe("AI picker on the client", () => {
     const picks = await resolvePicks(
       [
         {
-          title: "Достать ножи",
+          title: "Ножі наголо",
           original_title: "Knives Out",
           year: 2019,
           type: "movie",
-          reason: "Детектив с юмором.",
+          reason: "Детектив із гумором.",
         },
         {
-          title: "Разделение",
+          title: "Розрив",
           original_title: "Severance",
           year: 2030,
           type: "tv",
           reason: "Загадка.",
         },
         {
-          title: "Нет такого",
+          title: "Немає такого",
           original_title: "Nope Nope",
           year: 2001,
           type: "movie",
@@ -130,6 +130,6 @@ describe("AI picker on the client", () => {
       new Set(["tv:95396"]),
     );
     expect(picks.map((p) => p.key)).toEqual(["movie:546554"]);
-    expect(picks[0].reasons).toEqual(["Детектив с юмором."]);
+    expect(picks[0].reasons).toEqual(["Детектив із гумором."]);
   });
 });

@@ -104,12 +104,12 @@ test.describe("TV sign-in screen", () => {
 
     await page.goto("?tv=1#/login");
     await expect(page.getByRole("img", { name: /QR-код/ })).toBeVisible();
-    await expect(page.getByLabel("Код для входа", { exact: true })).toHaveText(
+    await expect(page.getByLabel("Код для входу", { exact: true })).toHaveText(
       "ABCD-EFGH",
     );
     expect(devices[0]).toBeTruthy();
     // Focus starts on Google; cancelling the picker changes nothing.
-    await expect.poll(() => focused(page)).toContain("Войти через Google");
+    await expect.poll(() => focused(page)).toContain("Увійти через Google");
     await page.keyboard.press("Enter");
     await expect(page.getByRole("alert")).toHaveCount(0);
 
@@ -143,12 +143,12 @@ test.describe("TV sign-in screen", () => {
       });
     });
     await page.goto("?tv=1#/login");
-    await expect(page.getByLabel("Код для входа", { exact: true })).toHaveText(
+    await expect(page.getByLabel("Код для входу", { exact: true })).toHaveText(
       "JKMN-PQRS",
       { timeout: 10_000 },
     );
     await expect(page.getByRole("status")).toHaveText(
-      "Вход отклонён на телефоне. Вот новый код.",
+      "Вхід відхилено на телефоні. Ось новий код.",
     );
   });
 
@@ -171,7 +171,7 @@ test.describe("TV sign-in screen", () => {
       route.fulfill({ json: { status: "pending" } }),
     );
     await page.goto("?tv=1#/login");
-    await expect.poll(() => focused(page)).toContain("Войти через Google");
+    await expect.poll(() => focused(page)).toContain("Увійти через Google");
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/#\/$/, { timeout: 10_000 });
     await page.goto("?tv=1#/settings");
@@ -213,32 +213,32 @@ test("the phone approves or refuses a TV from the QR link", async ({
   await page.goto("#/tv-link?code=ABCDEFGH");
   await expect(page).toHaveURL(/#\/login\?next=/);
   await page
-    .getByRole("button", { name: "Нет аккаунта — зарегистрироваться" })
+    .getByRole("button", { name: "Немає акаунту — зареєструватися" })
     .click();
-  await page.getByLabel("Имя", { exact: true }).fill("Phone");
+  await page.getByLabel("Ім'я", { exact: true }).fill("Phone");
   await page
     .getByLabel("Email", { exact: true })
     .fill(`phone-${Date.now()}@example.com`);
   await page.getByLabel("Пароль", { exact: true }).fill("test-password-123");
   await page
-    .getByRole("button", { name: "Создать аккаунт", exact: true })
+    .getByRole("button", { name: "Створити акаунт", exact: true })
     .click();
   await expect(page).toHaveURL(/#\/tv-link\?code=ABCDEFGH/);
 
-  await expect(page.getByText("Войти в Umbra на телевизоре?")).toBeVisible();
+  await expect(page.getByText("Увійти в Umbra на телевізорі?")).toBeVisible();
   await expect(page.getByText("BRAVIA 4K VH21")).toBeVisible();
   await expect(page.getByText("ABCD-EFGH")).toBeVisible();
   expect(auth[0]).toMatch(/^Bearer \S+/);
-  await page.getByRole("button", { name: "Подтвердить" }).click();
+  await page.getByRole("button", { name: "Підтвердити" }).click();
   await expect(page.getByRole("status")).toHaveText(
-    "Готово — телевизор входит в твой аккаунт.",
+    "Готово — телевізор входить у твій акаунт.",
   );
 
   await page.goto("#/tv-link?code=abcd-efgh");
   await page.reload();
-  await page.getByRole("button", { name: "Отказать" }).click();
+  await page.getByRole("button", { name: "Відхилити" }).click();
   await expect(page.getByRole("status")).toHaveText(
-    "Вход отклонён. Телевизор не получил доступ.",
+    "Вхід відхилено. Телевізор не отримав доступ.",
   );
   expect(answers).toEqual([
     { code: "ABCDEFGH", approve: true },
@@ -247,9 +247,9 @@ test("the phone approves or refuses a TV from the QR link", async ({
 
   // A stale code, then typing a new one by hand.
   await page.goto("#/tv-link?code=JKMNPQRS");
-  await expect(page.getByRole("alert")).toContainText("Код устарел");
-  await page.getByLabel("Код с экрана телевизора").fill("abcd-efgh");
-  await page.getByRole("button", { name: "Дальше" }).click();
+  await expect(page.getByRole("alert")).toContainText("Код застарів");
+  await page.getByLabel("Код з екрана телевізора").fill("abcd-efgh");
+  await page.getByRole("button", { name: "Далі" }).click();
   await expect(page).toHaveURL(/#\/tv-link\?code=ABCDEFGH/);
   await expect(page.getByText("BRAVIA 4K VH21")).toBeVisible();
 });

@@ -3,15 +3,15 @@ import { test, expect, type BrowserContext, type Page } from "@playwright/test";
 async function register(page: Page) {
   await page.goto("#/login");
   await page
-    .getByRole("button", { name: "Нет аккаунта — зарегистрироваться" })
+    .getByRole("button", { name: "Немає акаунту — зареєструватися" })
     .click();
-  await page.getByLabel("Имя", { exact: true }).fill("Seeker");
+  await page.getByLabel("Ім'я", { exact: true }).fill("Seeker");
   await page
     .getByLabel("Email", { exact: true })
     .fill(`search-${Date.now()}@example.com`);
   await page.getByLabel("Пароль", { exact: true }).fill("test-password-123");
   await page
-    .getByRole("button", { name: "Создать аккаунт", exact: true })
+    .getByRole("button", { name: "Створити акаунт", exact: true })
     .click();
   await expect(page).toHaveURL(/#\/$/);
 }
@@ -120,7 +120,7 @@ test("film search finds titles as letters are typed", async ({
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 6 });
 
   const box = page.getByRole("textbox", {
-    name: "Поиск фильмов, сериалов и людей",
+    name: "Пошук фільмів, серіалів та людей",
   });
   await expect(box).toBeFocused();
   // No Enter: results follow the typing.
@@ -131,24 +131,24 @@ test("film search finds titles as letters are typed", async ({
   expect(queries.filter((q) => q === "д")).toHaveLength(0);
 
   // The wrong keyboard layout is fixed on the fly.
-  await page.getByRole("button", { name: "Очистить" }).click();
+  await page.getByRole("button", { name: "Очистити" }).click();
   await expect(box).toHaveValue("");
   await box.pressSequentially("l.yf", { delay: 40 });
-  await expect(page.getByText("похоже, была не та раскладка")).toBeVisible();
+  await expect(page.getByText("схоже, була не та розкладка")).toBeVisible();
   await expect(page.getByRole("link", { name: /Дюна/ })).toBeVisible();
 
   // The button searches at once and remembers the query.
   await box.fill("матрица");
-  await page.getByRole("button", { name: "Найти" }).click();
+  await page.getByRole("button", { name: "Знайти" }).click();
   await expect(page.getByRole("link", { name: /Матрица/ })).toBeVisible();
   await expect(page.getByRole("link", { name: /Киану Ривз/ })).toBeVisible();
-  await page.getByRole("button", { name: "Сериалы" }).click();
+  await page.getByRole("button", { name: "Серіали" }).click();
   await expect(page.getByRole("link", { name: /Матрица/ })).toHaveCount(0);
-  await page.getByRole("button", { name: "Всё" }).click();
+  await page.getByRole("button", { name: "Все" }).click();
   await page.screenshot({ path: ".ui-evidence/search-mobile.png" });
 
-  await page.getByRole("button", { name: "Очистить" }).click();
-  await expect(page.getByText("недавно искал")).toBeVisible();
+  await page.getByRole("button", { name: "Очистити" }).click();
+  await expect(page.getByText("нещодавно шукав")).toBeVisible();
   await page.getByRole("button", { name: "матрица" }).click();
   await expect(page.getByRole("link", { name: /Матрица/ })).toBeVisible();
 });
@@ -163,8 +163,8 @@ test("catalog filters: presets, excluded genres, runtime, kept in the address", 
   await register(page);
   await page.goto("#/search");
 
-  await page.getByRole("button", { name: "Фильтры" }).click();
-  await page.getByRole("button", { name: "Скрытые жемчужины" }).click();
+  await page.getByRole("button", { name: "Фільтри" }).click();
+  await page.getByRole("button", { name: "Приховані перлини" }).click();
   await expect(
     page.getByRole("link", { name: /Тихая жемчужина/ }),
   ).toBeVisible();
@@ -175,13 +175,13 @@ test("catalog filters: presets, excluded genres, runtime, kept in the address", 
   expect(discover).toContain("vote_average.gte=7");
 
   // A second tap excludes the genre.
-  const comedy = page.getByRole("button", { name: "Комедия", exact: true });
+  const comedy = page.getByRole("button", { name: "Комедія", exact: true });
   await comedy.click();
-  await page.getByRole("button", { name: "Комедия", exact: true }).click();
+  await page.getByRole("button", { name: "Комедія", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Комедия: исключён" }),
+    page.getByRole("button", { name: "Комедія: виключено" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "До 1,5 часа" }).click();
+  await page.getByRole("button", { name: "До 1,5 години" }).click();
   await expect
     .poll(() => queries.filter((q) => q.startsWith("/3/discover/movie")).at(-1))
     .toContain("with_runtime.lte=90");
@@ -191,24 +191,24 @@ test("catalog filters: presets, excluded genres, runtime, kept in the address", 
     path: ".ui-evidence/search-filters.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Показать результаты" }).click();
+  await page.getByRole("button", { name: "Показати результати" }).click();
 
   // Active filters stay visible and survive a visit to a title.
-  const chips = page.getByLabel("Включённые фильтры");
-  await expect(chips).toContainText("без: Комедия");
-  await expect(chips).toContainText("До 1,5 часа");
+  const chips = page.getByLabel("Увімкнені фільтри");
+  await expect(chips).toContainText("без: Комедія");
+  await expect(chips).toContainText("До 1,5 години");
   await page.getByRole("link", { name: /Тихая жемчужина/ }).click();
   await expect(page).toHaveURL(/#\/title\/movie\/777/);
   await page.goBack();
-  await expect(chips).toContainText("Малоизвестные");
+  await expect(chips).toContainText("Маловідомі");
   await page
-    .getByRole("button", { name: "Убрать фильтр: До 1,5 часа" })
+    .getByRole("button", { name: "Прибрати фільтр: До 1,5 години" })
     .click();
-  await expect(chips).not.toContainText("До 1,5 часа");
-  await page.getByRole("button", { name: "Сбросить всё" }).click();
+  await expect(chips).not.toContainText("До 1,5 години");
+  await page.getByRole("button", { name: "Скинути все" }).click();
   await expect(chips).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "Фильтры", exact: true }),
+    page.getByRole("button", { name: "Фільтри", exact: true }),
   ).toBeVisible();
   await expect(page).not.toHaveURL(/pop=|len=|x=/);
 });

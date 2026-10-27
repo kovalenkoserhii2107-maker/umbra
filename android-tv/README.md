@@ -1,82 +1,82 @@
 # Umbra для Android TV
 
-Обёртка над сайтом Umbra в TV-режиме (`?tv=1`): одна Activity с WebView, без AndroidX. Плитка и баннер на главном экране телевизора (LEANBACK_LAUNCHER), minSdk 23.
+Обгортка над сайтом Umbra в TV-режимі (`?tv=1`): одна Activity з WebView, без AndroidX. Плитка та банер на головному екрані телевізора (LEANBACK_LAUNCHER), minSdk 23.
 
-- Пульт: стрелки и OK обрабатывает сайт; «Назад» — сначала сайту (`window.umbraTvBack()`), затем назад по истории, на первом экране — выход.
-- Ссылки на YouTube, Netflix, Prime Video, Apple TV, Disney+, Max и MEGOGO открываются в приложениях телевизора (предпочитаются ТВ-версии), остальные внешние ссылки — любым приложением, которое их откроет.
-- JS-мост `window.UmbraTV` доступен только страницам сайта:
+- Пульт: стрілки та OK обробляє сайт; «Назад» — спочатку сайту (`window.umbraTvBack()`), потім назад по історії, на першому екрані — вихід.
+- Посилання на YouTube, Netflix, Prime Video, Apple TV, Disney+, Max та MEGOGO відкриваються в застосунках телевізора (надається перевага ТВ-версіям), решта зовнішніх посилань — будь-яким застосунком, що їх відкриє.
+- JS-міст `window.UmbraTV` доступний лише сторінкам сайту:
 
-| Метод | Что делает |
+| Метод | Що робить |
 | --- | --- |
-| `version()` | версия приложения |
+| `version()` | версія застосунку |
 | `installedApps()` | JSON `{youtube: true, netflix: false, …}` |
-| `openExternal(url)` | открыть ссылку в приложении телевизора |
-| `launchApp(slug, query)` | открыть стриминг (с поиском, если умеет) |
-| `voiceAvailable()`, `startVoice(lang)`, `stopVoice()` | голосовой ввод через SpeechRecognizer |
-| `googleSignIn()` | вход через Google-аккаунт телевизора (Credential Manager) |
+| `openExternal(url)` | відкрити посилання в застосунку телевізора |
+| `launchApp(slug, query)` | відкрити стрімінг (із пошуком, якщо вміє) |
+| `voiceAvailable()`, `startVoice(lang)`, `stopVoice()` | голосове введення через SpeechRecognizer |
+| `googleSignIn()` | вхід через Google-акаунт телевізора (Credential Manager) |
 
-Ответы приходят событием `window.addEventListener("umbratv", e => e.detail)`:
+Відповіді надходять подією `window.addEventListener("umbratv", e => e.detail)`:
 
 - голос: `{type: "voice", state: "listening" | "partial" | "result" | "error" | "end", text}`;
-- Google: `{type: "google", state: "token", text: <ID-токен Google>}` или `{type: "google", state: "error", text: "cancelled" | "no_account" | "failed"}`.
+- Google: `{type: "google", state: "token", text: <ID-токен Google>}` або `{type: "google", state: "error", text: "cancelled" | "no_account" | "failed"}`.
 
-## Вход на телевизоре
+## Вхід на телевізорі
 
-Два способа, оба на экране входа сайта в TV-режиме (`src/components/TvLogin.tsx`):
+Два способи, обидва на екрані входу сайту в TV-режимі (`src/components/TvLogin.tsx`):
 
-1. **Google-аккаунт телевизора.** Системный выбор аккаунта → ID-токен Google для веб-клиента проекта Firebase (`GOOGLE_WEB_CLIENT_ID` в `app/build.gradle.kts`) → сайт входит через `signInWithCredential`. Работает только для APK, чей SHA-1 добавлен в Firebase Console → Project settings → приложение Android `app.umbra.tv` (релизный ключ и debug-ключ разработчика).
-2. **QR с телефона.** Телевизор получает у воркера код (`POST /tv/code`), показывает QR со ссылкой `#/tv-link?code=…`; на телефоне, где выполнен вход, — «Подтвердить» или «Отказать» (`POST /tv/confirm`); телевизор забирает одноразовый custom token (`POST /tv/token`). Коды живут 10 минут в Durable Object `TvPairing`, токен подписывается секретом воркера `FIREBASE_SERVICE_ACCOUNT` (`worker/src/tvLogin.ts`, `worker/src/customToken.ts`).
+1. **Google-акаунт телевізора.** Системний вибір акаунта → ID-токен Google для вебклієнта проєкту Firebase (`GOOGLE_WEB_CLIENT_ID` у `app/build.gradle.kts`) → сайт входить через `signInWithCredential`. Працює лише для APK, чий SHA-1 додано у Firebase Console → Project settings → застосунок Android `app.umbra.tv` (релізний ключ та debug-ключ розробника).
+2. **QR з телефона.** Телевізор отримує у воркера код (`POST /tv/code`), показує QR із посиланням `#/tv-link?code=…`; на телефоні, де виконано вхід, — «Підтвердити» або «Відхилити» (`POST /tv/confirm`); телевізор забирає одноразовий custom token (`POST /tv/token`). Коди живуть 10 хвилин у Durable Object `TvPairing`, токен підписується секретом воркера `FIREBASE_SERVICE_ACCOUNT` (`worker/src/tvLogin.ts`, `worker/src/customToken.ts`).
 
-## Сборка
+## Збірка
 
-Нужны Android SDK (`local.properties` с `sdk.dir` или `ANDROID_HOME`) и JDK 17–21.
+Потрібні Android SDK (`local.properties` із `sdk.dir` або `ANDROID_HOME`) та JDK 17–21.
 
 ```sh
 cd android-tv
 ./gradlew assembleDebug      # app/build/outputs/apk/debug/app-debug.apk
-./gradlew assembleRelease    # подпись — см. ниже
+./gradlew assembleRelease    # підпис — див. нижче
 ```
 
-Адрес сайта можно переопределить: `./gradlew assembleDebug -PsiteUrl=http://192.168.1.10:5187/umbra/?tv=1`.
+Адресу сайту можна перевизначити: `./gradlew assembleDebug -PsiteUrl=http://192.168.1.10:5187/umbra/?tv=1`.
 
-Release подписывается постоянным ключом (сейчас он хранится у владельца в `~/Developer/umbra-tv-signing/`) из переменных окружения `UMBRA_TV_KEYSTORE` (путь к .jks), `UMBRA_TV_KEYSTORE_PASSWORD`, `UMBRA_TV_KEY_ALIAS`, `UMBRA_TV_KEY_PASSWORD`; без них — debug-ключом. Ключ должен быть всегда один и тот же, иначе обновление не встанет поверх установленной версии.
+Release підписується постійним ключем (зараз він зберігається у власника в `~/Developer/umbra-tv-signing/`) зі змінних оточення `UMBRA_TV_KEYSTORE` (шлях до .jks), `UMBRA_TV_KEYSTORE_PASSWORD`, `UMBRA_TV_KEY_ALIAS`, `UMBRA_TV_KEY_PASSWORD`; без них — debug-ключем. Ключ має бути завжди один і той самий, інакше оновлення не встановиться поверх поточної версії.
 
-Баннер и иконки генерируются из `public/brand-mark.webp` (macOS): `swift android-tv/tools/make-art.swift` из корня репозитория.
+Банер та іконки генеруються з `public/brand-mark.webp` (macOS): `swift android-tv/tools/make-art.swift` з кореня репозиторію.
 
-## Команды с телефона: «На телевизоре в Lampa»
+## Команди з телефона: «На телевізорі в Lampa»
 
-На странице фильма или сериала на телефоне есть кнопка «На телевизоре в Lampa». Она открывает этот фильм в Lampa на телевизоре того же аккаунта, даже если Umbra закрыта, а телевизор спит.
+На сторінці фільму або серіалу на телефоні є кнопка «На телевізорі в Lampa». Вона відкриває цей фільм у Lampa на телевізорі того ж акаунта, навіть якщо Umbra закрита, а телевізор спить.
 
-1. Приложение получает push-токен Firebase (FCM, `Remote.kt`). Сайт на телевизоре после входа отправляет его воркеру (`POST /tv/device`), и воркер хранит телевизоры аккаунта в Durable Object `TvRemote` (`worker/src/tvRemote.ts`).
-2. Телефон вызывает `POST /tv/open {type, id}`. Воркер отправляет телевизорам аккаунта, на которых есть Lampa, push `{action: "lampa", type, id}`. Ничего другого так передать нельзя.
-3. `PushService` получает push и запускает `RemoteOpenActivity`. Она будит экран (`setTurnScreenOn`) и открывает карточку в Lampa по адресу themoviedb.org.
+1. Застосунок отримує push-токен Firebase (FCM, `Remote.kt`). Сайт на телевізорі після входу надсилає його воркеру (`POST /tv/device`), і воркер зберігає телевізори акаунта в Durable Object `TvRemote` (`worker/src/tvRemote.ts`).
+2. Телефон викликає `POST /tv/open {type, id}`. Воркер надсилає телевізорам акаунта, де є Lampa, push `{action: "lampa", type, id}`. Нічого іншого так передати не можна.
+3. `PushService` отримує push і запускає `RemoteOpenActivity`. Вона будить екран (`setTurnScreenOn`) і відкриває картку в Lampa за адресою themoviedb.org.
 
-Android 10+ разрешает приложению в фоне открывать окна только с разрешением «Поверх других приложений». На телевизоре его выдают один раз в настройках или через adb:
+Android 10+ дозволяє застосунку у фоні відкривати вікна лише з дозволом «Поверх інших застосунків». На телевізорі його надають один раз у налаштуваннях або через adb:
 
 ```sh
 adb shell appops set app.umbra.tv SYSTEM_ALERT_WINDOW allow
 ```
 
-Настройки Firebase-проекта лежат в `app/src/main/res/values/firebase.xml`; плагин google-services не нужен. Push отправляет воркер от имени сервисного аккаунта `FIREBASE_SERVICE_ACCOUNT`.
+Налаштування Firebase-проєкту лежать в `app/src/main/res/values/firebase.xml`; плагін google-services не потрібен. Push надсилає воркер від імені сервісного акаунта `FIREBASE_SERVICE_ACCOUNT`.
 
-## Релизы
+## Релізи
 
-`.github/workflows/android-tv.yml` собирает APK на каждый PR с изменениями в `android-tv/` (файл — в артефактах запуска). При слиянии в `main` выпускает релиз `tv-1.0.<номер запуска>` с файлом `umbra-tv.apk`. Постоянная ссылка на свежую версию:
+`.github/workflows/android-tv.yml` збирає APK на кожен PR зі змінами в `android-tv/` (файл — в артефактах запуску). Під час злиття в `main` випускає реліз `tv-1.0.<номер запуску>` з файлом `umbra-tv.apk`. Постійне посилання на свіжу версію:
 
 ```
 https://github.com/kovalenkoserhii2107-maker/umbra/releases/latest/download/umbra-tv.apk
 ```
 
-Установка на телевизоре: Downloader → вставить ссылку → «Установить». Обновление — так же, поверх установленной версии.
+Встановлення на телевізорі: Downloader → вставити посилання → «Встановити». Оновлення — так само, поверх встановленої версії.
 
-Подпись — секреты репозитория (Settings → Secrets and variables → Actions):
+Підпис — секрети репозиторію (Settings → Secrets and variables → Actions):
 
-- `UMBRA_TV_KEYSTORE_BASE64` — файл ключа `umbra-tv.jks` в base64 (`base64 -i umbra-tv.jks`);
-- `UMBRA_TV_KEYSTORE_PASSWORD` — его пароль (он же пароль ключа, алиас `umbra-tv`).
+- `UMBRA_TV_KEYSTORE_BASE64` — файл ключа `umbra-tv.jks` у base64 (`base64 -i umbra-tv.jks`);
+- `UMBRA_TV_KEYSTORE_PASSWORD` — його пароль (він же пароль ключа, аліас `umbra-tv`).
 
-Без них APK подписывается временным ключом и релиз не выпускается: такая версия не встала бы поверх установленной.
+Без них APK підписується тимчасовим ключем і реліз не випускається: така версія не встановилася б поверх встановленої.
 
-## Проверка на телевизоре
+## Перевірка на телевізорі
 
 ```sh
 adb connect 192.168.1.175:5555
@@ -84,11 +84,11 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb shell am start -n app.umbra.tv.dev/app.umbra.tv.MainActivity
 ```
 
-Debug-сборка — отдельное приложение «Umbra Dev» (`app.umbra.tv.dev`): ставится рядом с релизом, не трогая его. Она открывает другой адрес по `-e url` (например, локальный dev-сервер) и разрешает отладку WebView:
+Debug-збірка — окремий застосунок «Umbra Dev» (`app.umbra.tv.dev`): встановлюється поруч із релізом, не чіпаючи його. Вона відкриває іншу адресу за `-e url` (наприклад, локальний dev-сервер) та дозволяє налагодження WebView:
 
 ```sh
 adb shell am start -n app.umbra.tv.dev/app.umbra.tv.MainActivity -e url "http://192.168.1.10:5187/umbra/?tv=1"
 node tools/tv-eval.mjs "location.href"
 ```
 
-`tv-eval.mjs` выполняет выражение в WebView через DevTools-протокол — удобно смотреть состояние страницы без экрана.
+`tv-eval.mjs` виконує вираз у WebView через DevTools-протокол — зручно дивитися стан сторінки без екрана.

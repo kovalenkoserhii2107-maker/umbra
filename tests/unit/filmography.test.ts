@@ -69,7 +69,7 @@ describe("filmography", () => {
   it("merges roles per title, skips talk-show appearances, puts undated work first", () => {
     const works = buildFilmography(person);
     expect(works.map((w) => w.id)).toEqual([40, 30, 10]);
-    expect(works[1].roles).toEqual(["режиссёр", "сценарий"]);
+    expect(works[1].roles).toEqual(["режисер", "сценарій"]);
     expect(works[1].departments).toEqual(["Directing", "Writing"]);
     expect(works[2].character).toBe("Guy");
   });
@@ -77,14 +77,14 @@ describe("filmography", () => {
   it("builds tabs, best-known titles and labels", () => {
     const works = buildFilmography(person);
     expect(departmentTabs(works, 2).map((t) => [t.label, t.count])).toEqual([
-      ["Режиссёр", 2],
+      ["Режисер", 2],
       ["Сценарист", 1],
-      ["Актёр", 1],
+      ["Актор", 1],
     ]);
     expect(knownFor(works, "Directing").map((w) => w.id)).toEqual([30]);
     // A small part in a popular film is not what an actor is known for.
     expect(knownFor(works, "Acting")).toEqual([]);
-    expect(departmentLabel("Acting", 1)).toBe("Актриса");
+    expect(departmentLabel("Acting", 1)).toBe("Акторка");
     expect(ageAt("1970-08-05", "2026-08-04")).toBe(55);
     expect(ageAt("1970-08-05", "2026-08-05")).toBe(56);
     expect(ageAt(null)).toBeNull();
@@ -105,7 +105,7 @@ describe("filmography", () => {
       },
     });
     expect(cards.map((c) => [c.person.name, c.roles.join(", ")])).toEqual([
-      ["James Gunn", "режиссёр, сценарий"],
+      ["James Gunn", "режисер, сценарій"],
       ["Kevin Feige", "продюсер"],
       ["Tyler Bates", "композитор"],
     ]);

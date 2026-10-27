@@ -6,13 +6,13 @@ import android.content.Intent
 import android.net.Uri
 
 /**
- * Ссылки, которые уходят из Umbra в приложения телевизора: трейлеры — в YouTube,
- * «Смотреть» — в Netflix, Prime Video, Apple TV, MEGOGO и т. п., карточка фильма — в Lampa.
- * Предпочитаем ТВ-версии приложений; если их нет — любое, что откроет ссылку.
+ * Посилання, які йдуть з Umbra в застосунки телевізора: трейлери — у YouTube,
+ * «Дивитися» — у Netflix, Prime Video, Apple TV, MEGOGO тощо, картка фільму — в Lampa.
+ * Віддаємо перевагу ТВ-версіям застосунків; якщо їх немає — будь-якому, що відкриє посилання.
  */
 object ExternalLinks {
 
-    /** Стриминги: короткое имя (как на сайте) → домены и ТВ-пакеты по убыванию предпочтения. */
+    /** Стрімінги: коротке ім'я (як на сайті) → домени та ТВ-пакети за спаданням переваги. */
     class App(val slug: String, val hosts: List<String>, val packages: List<String>, val searchUrl: String?)
 
     val APPS = listOf(
@@ -33,7 +33,7 @@ object ExternalLinks {
         App("disney", listOf("disneyplus.com"), listOf("com.disney.disneyplus"), null),
         App("max", listOf("max.com", "hbomax.com"), listOf("com.wbd.stream"), null),
         App("megogo", listOf("megogo.net"), listOf("com.megogo.application", "net.megogo.tv"), null),
-        // Lampa открывает карточку по ссылке themoviedb.org (intent: с её пакетом, см. сайт).
+        // Lampa відкриває картку за посиланням themoviedb.org (intent: з її пакетом, див. сайт).
         App("lampa", emptyList(), listOf("top.rootu.lampa"), null),
     )
 
@@ -45,10 +45,10 @@ object ExternalLinks {
     fun isInstalled(context: Context, pkg: String): Boolean =
         runCatching { context.packageManager.getPackageInfo(pkg, 0) }.isSuccess
 
-    /** Первый установленный пакет приложения или null. */
+    /** Перший встановлений пакет застосунку або null. */
     fun installedPackage(context: Context, app: App): String? = app.packages.firstOrNull { isInstalled(context, it) }
 
-    /** Открыть ссылку во внешнем приложении. false — открыть нечем. */
+    /** Відкрити посилання у зовнішньому застосунку. false — відкрити нічим. */
     fun open(context: Context, url: String): Boolean {
         val uri = normalize(Uri.parse(url))
         val intents = mutableListOf<Intent>()
@@ -77,15 +77,15 @@ object ExternalLinks {
                 context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 return true
             } catch (e: ActivityNotFoundException) {
-                // пробуем следующий вариант
+                // пробуємо наступний варіант
             } catch (e: SecurityException) {
-                // пробуем следующий вариант
+                // пробуємо наступний варіант
             }
         }
         return false
     }
 
-    /** Открыть приложение стриминга: с поиском, если оно его умеет, иначе просто запустить. */
+    /** Відкрити застосунок стрімінгу: з пошуком, якщо він його підтримує, інакше просто запустити. */
     fun launch(context: Context, slug: String, query: String?): Boolean {
         val app = APPS.firstOrNull { it.slug == slug } ?: return false
         val pkg = installedPackage(context, app) ?: return false
@@ -105,7 +105,7 @@ object ExternalLinks {
         false
     }
 
-    /** youtu.be/ID и /embed/ID → watch?v=ID: так ссылку понимает YouTube для ТВ. */
+    /** youtu.be/ID та /embed/ID → watch?v=ID: так посилання розуміє YouTube для ТВ. */
     private fun normalize(uri: Uri): Uri {
         val host = uri.host?.lowercase() ?: return uri
         val id = when {

@@ -3,7 +3,7 @@ import { ApiError, bump, cached } from "./http";
 import { parseServiceAccount, signJwt } from "./customToken";
 
 /**
- * «На телевизоре в Lampa»: the phone asks, the TV of the same account opens
+ * «На телевізорі в Lampa»: the phone asks, the TV of the same account opens
  * the title in Lampa. TVs register themselves with their push token (FCM);
  * the worker keeps them per account in a Durable Object (TvRemote) and sends
  * the command as a push the TV app receives even while closed.
@@ -81,7 +81,7 @@ export async function registerDevice(deps: Deps, uid: string, body: unknown) {
     device: {
       id,
       token,
-      device: text(b.device, 60) || "Телевизор",
+      device: text(b.device, 60) || "Телевізор",
       lampa: b.lampa === true,
       background: b.background === true,
     },

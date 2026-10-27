@@ -3,15 +3,15 @@ import { test, expect, type BrowserContext, type Page } from "@playwright/test";
 async function register(page: Page) {
   await page.goto("#/login");
   await page
-    .getByRole("button", { name: "Нет аккаунта — зарегистрироваться" })
+    .getByRole("button", { name: "Немає акаунту — зареєструватися" })
     .click();
-  await page.getByLabel("Имя", { exact: true }).fill("Viewer");
+  await page.getByLabel("Ім'я", { exact: true }).fill("Viewer");
   await page
     .getByLabel("Email", { exact: true })
     .fill(`tonight-${Date.now()}@example.com`);
   await page.getByLabel("Пароль", { exact: true }).fill("test-password-123");
   await page
-    .getByRole("button", { name: "Создать аккаунт", exact: true })
+    .getByRole("button", { name: "Створити акаунт", exact: true })
     .click();
   await expect(page).toHaveURL(/#\/$/);
 }
@@ -25,7 +25,7 @@ const comedy = (id: number, title: string, extra = {}) => ({
   popularity: 80,
   release_date: "2025-03-01",
   poster_path: null,
-  overview: `${title} — смешной фильм.`,
+  overview: `${title} — смішний фільм.`,
   ...extra,
 });
 
@@ -43,8 +43,8 @@ async function tmdb(context: BrowserContext, seen: string[]) {
       return route.fulfill({
         json: {
           genres: [
-            { id: 35, name: "комедия" },
-            { id: 27, name: "ужасы" },
+            { id: 35, name: "комедія" },
+            { id: 27, name: "жахи" },
             { id: 18, name: "драма" },
           ],
         },
@@ -85,23 +85,23 @@ test("evening picker asks four questions and picks by mood and services", async 
   const seen: string[] = [];
   await tmdb(context, seen);
   await register(page);
-  await page.getByRole("link", { name: /Что посмотреть вечером/ }).click();
+  await page.getByRole("link", { name: /Що подивитися ввечері/ }).click();
   await expect(page).toHaveURL(/#\/tonight$/);
 
-  await expect(page.getByText("вопрос 1 из 4")).toBeVisible();
-  await page.getByRole("button", { name: /Посмеяться/ }).click();
-  await page.getByRole("button", { name: /Фильм до 1,5 часа/ }).click();
+  await expect(page.getByText("питання 1 з 4")).toBeVisible();
+  await page.getByRole("button", { name: /Посміятися/ }).click();
+  await page.getByRole("button", { name: /Фільм до 1,5 години/ }).click();
   // Back keeps the answers and the order of questions.
   await page.getByRole("button", { name: "← Назад" }).click();
-  await expect(page.getByText("вопрос 2 из 4")).toBeVisible();
-  await page.getByRole("button", { name: /Фильм до 1,5 часа/ }).click();
-  await page.getByRole("button", { name: "Вдвоём" }).click();
-  await page.getByRole("button", { name: "Что-то свежее" }).click();
+  await expect(page.getByText("питання 2 з 4")).toBeVisible();
+  await page.getByRole("button", { name: /Фільм до 1,5 години/ }).click();
+  await page.getByRole("button", { name: "Удвох" }).click();
+  await page.getByRole("button", { name: "Щось свіже" }).click();
 
   const card = page.locator("article", { hasText: "Мальчишник в Вегасе" });
   await expect(card).toBeVisible();
-  await expect(card).toContainText("Смотреть: Netflix");
-  await expect(card).toContainText("зрители ставят 7.8");
+  await expect(card).toContainText("Дивитися: Netflix");
+  await expect(card).toContainText("глядачі ставлять 7.8");
   // Only my services: the comedy nobody streams here is left out, and the
   // horror never matched the mood.
   await expect(page.getByRole("link", { name: "Тихая комедия" })).toHaveCount(
@@ -117,12 +117,12 @@ test("evening picker asks four questions and picks by mood and services", async 
   expect(discover).toContain("with_runtime.lte=100");
   expect(discover).toContain("watch_region=UA");
 
-  await page.getByLabel(/Только на моих сервисах/).uncheck();
+  await page.getByLabel(/Тільки на моїх сервісах/).uncheck();
   await expect(page.getByRole("link", { name: "Тихая комедия" })).toBeVisible();
 
-  await card.getByRole("button", { name: "+ Хочу посмотреть" }).click();
+  await card.getByRole("button", { name: "+ Хочу подивитися" }).click();
   await expect(
-    card.getByRole("button", { name: "В «Хочу посмотреть»" }),
+    card.getByRole("button", { name: "У «Хочу подивитися»" }),
   ).toBeDisabled();
   await page.screenshot({
     path: ".ui-evidence/tonight-mobile.png",
@@ -165,29 +165,29 @@ test("Claude asks its own questions, picks titles and refines in a new round", a
         return route.fulfill({
           headers: cors,
           json: {
-            taste: "Тебе нравятся детективы с иронией.",
-            intro: "Искал лёгкий детектив на вечер.",
+            taste: "Тобі подобаються детективи з іронією.",
+            intro: "Шукав легкий детектив на вечір.",
             picks: [
               ...Array.from({ length: 6 }, (_, i) => ({
-                title: `Фильм ${i + 1}`,
+                title: `Фільм ${i + 1}`,
                 original_title: `Film ${i + 1}`,
                 year: 2020,
                 type: "movie",
                 reason: `Причина ${i + 1}.`,
               })),
               {
-                title: "Достать ножи",
+                title: "Ножі наголо",
                 original_title: "Knives Out",
                 year: 2019,
                 type: "movie",
-                reason: "Детектив с юмором — как ты любишь.",
+                reason: "Детектив із гумором — як ти любиш.",
               },
               {
-                title: "Пропавший фильм",
+                title: "Зниклий фільм",
                 original_title: "Missing Film",
                 year: 2001,
                 type: "movie",
-                reason: "Не найдётся.",
+                reason: "Не знайдеться.",
               },
             ],
           },
@@ -197,10 +197,10 @@ test("Claude asks its own questions, picks titles and refines in a new round", a
       return route.fulfill({
         headers: cors,
         json: {
-          question: `Вопрос Claude ${n + 1}`,
+          question: `Питання Claude ${n + 1}`,
           options: [
-            { label: `Ответ ${n + 1}`, hint: "подсказка" },
-            { label: "Неважно", hint: "" },
+            { label: `Відповідь ${n + 1}`, hint: "підказка" },
+            { label: "Неважливо", hint: "" },
           ],
           allow_custom: true,
         },
@@ -225,7 +225,7 @@ test("Claude asks its own questions, picks titles and refines in a new round", a
           results: [
             {
               id: 1000 + Number(film[1]),
-              title: `Фильм ${film[1]}`,
+              title: `Фільм ${film[1]}`,
               release_date: "2020-05-01",
               poster_path: null,
               vote_average: 7,
@@ -247,7 +247,7 @@ test("Claude asks its own questions, picks titles and refines in a new round", a
           results: [
             {
               id: 546554,
-              title: "Достать ножи",
+              title: "Ножі наголо",
               release_date: "2019-11-27",
               poster_path: null,
               vote_average: 7.8,
@@ -265,49 +265,49 @@ test("Claude asks its own questions, picks titles and refines in a new round", a
   await register(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("#/tonight");
-  await expect(page.getByRole("tab", { name: "С Claude" })).toHaveAttribute(
+  await expect(page.getByRole("tab", { name: "З Claude" })).toHaveAttribute(
     "aria-selected",
     "true",
   );
-  const rewatch = page.getByRole("switch", { name: /Включать просмотренное/ });
+  const rewatch = page.getByRole("switch", { name: /Включати переглянуте/ });
   await expect(rewatch).not.toBeChecked();
-  await page.getByText("Включать просмотренное").click();
+  await page.getByText("Включати переглянуте").click();
   await expect(rewatch).toBeChecked();
-  await page.getByRole("button", { name: "Начать" }).click();
+  await page.getByRole("button", { name: "Почати" }).click();
 
-  await expect(page.getByText("Вопрос Claude 1")).toBeVisible();
-  await expect(page.getByText("вопрос 1 из 4")).toBeVisible();
+  await expect(page.getByText("Питання Claude 1")).toBeVisible();
+  await expect(page.getByText("питання 1 з 4")).toBeVisible();
   await page.screenshot({ path: ".ui-evidence/tonight-ai-question.png" });
-  await page.getByRole("button", { name: /Ответ 1/ }).click();
-  await page.getByRole("button", { name: /Ответ 2/ }).click();
+  await page.getByRole("button", { name: /Відповідь 1/ }).click();
+  await page.getByRole("button", { name: /Відповідь 2/ }).click();
   // Back shows the earlier question again without asking Claude.
-  await expect(page.getByText("Вопрос Claude 3")).toBeVisible();
+  await expect(page.getByText("Питання Claude 3")).toBeVisible();
   const before = asked.length;
   await page.getByRole("button", { name: "← Назад" }).click();
-  await expect(page.getByText("Вопрос Claude 2")).toBeVisible();
+  await expect(page.getByText("Питання Claude 2")).toBeVisible();
   expect(asked.length).toBe(before);
-  await page.getByLabel("Свой ответ").fill("Что-то про ограбление");
-  await page.getByRole("button", { name: "Ответить" }).click();
-  await page.getByRole("button", { name: /Ответ 3/ }).click();
-  await expect(page.getByText("вопрос 4 из 4")).toBeVisible();
-  await page.getByRole("button", { name: /Неважно/ }).click();
+  await page.getByLabel("Своя відповідь").fill("Щось про пограбування");
+  await page.getByRole("button", { name: "Відповісти" }).click();
+  await page.getByRole("button", { name: /Відповідь 3/ }).click();
+  await expect(page.getByText("питання 4 з 4")).toBeVisible();
+  await page.getByRole("button", { name: /Неважливо/ }).click();
 
-  const card = page.locator("article", { hasText: "Достать ножи" });
-  await expect(page.locator("article", { hasText: "Фильм 1" })).toContainText(
+  const card = page.locator("article", { hasText: "Ножі наголо" });
+  await expect(page.locator("article", { hasText: "Фільм 1" })).toContainText(
     "Причина 1.",
   );
-  await expect(page.getByText("Искал лёгкий детектив на вечер.")).toBeVisible();
-  await expect(page.getByText("Пропавший фильм")).toHaveCount(0);
+  await expect(page.getByText("Шукав легкий детектив на вечір.")).toBeVisible();
+  await expect(page.getByText("Зниклий фільм")).toHaveCount(0);
   await page.screenshot({
     path: ".ui-evidence/tonight-ai-picks.png",
     fullPage: true,
   });
 
   // IMDb score on the card, TMDB only as a fallback.
-  await expect(page.locator("article", { hasText: "Фильм 1" })).toContainText(
+  await expect(page.locator("article", { hasText: "Фільм 1" })).toContainText(
     "IMDb 7.9",
   );
-  await expect(page.locator("article", { hasText: "Фильм 2" })).toContainText(
+  await expect(page.locator("article", { hasText: "Фільм 2" })).toContainText(
     "TMDB 7.0",
   );
 
@@ -315,31 +315,31 @@ test("Claude asks its own questions, picks titles and refines in a new round", a
   expect((pick.body as { rewatch?: boolean }).rewatch).toBe(true);
   expect(pick.auth).toMatch(/^Bearer .+/);
   expect(pick.body.stage).toBe("pick");
-  expect(pick.body.profile).toContain("В библиотеке 0 тайтлов");
+  expect(pick.body.profile).toContain("У бібліотеці 0 тайтлів");
   expect(pick.body.steps).toEqual([
-    { question: "Вопрос Claude 1", answer: "Ответ 1" },
-    { question: "Вопрос Claude 2", answer: "Что-то про ограбление" },
-    { question: "Вопрос Claude 3", answer: "Ответ 3" },
-    { question: "Вопрос Claude 4", answer: "Неважно" },
+    { question: "Питання Claude 1", answer: "Відповідь 1" },
+    { question: "Питання Claude 2", answer: "Щось про пограбування" },
+    { question: "Питання Claude 3", answer: "Відповідь 3" },
+    { question: "Питання Claude 4", answer: "Неважливо" },
   ]);
 
   await expect(
-    page.getByText("Тебе нравятся детективы с иронией."),
+    page.getByText("Тобі подобаються детективи з іронією."),
   ).toBeVisible();
   // Six cards; Knives Out (the seventh pick) waits in reserve.
   await expect(page.locator("article")).toHaveCount(6);
   await expect(card).toHaveCount(0);
 
   // "Seen" adds the film to the collection, offers a rating and brings a new pick.
-  const first = page.locator("article", { hasText: "Фильм 1" });
-  await first.getByRole("button", { name: "✓ Смотрел" }).click();
+  const first = page.locator("article", { hasText: "Фільм 1" });
+  await first.getByRole("button", { name: "✓ Дивився" }).click();
   await expect(card).toBeVisible();
-  const rate = page.getByRole("group", { name: "Оценка «Фильм 1»" });
+  const rate = page.getByRole("group", { name: "Оцінка «Фільм 1»" });
   await rate.getByRole("button", { name: "8", exact: true }).click();
-  await expect(page.getByText("В коллекции с оценкой 8/10")).toBeVisible();
+  await expect(page.getByText("У колекції з оцінкою 8/10")).toBeVisible();
 
   // A swipe to the left means "not that".
-  const second = page.locator("article", { hasText: "Фильм 2" });
+  const second = page.locator("article", { hasText: "Фільм 2" });
   const box = (await second.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
@@ -349,32 +349,32 @@ test("Claude asks its own questions, picks titles and refines in a new round", a
       box.y + box.height / 2,
     );
   await page.mouse.up();
-  await expect(page.getByText("✕ Не то")).toBeVisible();
+  await expect(page.getByText("✕ Не те")).toBeVisible();
   await expect(page.locator("article")).toHaveCount(5);
   await page.screenshot({
     path: ".ui-evidence/tonight-ai-seen.png",
     fullPage: true,
   });
 
-  await page.getByRole("button", { name: /Уточнить ещё/ }).click();
-  await expect(page.getByText("раунд 2 · вопрос 1 из 4")).toBeVisible();
+  await page.getByRole("button", { name: /Уточнити ще/ }).click();
+  await expect(page.getByText("раунд 2 · питання 1 з 4")).toBeVisible();
   const shown = (
     asked.at(-1)!.body.steps.at(-1) as {
       shown: Array<{ title: string; verdict: string; rating: number | null }>;
     }
   ).shown;
-  expect(shown.find((x) => x.title === "Фильм 1")).toMatchObject({
+  expect(shown.find((x) => x.title === "Фільм 1")).toMatchObject({
     verdict: "seen",
     rating: 8,
   });
-  expect(shown.find((x) => x.title === "Фильм 2")).toMatchObject({
+  expect(shown.find((x) => x.title === "Фільм 2")).toMatchObject({
     verdict: "disliked",
   });
-  expect(shown.find((x) => x.title === "Достать ножи")).toMatchObject({
+  expect(shown.find((x) => x.title === "Ножі наголо")).toMatchObject({
     verdict: null,
   });
 
   // The film marked as seen is in the collection now.
   await page.goto("#/library");
-  await expect(page.getByText("Фильм 1").first()).toBeVisible();
+  await expect(page.getByText("Фільм 1").first()).toBeVisible();
 });

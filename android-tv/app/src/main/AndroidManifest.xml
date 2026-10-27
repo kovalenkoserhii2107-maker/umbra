@@ -2,19 +2,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Голосовой поиск с микрофона пульта (SpeechRecognizer); спрашивается при первом нажатии -->
+    <!-- Голосовий пошук з мікрофона пульта (SpeechRecognizer); запитується під час першого натискання -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <!-- «На телевизоре в Lampa» с телефона: открыть Lampa, когда Umbra в фоне
-         (Android 10+ иначе не даёт). Выдаётся в настройках или через adb:
+    <!-- «На телевізорі в Lampa» з телефону: відкрити Lampa, коли Umbra у фоні
+         (Android 10+ інакше не дає). Надається в налаштуваннях або через adb:
          appops set app.umbra.tv SYSTEM_ALERT_WINDOW allow -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
-    <!-- Телевизор без тачскрина; leanback не обязателен — ставится и на обычный Android -->
+    <!-- Телевізор без тачскріна; leanback не обов'язковий — встановлюється і на звичайний Android -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
-    <!-- Android 11+: какие приложения и действия нам видны (стриминги, голос) -->
+    <!-- Android 11+: які додатки та дії нам видимі (стрімінги, голос) -->
     <queries>
         <intent>
             <action android:name="android.intent.action.VIEW" />
@@ -58,7 +58,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Команды с телефона (Remote.kt): push → разбудить экран → Lampa. -->
+        <!-- Команди з телефону (Remote.kt): push → розбудити екран → Lampa. -->
         <service
             android:name=".PushService"
             android:exported="false">

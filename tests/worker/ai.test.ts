@@ -81,11 +81,11 @@ function memoryCache(): CacheLike {
 }
 
 const question = {
-  question: "Сколько сил на вечер?",
+  question: "Скільки сил на вечір?",
   options: [
-    { label: "Хочу расслабиться", hint: "лёгкое" },
-    { label: "Готов вникать", hint: "" },
-    { label: "Что-то среднее", hint: "" },
+    { label: "Хочу розслабитися", hint: "легке" },
+    { label: "Готовий занурюватися", hint: "" },
+    { label: "Щось середнє", hint: "" },
   ],
   allow_custom: true,
 };
@@ -152,7 +152,7 @@ function setup(
 
 const body = {
   stage: "ask",
-  profile: "Оценки: Зодиак (2007, фильм) — 9/10",
+  profile: "Оцінки: Зодіак (2007, фільм) — 9/10",
   steps: [],
 };
 
@@ -185,15 +185,15 @@ describe("AI picker", () => {
   it("picks titles at high effort and cleans the answer", async () => {
     const { send, calls } = setup(() =>
       claudeReply({
-        taste: "Любишь детективы с юмором.",
-        intro: "Искал напряжённое, но не мрачное.",
+        taste: "Любиш детективи з гумором.",
+        intro: "Шукав напружене, але не похмуре.",
         picks: [
           {
-            title: "Убийство в Восточном экспрессе",
+            title: "Вбивство у «Східному експресі»",
             original_title: "Murder on the Orient Express",
             year: 2017,
             type: "movie",
-            reason: "Детектив, как ты любишь.",
+            reason: "Детектив, як ти любиш.",
           },
           {
             title: "",
@@ -209,7 +209,7 @@ describe("AI picker", () => {
       {
         ...body,
         stage: "pick",
-        steps: [{ question: "Сколько сил?", answer: "Мало" }],
+        steps: [{ question: "Скільки сил?", answer: "Мало" }],
       },
       await token(),
     );
@@ -219,7 +219,7 @@ describe("AI picker", () => {
       picks: unknown[];
     };
     expect(data.picks).toHaveLength(1);
-    expect(data.taste).toBe("Любишь детективы с юмором.");
+    expect(data.taste).toBe("Любиш детективи з гумором.");
     const sent = JSON.parse(
       String(calls.find((c) => c.url.includes("anthropic"))!.init?.body),
     );

@@ -20,7 +20,7 @@ it("reports storage failures instead of pretending the game was saved", async ()
     },
   });
   const { saveGame } = await import("../../src/lib/gameLibrary");
-  expect(() => saveGame(game)).toThrow("Не удалось сохранить");
+  expect(() => saveGame(game)).toThrow("Не вдалося зберегти");
 });
 it("rejects nonfinite ratings before writing storage", async () => {
   const setItem = vi.fn();

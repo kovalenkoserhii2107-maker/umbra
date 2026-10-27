@@ -140,7 +140,7 @@ function cleanDevice(value: unknown) {
     text
       .replace(/[\u0000-\u001f<>]/g, "")
       .trim()
-      .slice(0, 60) || "Телевизор"
+      .slice(0, 60) || "Телевізор"
   );
 }
 

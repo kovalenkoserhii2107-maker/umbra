@@ -170,8 +170,8 @@ describe("game facts", () => {
       "https://store.playstation.com/search/Resident%20Evil%204",
     );
     expect(other.map((o) => o.label)).toEqual([
-      "Официальный сайт",
-      "Википедия",
+      "Офіційний сайт",
+      "Вікіпедія",
       "IGDB",
     ]);
   });

@@ -1,84 +1,83 @@
-# Game data
+# Дані про ігри
 
-Games come from [IGDB](https://api-docs.igdb.com/) through the API worker
-(`worker/`), which holds the Twitch keys IGDB needs. There are no game files in
-the repository any more: the static Steam and console catalogs and the
-Metacritic page scraping were removed.
+Ігри надходять із [IGDB](https://api-docs.igdb.com/) через API-воркер
+(`worker/`), який тримає необхідні ключі Twitch. У репозиторії більше немає файлів
+ігор: статичні каталоги Steam і консолей та скрейпінг сторінок Metacritic було вилучено.
 
-## Sources on a game page
+## Джерела на сторінці гри
 
-| What                                                                                                                | Source                                                                                  |
+| Що                                                                                                                  | Джерело                                                                                 |
 | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Name, cover, art, screenshots, videos, platforms, release dates, genres, modes, studios, series, DLC, similar games | IGDB `games`                                                                            |
-| Age ratings (PEGI, ESRB…)                                                                                           | IGDB `games.age_ratings`, asked separately                                              |
-| Russian interface, subtitles, voice                                                                                 | IGDB `language_supports`                                                                |
-| Time to beat                                                                                                        | IGDB `game_time_to_beats`                                                               |
-| OpenCritic score, tier, reviews                                                                                     | worker `/opencritic` (RapidAPI)                                                         |
-| Russian description, Metascore, Steam reviews, achievements, players, PC requirements                               | worker `/steam/app/:id`, when IGDB knows the Steam app                                  |
-| Store links                                                                                                         | IGDB websites; PlayStation Store, Microsoft Store and eShop fall back to a store search |
+| Назва, обкладинка, арт, скріншоти, відео, платформи, дати релізу, жанри, режими, студії, серії, DLC, схожі ігри     | IGDB `games`                                                                            |
+| Вікові рейтинги (PEGI, ESRB…)                                                                                       | IGDB `games.age_ratings`, запитуються окремо                                            |
+| Підтримка мов (інтерфейс, субтитри, озвучення)                                                                      | IGDB `language_supports`                                                                |
+| Час на проходження (Time to beat)                                                                                   | IGDB `game_time_to_beats`                                                               |
+| Оцінка OpenCritic, категорія, рецензії                                                                              | worker `/opencritic` (RapidAPI)                                                         |
+| Опис, Metascore, відгуки Steam, досягнення, гравці онлайн, системні вимоги                                          | worker `/steam/app/:id`, коли IGDB знає застосунок Steam                                 |
+| Посилання на крамниці                                                                                               | IGDB websites; PlayStation Store, Microsoft Store та eShop використовують пошук крамниці|
 
-Every side source loads on its own; a source that fails or has no data is
-simply not shown. Queries ask only for long-stable IGDB fields in the main
-request, so a change in a newer field cannot break the whole page.
+Кожне допоміжне джерело завантажується окремо; джерело, яке не відповідає або не має даних,
+просто не показується. Запити використовують стабільні поля IGDB в основному запиті,
+тому зміна новішого поля не ламає сторінку.
 
-## Platforms
+## Платформи
 
-The four groups are PC (6), PlayStation 5 and 4 (167, 48), Xbox Series and One
-(169, 49) and Nintendo Switch 2 and Switch (508, 130). "Мои платформы" is kept
-in `localStorage` (`umbra.gamePlatforms`); the feed and search start from it.
+Чотири групи: PC (6), PlayStation 5 та 4 (167, 48), Xbox Series та One
+(169, 49) і Nintendo Switch 2 та Switch (508, 130). «Мої платформи» зберігається
+в `localStorage` (`umbra.gamePlatforms`); стрічка та пошук відштовхуються від цього списку.
 
-## Feed
+## Стрічка
 
-- **Популярные новинки**: games released in the last four months, ranked by
-  reciprocal rank fusion of IGDB popularity (visits, playing, want to play),
-  Steam peak players, Twitch viewers and IGDB hype.
-- **Сейчас популярно**: released games, ranked by Twitch, playing, Steam peak
-  and visits.
-- **Самые ожидаемые**: unreleased games (or with no date) by hype and "want to
-  play". Games named by the popularity lists are added even when the date query
-  misses them, so a big title like GTA VI cannot fall out.
-- **Скоро выйдут**: awaited games coming in the next two months, by date.
-- **Game Pass**: recently added, coming and leaving lists; Microsoft Store ids
-  are matched to IGDB through `external_games`.
-- Popularity types are looked up by name on IGDB `popularity_types`.
+- **Популярні новинки**: ігри, випущені за останні чотири місяці, відсортовані за
+  reciprocal rank fusion популярності IGDB (перегляди, грають, хочуть пограти),
+  пікового онлайну Steam, глядачів Twitch та хайпу IGDB.
+- **Зараз популярно**: випущені ігри, ранжовані за Twitch, активними гравцями, піком Steam
+  та відвідуваннями.
+- **Найбільш очікувані**: нерелізнуті ігри (або без дати) за хайпом та «хочу
+  пограти». Ігри зі списків популярності додаються навіть тоді, коли запит за датою
+  їх пропускає, тож великий реліз на зразок GTA VI не випаде.
+- **Скоро вийдуть**: очікувані ігри наступних двох місяців, за датою.
+- **Game Pass**: нещодавно додані, очікувані та ігри, що незабаром залишать сервіс; ідентифікатори Microsoft Store
+  зіставляються з IGDB через `external_games`.
+- Типи популярності визначаються за назвою в IGDB `popularity_types`.
 
-## Caching
+## Кешування
 
-Feed queries use the start of the current UTC day as "now", so the same query
-text repeats for a whole day and is served from the worker's edge cache. The
-client also reuses identical IGDB answers for 10 minutes, and the service
-worker caches IGDB images for two weeks.
+Запити стрічки використовують початок поточної доби UTC як «зараз», тому однаковий текст запиту
+повторюється протягом усього дня і видається з edge-кешу воркера. Клієнт
+також повторно використовує однакові відповіді IGDB протягом 10 хвилин, а service
+worker кешує зображення IGDB на два тижні.
 
-## Collection
+## Колекція
 
-Games the player marks live in Firestore, `users/{uid}/games/{igdbId}`:
-status (`want`, `playing`, `played`, `dropped`, `owned`), platforms (the four
-groups), rating, note, hours entered by hand, and Steam play time for imported
-games. The rule `validGame` in `firestore.rules` mirrors `parseEntry` in
-`src/lib/gameEntry.ts`. The library page has a platform switcher with counts
-(remembered on the device), status filters and sorting.
+Ігри, які користувач додає до колекції, зберігаються у Firestore, `users/{uid}/games/{igdbId}`:
+статус (`want`, `playing`, `played`, `dropped`, `owned`), платформи (чотири
+групи), оцінка, нотатка, години, введені вручну, та час гри в Steam для імпортованих
+ігор. Правило `validGame` у `firestore.rules` повторює `parseEntry` у
+`src/lib/gameEntry.ts`. Сторінка бібліотеки має перемикач платформ із лічильниками
+(зберігається на пристрої), фільтри статусів і сортування.
 
 ## Steam
 
-"Войти через Steam" goes to Steam OpenID with `return_to` set to the site
-root. Steam's answer is parked by `captureSteamReturn` before the app renders,
-then the library page sends it to the worker (`/steam/verify`), which asks
-Steam to confirm it. The SteamID is saved in `users/{uid}/links/steam`.
+«Увійти через Steam» веде на Steam OpenID із `return_to` на корінь
+сайту. Відповідь Steam перехоплюється функцією `captureSteamReturn` до рендерингу застосунку,
+потім сторінка бібліотеки надсилає її воркеру (`/steam/verify`), який запитує
+підтвердження у Steam. SteamID зберігається в `users/{uid}/links/steam`.
 
-Sync reads owned games and the wishlist through the worker, matches Steam apps
-to IGDB through `external_games`, and writes the changes in batches: existing
-games keep the player's status, rating and note and get PC plus fresh play
-time; new games come in as "owned" (or "playing" if played in the last two
-weeks); the wishlist becomes "want". Sync runs after linking, on "Обновить",
-and once per visit when the last one is older than 12 hours. The game card
-shows the player's Steam hours and achievements, rarest first.
+Синхронізація зчитує придбані ігри та список бажаного через воркер, зіставляє ігри Steam
+з IGDB через `external_games` і записує зміни пакетами: наявні
+ігри зберігають статус, оцінку та нотатку користувача й отримують статус PC плюс оновлений час
+гри; нові ігри додаються як «У бібліотеці» (або «Граю», якщо запускалися в останні два
+тижні); список бажаного стає «Хочу пограти». Синхронізація запускається після підключення, за кнопкою «Оновити»
+та раз на візит, якщо з останнього разу минуло понад 12 годин. Картка гри
+показує години користувача в Steam та досягнення, від найрідкісніших.
 
-## Library entries from the old catalog
+## Записи бібліотеки зі старого каталогу
 
-Entries saved before the move have Steam app ids (PC) or nine-digit Metacritic
-ids (consoles). On the games pages they are matched once per session: Steam ids
-through IGDB `external_games`, the others by title. Matched entries get the
-IGDB id and `source: "igdb"`; the rest keep linking to a search by title.
+Записи, збережені до переходу, мають Steam app id (PC) або дев'ятизначні id Metacritic
+(консолі). На сторінках ігор вони зіставляються раз на сесію: Steam id
+через IGDB `external_games`, інші — за назвою. Зіставлені записи отримують
+id IGDB та `source: "igdb"`; решта продовжує посилатися на пошук за назвою.
 
-After matching, they are uploaded to the cloud collection once and the device
-copy is kept as `umbra.gamesLibrary.backup`.
+Після зіставлення вони завантажуються у хмарну колекцію один раз, а локальна копія
+зберігається як `umbra.gamesLibrary.backup`.

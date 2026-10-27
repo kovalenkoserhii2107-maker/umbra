@@ -133,7 +133,7 @@ describe("TV name for the phone", () => {
     ).toBe("BRAVIA 4K VH21");
     expect(
       tvDeviceName("Mozilla/5.0 (Linux; Android 10; K) Chrome/156.0 Mobile"),
-    ).toBe("Телевизор");
-    expect(tvDeviceName("Mozilla/5.0 (Macintosh)")).toBe("Телевизор");
+    ).toBe("Телевізор");
+    expect(tvDeviceName("Mozilla/5.0 (Macintosh)")).toBe("Телевізор");
   });
 });

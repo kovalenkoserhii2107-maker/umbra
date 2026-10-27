@@ -48,7 +48,7 @@ const items = [
   item({
     id: 3,
     type: "tv",
-    title: "Сериал",
+    title: "Серіал",
     status: "watching",
     season: 2,
     episode: 3,
@@ -88,7 +88,7 @@ describe("collection filters", () => {
       filterCollection(items, { ...f, sort: "title" }, meta).map(
         (x) => x.title,
       ),
-    ).toEqual(["Альфа", "Бета", "Сериал", "Список"]);
+    ).toEqual(["Альфа", "Бета", "Серіал", "Список"]);
   });
 
   it("round-trips through the URL and ignores unknown values", () => {

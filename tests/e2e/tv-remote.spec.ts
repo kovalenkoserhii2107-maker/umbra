@@ -14,7 +14,7 @@ const film = {
   id: 438631,
   title: "Дюна",
   release_date: "2021-09-15",
-  overview: "Пустынная планета.",
+  overview: "Пустельна планета.",
   credits: { cast: [], crew: [] },
   videos: { results: [] },
   "watch/providers": { results: {} },
@@ -76,17 +76,17 @@ async function worker(
 async function register(page: Page, prefix = "") {
   await page.goto(`${prefix}#/login`);
   if (prefix)
-    await page.getByRole("button", { name: "Войти по email и паролю" }).click();
+    await page.getByRole("button", { name: "Увійти за email та паролем" }).click();
   await page
-    .getByRole("button", { name: "Нет аккаунта — зарегистрироваться" })
+    .getByRole("button", { name: "Немає акаунту — зареєструватися" })
     .click();
-  await page.getByLabel("Имя", { exact: true }).fill("Viewer");
+  await page.getByLabel("Ім'я", { exact: true }).fill("Viewer");
   await page
     .getByLabel("Email", { exact: true })
     .fill(`remote-${Date.now()}@example.com`);
   await page.getByLabel("Пароль", { exact: true }).fill("test-password-123");
   await page
-    .getByRole("button", { name: "Создать аккаунт", exact: true })
+    .getByRole("button", { name: "Створити акаунт", exact: true })
     .click();
   await expect(page).toHaveURL(/#\/$/);
 }
@@ -115,8 +115,8 @@ test.describe("phone", () => {
     const calls = await worker(context, [SONY]);
     await register(page);
     await page.goto("#/title/movie/438631");
-    await page.getByRole("button", { name: "На телевизоре в Lampa" }).click();
-    await expect(page.getByText("Открываю на «BRAVIA 4K VH21».")).toBeVisible();
+    await page.getByRole("button", { name: "На телевізорі в Lampa" }).click();
+    await expect(page.getByText("Відкриваю на «BRAVIA 4K VH21».")).toBeVisible();
     const open = calls.find((c) => c.path === "/tv/open")!;
     expect(open.body).toEqual({ type: "movie", id: 438631 });
     expect(open.auth).toMatch(/^Bearer \S+/);
@@ -130,10 +130,10 @@ test.describe("phone", () => {
     const calls = await worker(context, [SONY, BEDROOM]);
     await register(page);
     await page.goto("#/title/movie/438631");
-    const group = page.getByRole("group", { name: "Телевизор" });
+    const group = page.getByRole("group", { name: "Телевізор" });
     await group.getByRole("button", { name: "Xiaomi Bedroom" }).click();
-    await page.getByRole("button", { name: "На телевизоре в Lampa" }).click();
-    await expect(page.getByText("Открываю на «Xiaomi Bedroom».")).toBeVisible();
+    await page.getByRole("button", { name: "На телевізорі в Lampa" }).click();
+    await expect(page.getByText("Відкриваю на «Xiaomi Bedroom».")).toBeVisible();
     const open = calls.find((c) => c.path === "/tv/open")!;
     expect(open.body).toEqual({
       type: "movie",
@@ -150,8 +150,8 @@ test.describe("phone", () => {
     });
     await register(page);
     await page.goto("#/title/movie/438631");
-    await page.getByRole("button", { name: "На телевизоре в Lampa" }).click();
-    await expect(page.getByText(/Телевизор не отвечает/)).toBeVisible();
+    await page.getByRole("button", { name: "На телевізорі в Lampa" }).click();
+    await expect(page.getByText(/Телевізор не відповідає/)).toBeVisible();
   });
 
   test("shows no button without a TV with Lampa", async ({ page, context }) => {
@@ -164,7 +164,7 @@ test.describe("phone", () => {
       .poll(() => calls.some((c) => c.path === "/tv/devices"))
       .toBe(true);
     await expect(
-      page.getByRole("button", { name: "На телевизоре в Lampa" }),
+      page.getByRole("button", { name: "На телевізорі в Lampa" }),
     ).toHaveCount(0);
   });
 });
@@ -236,7 +236,7 @@ test.describe("TV", () => {
 
     // Signing out removes this TV from the account's remote list.
     await page.goto("?tv=1#/settings");
-    await page.getByRole("button", { name: "Выйти из аккаунта" }).click();
+    await page.getByRole("button", { name: "Вийти з акаунту" }).click();
     await expect
       .poll(() => calls.filter((c) => c.path === "/tv/device/remove").length)
       .toBe(1);

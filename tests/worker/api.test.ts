@@ -598,7 +598,7 @@ describe("umbra-api", () => {
                 achievements: [
                   {
                     name: "A",
-                    displayName: "Первый шаг",
+                    displayName: "Перший крок",
                     description: "d",
                     icon: "a.jpg",
                   },
@@ -635,7 +635,7 @@ describe("umbra-api", () => {
       expect(body.achieved).toBe(2);
       expect(body.rarest.map((a: { name: string }) => a.name)).toEqual([
         "Легенда",
-        "Первый шаг",
+        "Перший крок",
       ]);
       expect(body.rarest[0].percent).toBe(1.2);
       expect(body.next[0]).toMatchObject({
@@ -675,11 +675,11 @@ describe("umbra-api", () => {
         url.startsWith("https://api.agregarr.org")
           ? Response.json([{ imdbId: "tt3896198", rating: 7.6 }])
           : Response.json({
-              title: "Стражи Галактики. Часть 2",
+              title: "Вартові Галактики. Частина 2",
               external_ids: { imdb_id: "tt3896198" },
               overview:
-                "Питер Квилл и его команда отправляются в новое путешествие. " +
-                "Они раскрывают тайну происхождения Квилла и сталкиваются с новыми врагами. ".repeat(
+                "Пітер Квілл і його команда вирушають у нову подорож. " +
+                "Вони розкривають таємницю походження Квілла і стикаються з новими ворогами. ".repeat(
                   4,
                 ),
               poster_path: "/poster.jpg",
@@ -695,14 +695,14 @@ describe("umbra-api", () => {
       expect(response.headers.get("Content-Type")).toContain("text/html");
       const html = await response.text();
       expect(og(html, "title")).toBe(
-        "Стражи Галактики. Часть 2 (2017) · ★ IMDb 7.6",
+        "Вартові Галактики. Частина 2 (2017) · ★ IMDb 7.6",
       );
       expect(og(html, "image")).toBe(
         "https://image.tmdb.org/t/p/w780/poster.jpg",
       );
       const description = og(html, "description")!;
       expect(description).toMatch(
-        /^Фильм · 2017 · фантастика · TMDB 7\.6\nПитер Квилл/,
+        /^Фільм · 2017 · фантастика · TMDB 7\.6\nПітер Квілл/,
       );
       expect(description.length).toBeLessThan(300);
       // The poster shows full width in Telegram, not as a small thumbnail.
@@ -726,17 +726,17 @@ describe("umbra-api", () => {
       const { send, calls } = setup(() => new Response("unused"));
       const uid = "dTm7ZOQxNWYfjXrBwaAcJ6WPf2x2";
       const response = await send(
-        `/s/invite/${uid}?n=${encodeURIComponent("Сергей <b>")}`,
+        `/s/invite/${uid}?n=${encodeURIComponent("Сергій <b>")}`,
         {},
         "",
       );
       expect(response.status).toBe(200);
       const html = await response.text();
-      expect(og(html, "title")).toBe("Сергей &lt;b&gt; зовёт тебя в Umbra");
+      expect(og(html, "title")).toBe("Сергій &lt;b&gt; кличе тебе в Umbra");
       expect(og(html, "image")).toBe(
         "https://kovalenkoserhii2107-maker.github.io/umbra/og-invite.png",
       );
-      expect(og(html, "description")).toContain("оценки друг друга");
+      expect(og(html, "description")).toContain("оцінки одне одного");
       expect(html).toContain(
         `content="0;url=https://kovalenkoserhii2107-maker.github.io/umbra/#/friends/invite/${uid}"`,
       );
@@ -754,7 +754,7 @@ describe("umbra-api", () => {
       expect(calls).toHaveLength(0);
       // Without a name, and nothing for ids that are not uids.
       const plain = await (await send(`/s/invite/${uid}`, {}, "")).text();
-      expect(og(plain, "title")).toBe("Приглашение в Umbra");
+      expect(og(plain, "title")).toBe("Запрошення в Umbra");
       expect((await send("/s/invite/bad%22id", {}, "")).status).toBe(403);
     });
 
@@ -765,17 +765,17 @@ describe("umbra-api", () => {
         if (url.startsWith("https://www.omdbapi.com"))
           return Response.json({ imdbRating: "8.1" });
         return Response.json({
-          name: "Тёмные",
+          name: "Пітьма",
           first_air_date: "2017-12-01",
           external_ids: { imdb_id: "tt5753856" },
         });
       });
       const html = await (await send("/s/tv/70523", {}, "")).text();
-      expect(og(html, "title")).toBe("Тёмные (2017) · ★ IMDb 8.1");
+      expect(og(html, "title")).toBe("Пітьма (2017) · ★ IMDb 8.1");
       expect(calls[2].url).toContain("apikey=omdb-key");
     });
 
-    it("use the Russian Steam text for games and escape everything", async () => {
+    it("use the Steam text for games and escape everything", async () => {
       const { send } = setup(({ url }) => {
         if (url.startsWith("https://id.twitch.tv")) return tokenResponse();
         if (url.includes("api.igdb.com"))
@@ -794,7 +794,7 @@ describe("umbra-api", () => {
           return Response.json({
             "292030": {
               success: true,
-              data: { short_description: "Охотник на чудовищ Геральт." },
+              data: { short_description: "Мисливець на чудовиськ Геральт." },
             },
           });
         return Response.json({});
@@ -804,7 +804,7 @@ describe("umbra-api", () => {
         "The &quot;Witcher&quot; 3 &lt;Wild Hunt&gt; (2015)",
       );
       expect(og(html, "description")).toBe(
-        "Игра · 2015 · критики 93\nОхотник на чудовищ Геральт.",
+        "Гра · 2015 · критики 93\nМисливець на чудовиськ Геральт.",
       );
       expect(og(html, "image")).toBe(
         "https://images.igdb.com/igdb/image/upload/t_1080p/co1wyy.jpg",
@@ -829,10 +829,10 @@ describe("umbra-api", () => {
       );
       expect(
         shorten(
-          "Первое предложение здесь. Второе очень длинное предложение тут",
+          "Перше речення тут. Друге дуже довге речення тут",
           36,
         ),
-      ).toBe("Первое предложение здесь.");
+      ).toBe("Перше речення тут.");
       expect(shorten("а".repeat(60), 50)).toBe(`${"а".repeat(50)}…`);
     });
   });

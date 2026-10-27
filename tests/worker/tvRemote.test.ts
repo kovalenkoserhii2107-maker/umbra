@@ -205,7 +205,7 @@ describe("TVs of an account", () => {
   });
 });
 
-describe("«На телевизоре в Lampa»", () => {
+describe("«На телевізорі в Lampa»", () => {
   it("the TV registers, the phone sees it without tokens and opens a title on it", async () => {
     const api = setup();
     const owner = await idToken("owner");

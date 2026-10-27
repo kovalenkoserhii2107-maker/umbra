@@ -6,17 +6,17 @@ test.use({ viewport: { width: 960, height: 540 } });
 async function register(page: Page) {
   await page.goto("?tv=1#/login");
   // On TV the email form opens from the sign-in screen (Google and QR first).
-  await page.getByRole("button", { name: "Войти по email и паролю" }).click();
+  await page.getByRole("button", { name: "Увійти за email та паролем" }).click();
   await page
-    .getByRole("button", { name: "Нет аккаунта — зарегистрироваться" })
+    .getByRole("button", { name: "Немає акаунту — зареєструватися" })
     .click();
-  await page.getByLabel("Имя", { exact: true }).fill("Viewer");
+  await page.getByLabel("Ім'я", { exact: true }).fill("Viewer");
   await page
     .getByLabel("Email", { exact: true })
     .fill(`tv-${Date.now()}@example.com`);
   await page.getByLabel("Пароль", { exact: true }).fill("test-password-123");
   await page
-    .getByRole("button", { name: "Создать аккаунт", exact: true })
+    .getByRole("button", { name: "Створити акаунт", exact: true })
     .click();
   await expect(page).toHaveURL(/#\/$/);
 }
@@ -42,7 +42,7 @@ async function bridge(context: BrowserContext) {
         calls.push(["voice", language]);
         setTimeout(() => send("listening", ""), 50);
         setTimeout(() => send("partial", "мат"), 150);
-        setTimeout(() => send("result", "матрица"), 300);
+        setTimeout(() => send("result", "матриця"), 300);
         setTimeout(() => send("end", ""), 350);
       },
       stopVoice: () => calls.push(["stopVoice"]),
@@ -70,7 +70,7 @@ const DUNE = {
 };
 const MATRIX = {
   id: 603,
-  title: "Матрица",
+  title: "Матриця",
   original_title: "The Matrix",
   release_date: "1999-03-30",
   vote_average: 8.2,
@@ -85,7 +85,7 @@ async function tmdb(context: BrowserContext) {
     const query = url.searchParams.get("query") || "";
     if (url.pathname === "/3/search/movie") {
       if (query === "дюна") return route.fulfill({ json: page1([DUNE]) });
-      if (query === "матрица") return route.fulfill({ json: page1([MATRIX]) });
+      if (query === "матриця") return route.fulfill({ json: page1([MATRIX]) });
     }
     if (url.pathname === "/3/movie/438631/reviews")
       return route.fulfill({
@@ -106,14 +106,14 @@ async function tmdb(context: BrowserContext) {
       return route.fulfill({
         json: {
           ...DUNE,
-          tagline: "Час настал",
+          tagline: "Час настав",
           budget: 165_000_000,
           revenue: 411_000_000,
           credits: {
-            cast: [{ id: 1, name: "Тимоти Шаламе", character: "Пол" }],
-            crew: [{ id: 2, name: "Дени Вильнёв", job: "Director" }],
+            cast: [{ id: 1, name: "Тімоті Шаламе", character: "Пол" }],
+            crew: [{ id: 2, name: "Дені Вільньов", job: "Director" }],
           },
-          overview: "Пустынная планета.",
+          overview: "Пустельна планета.",
           genres: [],
           videos: {
             results: [
@@ -171,19 +171,19 @@ test("TV: remote types on the on-screen keyboard, opens the title, watches and g
   await expect(page.locator("html")).toHaveClass(/\btv\b/);
   // The TV's own screens: the menu on top, no mobile tab bar.
   await expect(page.locator("nav.fixed")).toHaveCount(0);
-  await expect(page.getByText("На вечер")).toBeVisible();
+  await expect(page.getByText("На вечір")).toBeVisible();
 
-  // The app opens with the remote on «Лента»; each tab opens as the remote
+  // The app opens with the remote on «Стрічка»; each tab opens as the remote
   // reaches it in the menu: no OK needed.
-  await expect.poll(() => onScreen(page)).toBe("Лента");
+  await expect.poll(() => onScreen(page)).toBe("Стрічка");
   await press(page, "ArrowRight");
   await expect(page).toHaveURL(/#\/search$/);
   await expect(page.locator('[data-screen="/search"]')).toBeVisible();
-  expect(await onScreen(page)).toBe("Поиск");
+  expect(await onScreen(page)).toBe("Пошук");
   await press(page, "ArrowDown", "ArrowDown");
   expect(await onScreen(page)).toBe("а");
   const field = page.getByRole("textbox", {
-    name: "Поиск фильмов, сериалов и людей",
+    name: "Пошук фільмів, серіалів та людей",
   });
 
   // A keyboard plugged into the TV types too.
@@ -193,15 +193,38 @@ test("TV: remote types on the on-screen keyboard, opens the title, watches and g
   await expect(field).toHaveAttribute("data-value", "");
 
   // Letters in alphabetical rows of seven: д, ю, н, а; up/down keep the column.
-  await press(page, "ArrowRight", "ArrowRight", "ArrowRight", "ArrowRight");
+  await press(
+    page,
+    "ArrowRight",
+    "ArrowRight",
+    "ArrowRight",
+    "ArrowRight",
+    "ArrowRight",
+  );
   expect(await onScreen(page)).toBe("д");
-  await press(page, "Enter", "ArrowDown", "ArrowDown", "ArrowDown");
-  await press(page, "ArrowDown", "ArrowLeft");
+  await press(
+    page,
+    "Enter",
+    "ArrowDown",
+    "ArrowDown",
+    "ArrowDown",
+    "ArrowDown",
+    "ArrowLeft",
+    "ArrowLeft",
+  );
   expect(await onScreen(page)).toBe("ю");
-  await press(page, "Enter", "ArrowUp", "ArrowUp", "ArrowLeft", "ArrowLeft");
-  await press(page, "ArrowLeft");
+  await press(page, "Enter", "ArrowUp", "ArrowUp");
   expect(await onScreen(page)).toBe("н");
-  await press(page, "Enter", "ArrowUp", "ArrowUp", "Enter");
+  await press(
+    page,
+    "Enter",
+    "ArrowUp",
+    "ArrowUp",
+    "ArrowLeft",
+    "ArrowLeft",
+    "ArrowLeft",
+    "Enter",
+  );
   await expect(field).toHaveAttribute("data-value", "дюна");
   await expect(page).toHaveURL(/q=%D0%B4%D1%8E%D0%BD%D0%B0/);
   await expect(page.getByText("Дюна").first()).toBeVisible();
@@ -212,11 +235,11 @@ test("TV: remote types on the on-screen keyboard, opens the title, watches and g
   await press(page, "Enter");
   await expect(page).toHaveURL(/#\/title\/movie\/438631/);
 
-  // "Смотреть" opens the installed app; the trailer goes to YouTube.
-  await expect.poll(() => onScreen(page)).toContain("Смотреть в Netflix");
+  // "Дивитися" opens the installed app; the trailer goes to YouTube.
+  await expect.poll(() => onScreen(page)).toContain("Дивитися в Netflix");
   await press(page, "Enter", "ArrowRight");
   // Lampa opens the same title's card (this app does not report it: try).
-  expect(await onScreen(page)).toBe("Открыть в Lampa");
+  expect(await onScreen(page)).toBe("Відкрити в Lampa");
   await press(page, "Enter", "ArrowRight");
   expect(await onScreen(page)).toBe("Трейлер");
   await press(page, "Enter");
@@ -229,17 +252,17 @@ test("TV: remote types on the on-screen keyboard, opens the title, watches and g
     ["open", "https://www.youtube.com/watch?v=dune-trailer"],
   ]);
   // Apple TV is not installed on this TV: no button for it.
-  await expect(page.getByText(/Смотреть в Apple TV/)).toHaveCount(0);
+  await expect(page.getByText(/Дивитися в Apple TV/)).toHaveCount(0);
 
   // Down to the rating: 8 marks the film as seen with that score.
   await press(page, "ArrowDown");
   expect(await onScreen(page)).toBe("1");
   for (let i = 0; i < 7; i++) await press(page, "ArrowRight");
   await press(page, "Enter");
-  await expect(page.getByText("Просмотрено · твоя оценка 8")).toBeVisible();
+  await expect(page.getByText("Переглянуто · твоя оцінка 8")).toBeVisible();
 
   // What the phone shows is here too: the director, the facts, reviews to read.
-  await expect(page.getByText("Дени Вильнёв").first()).toBeVisible();
+  await expect(page.getByText("Дені Вільньов").first()).toBeVisible();
   await expect(page.getByText("$165 млн")).toBeVisible();
   for (
     let i = 0;
@@ -262,7 +285,7 @@ test("TV: remote types on the on-screen keyboard, opens the title, watches and g
   await expect.poll(() => onScreen(page)).toContain("Дюна");
   // Left goes back to the letters, where the remote left them (the row's end).
   await press(page, "ArrowLeft");
-  expect(await onScreen(page)).toBe("ё");
+  expect(await onScreen(page)).toBe("е");
 });
 
 test("TV: home rows, the title behind a poster, Back to it, the collection", async ({
@@ -275,73 +298,73 @@ test("TV: home rows, the title behind a poster, Back to it, the collection", asy
 
   // The app opens on the menu; down to the rows, the focused poster's title
   // fills the screen above them.
-  await expect.poll(() => onScreen(page)).toBe("Лента");
+  await expect.poll(() => onScreen(page)).toBe("Стрічка");
   await press(page, "ArrowDown");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Дюна");
   await press(page, "ArrowRight");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Матрица");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Матриця");
   await press(page, "ArrowLeft", "Enter");
   await expect(page).toHaveURL(/#\/title\/movie\/438631/);
-  await expect.poll(() => onScreen(page)).toContain("Смотреть в Netflix");
-  // "Хочу посмотреть" comes after Netflix, Lampa and the trailer.
+  await expect.poll(() => onScreen(page)).toContain("Дивитися в Netflix");
+  // "Хочу подивитися" comes after Netflix, Lampa and the trailer.
   await press(page, "ArrowRight", "ArrowRight", "ArrowRight");
-  expect(await onScreen(page)).toBe("＋ Хочу посмотреть");
+  expect(await onScreen(page)).toBe("＋ Хочу подивитися");
   await press(page, "Enter");
-  await expect(page.getByText("В «Хочу посмотреть»").first()).toBeVisible();
+  await expect(page.getByText("У «Хочу подивитися»").first()).toBeVisible();
 
   // Back: the home screen, on the same poster.
   await page.goBack();
   await expect(page).toHaveURL(/#\/$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Дюна");
 
-  // Up to the menu (past the new «Хочу посмотреть» row), over to Коллекция.
+  // Up to the menu (past the new «Хочу подивитися» row), over to Колекція.
   await press(page, "ArrowUp");
   expect(await onScreen(page)).toBe("Дюна");
   await press(page, "ArrowUp");
-  expect(await onScreen(page)).toBe("Лента");
+  expect(await onScreen(page)).toBe("Стрічка");
   await press(page, "ArrowRight", "ArrowRight", "ArrowRight");
   await expect(page).toHaveURL(/#\/library$/);
   // The router swaps screens in a transition: wait for the collection itself.
   await expect(page.locator('[data-screen="/library"]')).toBeVisible();
   await expect(
-    page.getByText("Хочу посмотреть", { exact: true }),
+    page.getByText("Хочу подивитися", { exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Дюна");
 
   // Opened from the menu, the remote is still on it; filters are just below.
-  expect(await onScreen(page)).toBe("Коллекция");
-  // Filters: down to them, «Тип» → «Сериалы» hides the film; «Сбросить» brings it back.
+  expect(await onScreen(page)).toBe("Колекція");
+  // Filters: down to them, «Тип» → «Серіали» hides the film; «Скинути» brings it back.
   await press(page, "ArrowDown");
-  expect(await onScreen(page)).toBe("Тип:все");
+  expect(await onScreen(page)).toBe("Тип:всі");
   await press(page, "Enter");
-  expect(await onScreen(page)).toBe("Фильмы и сериалы");
+  expect(await onScreen(page)).toBe("Фільми та серіали");
   await press(page, "ArrowRight", "ArrowRight", "Enter");
-  expect(await onScreen(page)).toBe("Тип:Сериалы");
+  expect(await onScreen(page)).toBe("Тип:Серіали");
   await expect(
-    page.getByText("Под эти фильтры ничего нет.", { exact: false }),
+    page.getByText("Під ці фільтри нічого немає.", { exact: false }),
   ).toBeVisible();
   for (let i = 0; i < 5; i++) await press(page, "ArrowRight");
-  expect(await onScreen(page)).toBe("Сбросить");
+  expect(await onScreen(page)).toBe("Скинути");
   await press(page, "Enter");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Дюна");
   await press(page, "ArrowDown");
 
-  // Back from a row goes to the menu first; from another tab — to «Лента»,
+  // Back from a row goes to the menu first; from another tab — to «Стрічка»,
   // never out of the app.
   const back = () => page.evaluate(() => (window as any).umbraTvBack());
   expect(await back()).toBe(true);
-  await expect.poll(() => onScreen(page)).toBe("Коллекция");
+  await expect.poll(() => onScreen(page)).toBe("Колекція");
   expect(await back()).toBe(true);
   await expect(page).toHaveURL(/#\/$/);
-  await expect.poll(() => onScreen(page)).toBe("Лента");
-  // On «Лента»: the first Back says how to leave, a second one soon closes.
+  await expect.poll(() => onScreen(page)).toBe("Стрічка");
+  // On «Стрічка»: the first Back says how to leave, a second one soon closes.
   const exits = () =>
     page.evaluate(() =>
       (window as any).__calls.filter((c: string[]) => c[0] === "exit"),
     );
   expect(await back()).toBe(true);
   await expect(
-    page.getByText("Нажмите «Назад» ещё раз, чтобы выйти"),
+    page.getByText("Натисніть «Назад» ще раз, щоб вийти"),
   ).toBeVisible();
   expect(await exits()).toHaveLength(0);
   expect(await back()).toBe(true);
@@ -357,12 +380,12 @@ test("TV: voice search through the app", async ({ page, context }) => {
   await press(page, "ArrowUp");
   expect(await onScreen(page)).toBe("Голосом");
   await press(page, "Enter");
-  await expect(page).toHaveURL(/q=%D0%BC%D0%B0%D1%82%D1%80%D0%B8%D1%86%D0%B0/);
+  await expect(page).toHaveURL(/q=%D0%BC%D0%B0%D1%82%D1%80%D0%B8%D1%86%D1%8F/);
   await expect(
-    page.getByRole("textbox", { name: "Поиск фильмов, сериалов и людей" }),
-  ).toHaveAttribute("data-value", "матрица");
-  await expect(page.getByText("Матрица").first()).toBeVisible();
+    page.getByRole("textbox", { name: "Пошук фільмів, серіалів та людей" }),
+  ).toHaveAttribute("data-value", "матриця");
+  await expect(page.getByText("Матриця").first()).toBeVisible();
   expect(await page.evaluate(() => (window as any).__calls)).toEqual([
-    ["voice", "ru-RU"],
+    ["voice", "uk-UA"],
   ]);
 });

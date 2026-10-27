@@ -164,9 +164,9 @@ describe("coming soon", () => {
   });
 
   it("labels premiere dates", () => {
-    expect(premiereLabel("2026-10-06", TODAY)).toBe("сегодня");
+    expect(premiereLabel("2026-10-06", TODAY)).toBe("сьогодні");
     expect(premiereLabel("2026-10-07", TODAY)).toBe("завтра");
-    expect(premiereLabel("2026-11-14", TODAY)).toBe("14 ноября");
-    expect(premiereLabel("2027-03-03", TODAY)).toBe("3 марта 2027");
+    expect(premiereLabel("2026-11-14", TODAY)).toBe("14 листопада");
+    expect(premiereLabel("2027-03-03", TODAY)).toBe("3 березня 2027");
   });
 });

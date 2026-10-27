@@ -6,7 +6,7 @@ const today = "2026-10-01";
 const lib = (patch: Partial<LibraryItem>): LibraryItem => ({
   id: 1,
   type: "movie",
-  title: "Фильм",
+  title: "Фільм",
   poster: "",
   year: "2026",
   status: "watchlist",
@@ -18,7 +18,7 @@ const lib = (patch: Partial<LibraryItem>): LibraryItem => ({
 const popular = [
   {
     id: 50,
-    title: "Хит недели",
+    title: "Хіт тижня",
     backdrop_path: "/b.jpg",
     media_type: "movie" as const,
   },
@@ -29,12 +29,12 @@ describe("home spotlight", () => {
     const spot = pickSpotlight({
       releases: [
         {
-          item: lib({ id: 2, title: "Позже" }),
+          item: lib({ id: 2, title: "Пізніше" }),
           date: "2026-10-06",
           kind: "movie",
         },
         {
-          item: lib({ id: 3, title: "Вчера" }),
+          item: lib({ id: 3, title: "Вчора" }),
           date: "2026-09-30",
           kind: "movie",
         },
@@ -52,12 +52,12 @@ describe("home spotlight", () => {
     });
     expect(spot?.reason).toBe("release");
     expect(spot?.item.id).toBe(4);
-    expect(spot?.kicker).toBe("Из «Хочу посмотреть»");
-    expect(spot?.note).toBe("Выход 2 октября · завтра");
+    expect(spot?.kicker).toBe("З «Хочу подивитися»");
+    expect(spot?.note).toBe("Вихід 2 жовтня · завтра");
   });
 
   it("then a new episode of a followed series", () => {
-    const show = lib({ id: 9, type: "tv", title: "Сериал", status: "watched" });
+    const show = lib({ id: 9, type: "tv", title: "Серіал", status: "watched" });
     const spot = pickSpotlight({
       releases: [],
       episodes: [
@@ -75,7 +75,7 @@ describe("home spotlight", () => {
       today,
     });
     expect(spot).toMatchObject({ reason: "episode", media: "tv" });
-    expect(spot?.kicker).toBe("Новая серия · S2E5 · вчера");
+    expect(spot?.kicker).toBe("Нова серія · S2E5 · учора");
   });
 
   it("recommends by the best rated title and skips what is already saved", () => {
@@ -92,13 +92,13 @@ describe("home spotlight", () => {
       recommendations: [
         {
           id: 60,
-          title: "Уже в списке",
+          title: "Вже в списку",
           backdrop_path: "/a.jpg",
           media_type: "movie",
         },
         {
           id: 61,
-          title: "Новое",
+          title: "Нове",
           backdrop_path: "/c.jpg",
           media_type: "movie",
         },
@@ -109,7 +109,7 @@ describe("home spotlight", () => {
       today,
     });
     expect(spot).toMatchObject({ reason: "recommendation", item: { id: 61 } });
-    expect(spot?.note).toBe("Потому что ты оценил «Дюна» на 9/10");
+    expect(spot?.note).toBe("Тому що ти оцінив «Дюна» на 9/10");
   });
 
   it("falls back to the week's popular title for an empty collection", () => {

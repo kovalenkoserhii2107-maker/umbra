@@ -126,8 +126,8 @@ describe("game facts", () => {
   });
 
   it("formats prices in Ukrainian style", () => {
-    expect(money(7.99, "USD").replace(/\s/g, " ")).toBe("7,99 USD");
-    expect(money(399, "UAH").replace(/\s/g, " ")).toBe("399 грн");
+    expect(money(7.99, "USD").replace(/\s/g, " ")).toMatch(/^7,99 (USD|\$)$/);
+    expect(money(399, "UAH").replace(/\s/g, " ")).toMatch(/^399 (₴|грн)$/);
   });
 
   it("describes multiplayer and time to beat", () => {

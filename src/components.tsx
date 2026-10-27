@@ -133,20 +133,20 @@ function SectionTabs() {
   const games = pathname.startsWith("/games");
   const tabs = games
     ? [
-        { to: "/games", label: "Лента", icon: "feed" as const, end: true },
-        { to: "/games/search", label: "Поиск", icon: "search" as const },
+        { to: "/games", label: "Стрічка", icon: "feed" as const, end: true },
+        { to: "/games/search", label: "Пошук", icon: "search" as const },
         {
           to: "/games/platforms",
-          label: "Платформы",
+          label: "Платформи",
           icon: "platforms" as const,
         },
-        { to: "/games/library", label: "Коллекция", icon: "library" as const },
+        { to: "/games/library", label: "Колекція", icon: "library" as const },
       ]
     : [
-        { to: "/", label: "Лента", icon: "feed" as const, end: true },
-        { to: "/search", label: "Поиск", icon: "search" as const },
-        { to: "/platforms", label: "Платформы", icon: "platforms" as const },
-        { to: "/library", label: "Коллекция", icon: "library" as const },
+        { to: "/", label: "Стрічка", icon: "feed" as const, end: true },
+        { to: "/search", label: "Пошук", icon: "search" as const },
+        { to: "/platforms", label: "Платформи", icon: "platforms" as const },
+        { to: "/library", label: "Колекція", icon: "library" as const },
       ];
   return (
     <div className="grid h-16 grid-cols-4">
@@ -250,10 +250,10 @@ function ModeSwitch() {
   return (
     <div className="ml-auto flex h-10 shrink-0 items-center rounded-full border border-hairline bg-card p-1">
       <Link to="/" className={item(!games)}>
-        Фильмы
+        Фільми
       </Link>
       <Link to="/games" className={item(games)}>
-        Игры
+        Ігри
       </Link>
     </div>
   );
@@ -264,25 +264,25 @@ function Header() {
   const games = pathname.startsWith("/games");
   const links = isTv
     ? [
-        { to: "/", label: "Лента", end: true },
-        { to: "/search", label: "Поиск" },
-        { to: "/tonight", label: "На вечер" },
-        { to: "/library", label: "Коллекция" },
-        { to: "/platforms", label: "Платформы" },
+        { to: "/", label: "Стрічка", end: true },
+        { to: "/search", label: "Пошук" },
+        { to: "/tonight", label: "На вечір" },
+        { to: "/library", label: "Колекція" },
+        { to: "/platforms", label: "Платформи" },
       ]
     : games
       ? [
-          { to: "/games", label: "Лента", end: true },
-          { to: "/games/search", label: "Поиск" },
-          { to: "/games/platforms", label: "Платформы" },
-          { to: "/games/library", label: "Коллекция" },
+          { to: "/games", label: "Стрічка", end: true },
+          { to: "/games/search", label: "Пошук" },
+          { to: "/games/platforms", label: "Платформи" },
+          { to: "/games/library", label: "Колекція" },
         ]
       : [
-          { to: "/", label: "Лента", end: true },
-          { to: "/search", label: "Поиск" },
-          { to: "/platforms", label: "Платформы" },
-          { to: "/library", label: "Коллекция" },
-          { to: "/guide", label: "Справочник" },
+          { to: "/", label: "Стрічка", end: true },
+          { to: "/search", label: "Пошук" },
+          { to: "/platforms", label: "Платформи" },
+          { to: "/library", label: "Колекція" },
+          { to: "/guide", label: "Довідник" },
         ];
   return (
     <header
@@ -293,7 +293,7 @@ function Header() {
         <BackButton />
         <Link
           to="/"
-          // On TV "Лента" in the menu does the same.
+          // On TV "Стрічка" in the menu does the same.
           tabIndex={isTv ? -1 : undefined}
           className="inline-flex shrink-0 items-center"
         >
@@ -419,7 +419,7 @@ export function PosterCard({
           </p>
         ) : (
           <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
-            {media === "tv" ? "сериал" : "фильм"}
+            {media === "tv" ? "серіал" : "фільм"}
             {year ? ` · ${year}` : ""}
           </p>
         )}
@@ -472,10 +472,10 @@ export function Row({
         {to ? (
           <Link
             to={to}
-            // On TV the row ends with "Ещё" instead.
+            // On TV the row ends with "Ще" instead.
             className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent tv:hidden"
           >
-            Все
+            Усі
           </Link>
         ) : null}
       </div>
@@ -494,7 +494,7 @@ export function Row({
           >
             <span className="text-2xl text-accent">→</span>
             <span className="mt-2 font-mono text-[11px] uppercase tracking-[0.14em] text-mute">
-              Ещё
+              Ще
             </span>
           </Link>
         ) : null}
@@ -636,7 +636,7 @@ export function ErrorBox({
   if (code === "BAD_KEY" || code === "NO_KEY") {
     return (
       <div className="rounded-2xl border border-hairline bg-card p-6 text-sm text-mute">
-        Не удалось подключить каталог TMDB.
+        Не вдалося підключити каталог TMDB.
       </div>
     );
   }
@@ -647,16 +647,16 @@ export function ErrorBox({
       className="rounded-2xl border border-hairline bg-card p-6 text-sm text-mute"
     >
       {code === "NETWORK" || !navigator.onLine
-        ? "Нет связи. Проверь интернет — твоя коллекция доступна и без сети."
+        ? "Немає зв’язку. Перевір інтернет — твоя колекція доступна й без мережі."
         : busy
-          ? "Каталог фильмов (TMDB) сейчас не отвечает. Попробуй через минуту."
-          : `Не удалось загрузить данные (${code}).`}
+          ? "Каталог фільмів (TMDB) зараз не відповідає. Спробуй через хвилину."
+          : `Не вдалося завантажити дані (${code}).`}
       <button
         type="button"
         onClick={onRetry ?? (() => window.location.reload())}
         className="mt-3 block rounded-full border border-hairline px-4 py-1.5 text-ink"
       >
-        Повторить
+        Повторити
       </button>
     </div>
   );

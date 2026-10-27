@@ -91,7 +91,7 @@ function DelayedScreenFallback() {
   if (!visible) return null;
   return (
     <p role="status" className="py-12 text-center text-xs text-dim">
-      Загружаю экран…
+      Завантажую екран…
     </p>
   );
 }
@@ -161,7 +161,7 @@ export default function App() {
         <Route path="/person/:id" element={<PersonPage />} />
         <Route
           path="*"
-          element={<p>Страница не найдена. Выбери раздел в меню.</p>}
+          element={<p>Сторінку не знайдено. Обери розділ у меню.</p>}
         />
       </Route>
     </Routes>

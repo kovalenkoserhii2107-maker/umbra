@@ -60,7 +60,7 @@ class Boundary extends Component<
           <p style={{ color: "#ff9e64", letterSpacing: "0.2em", fontSize: 11 }}>
             UMBRA
           </p>
-          <p style={{ marginTop: 12 }}>Не удалось открыть экран.</p>
+          <p style={{ marginTop: 12 }}>Не вдалося відкрити екран.</p>
           <p style={{ marginTop: 8, color: "#9e9e9e", fontSize: 13 }}>
             {this.state.err}
           </p>
@@ -78,7 +78,7 @@ class Boundary extends Component<
               window.location.reload();
             }}
           >
-            На главную
+            На головну
           </button>
         </div>
       );

@@ -162,7 +162,7 @@ export function ImageViewer({
     }
   };
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
+  const handleBackdropClick = () => {
     if (isSwiping.current) {
       isSwiping.current = false;
       return;

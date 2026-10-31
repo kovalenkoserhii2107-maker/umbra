@@ -37,6 +37,7 @@ import {
   onTvEvent,
   tvBridge,
 } from "../lib/tvMode";
+import { findPick } from "../lib/ai";
 import { useAiTonight } from "../lib/useAiTonight";
 import { useQuickTonight, type Step } from "../lib/useQuickTonight";
 import { useAppState } from "../state";
@@ -56,7 +57,45 @@ import { Backdrop, Pill, PillLane, Rail, Stage, Tabs, useMenu } from "./ui";
 const MODE = "umbra.tonightMode";
 const REWATCH = "umbra.tonightRewatch";
 
-type Option = { label: string; hint?: string; voice?: boolean };
+type Film = {
+  title: string;
+  original_title: string;
+  year: number;
+  type: "movie" | "tv";
+};
+
+type Option = { label: string; hint?: string; voice?: boolean; film?: Film };
+
+/** The poster of the film an option names (Claude's examples), from TMDB. */
+function useFilmPosters(options: Option[], key: string) {
+  const [posters, setPosters] = useState<
+    Record<number, { path: string; title: string; year: string }>
+  >({});
+  useEffect(() => {
+    let alive = true;
+    setPosters({});
+    options.forEach((o, n) => {
+      if (!o.film) return;
+      void findPick({ ...o.film, reason: "" })
+        .then((item) => {
+          if (!alive || !item?.poster_path) return;
+          setPosters((p) => ({
+            ...p,
+            [n]: {
+              path: item.poster_path!,
+              title: titleOf(item),
+              year: yearOf(item.release_date || item.first_air_date),
+            },
+          }));
+        })
+        .catch(() => undefined);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [key]);
+  return posters;
+}
 
 type QuestionView = {
   key: string;
@@ -201,8 +240,8 @@ function Intro({
           <Words text="Що подивитися ввечері?" />
         </h1>
         <p className="tv-rise mt-3 text-[16px] text-white/70" style={i(4)}>
-          Чотири питання — і добірка, яка враховує все, що ти дивився та
-          як оцінював.
+          Чотири питання — і добірка, яка враховує все, що ти дивився та як
+          оцінював.
         </p>
       </div>
       <div
@@ -342,82 +381,108 @@ function Question({ view }: { view: QuestionView }) {
   ];
   const nav = useLanes(lanes, { lane: "options" });
   useTvBack(true, view.back);
+  const posters = useFilmPosters(view.options, view.key);
   const wide = view.options.length > 4;
-  const step = wide ? 186 : 214;
+  const step = wide ? 236 : 268;
   return (
     <>
-      <div className="absolute left-12 top-10">
-        <Progress index={view.index} round={view.round} />
-        <div className="mt-4 flex h-8 flex-wrap gap-2">
-          {view.trail.map((t, n) => (
-            <span
-              key={`${n}-${t}`}
-              className={`${n === view.trail.length - 1 ? "tv-pop" : ""} max-w-[220px] truncate rounded-full bg-accent/20 px-3 py-1 text-[13px] text-accent`}
-            >
-              {t}
-            </span>
-          ))}
+      <div className="absolute inset-x-0 top-10 bottom-16 flex flex-col">
+        <div className="px-12">
+          <Progress index={view.index} round={view.round} />
+          {view.trail.length ? (
+            <div className="mt-4 flex max-w-[1100px] flex-wrap gap-2">
+              {view.trail.map((t, n) => (
+                <span
+                  key={`${n}-${t}`}
+                  className={`${n === view.trail.length - 1 ? "tv-pop" : ""} max-w-[520px] rounded-2xl bg-accent/20 px-3 py-1 text-[13px] leading-snug text-accent`}
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          <h1 className="mt-5 max-w-[1000px] text-[34px] leading-[1.15] tracking-tight">
+            <Words key={view.key} text={view.title} />
+          </h1>
+        </div>
+        <div className="mt-6">
+          <Rail
+            lane="options"
+            count={view.options.length}
+            step={step}
+            col={nav.col("options")}
+          >
+            {view.options.map((o, n) => {
+              const focused = chosen === null && nav.col("options") === n;
+              const lit = focused || chosen === n;
+              const cls =
+                chosen === null
+                  ? "tv-rise"
+                  : chosen === n
+                    ? "tv-chosen"
+                    : "tv-fall";
+              const poster = posters[n];
+              return (
+                <div
+                  key={`${view.key}-${n}`}
+                  data-focused={focused || undefined}
+                  className={`${cls} relative shrink-0`}
+                  style={{ ...i(n + 3), width: step - 14 }}
+                >
+                  {focused ? (
+                    <span
+                      aria-hidden="true"
+                      className="tv-glow absolute -inset-4 rounded-[28px] bg-[radial-gradient(closest-side,rgba(255,158,100,0.5),transparent)]"
+                    />
+                  ) : null}
+                  <div
+                    className={`relative flex h-full min-h-[132px] flex-col gap-2 rounded-3xl p-4 transition-transform duration-200 ${
+                      lit ? "scale-105 bg-ink text-canvas" : "bg-white/[0.08]"
+                    }`}
+                  >
+                    {poster ? (
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={posterUrl(poster.path, "w154")}
+                          alt=""
+                          className="h-[96px] w-[64px] shrink-0 rounded-lg object-cover shadow-lg"
+                        />
+                        <p
+                          className={`text-[13px] leading-snug ${lit ? "text-black/70" : "text-white/70"}`}
+                        >
+                          {poster.title}
+                          {poster.year ? (
+                            <span className="block font-mono text-[11px] opacity-70">
+                              {poster.year}
+                            </span>
+                          ) : null}
+                        </p>
+                      </div>
+                    ) : null}
+                    <p className="text-[18px] leading-snug">
+                      {o.voice ? "🎤 " : ""}
+                      {o.voice && listening !== null && focused
+                        ? listening || "Говоріть…"
+                        : o.label}
+                    </p>
+                    {o.hint ? (
+                      <p
+                        className={`text-[13px] leading-snug ${lit ? "text-black/60" : "text-white/55"}`}
+                      >
+                        {o.hint}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </Rail>
         </div>
       </div>
-      <h1 className="absolute left-12 top-[128px] w-[820px] text-[36px] leading-[1.12] tracking-tight">
-        <Words key={view.key} text={view.title} />
-      </h1>
-      <div className="absolute inset-x-0 top-[290px]">
-        <Rail
-          lane="options"
-          count={view.options.length}
-          step={step}
-          col={nav.col("options")}
-        >
-          {view.options.map((o, n) => {
-            const focused = chosen === null && nav.col("options") === n;
-            const cls =
-              chosen === null
-                ? "tv-rise"
-                : chosen === n
-                  ? "tv-chosen"
-                  : "tv-fall";
-            return (
-              <div
-                key={`${view.key}-${n}`}
-                data-focused={focused || undefined}
-                className={`${cls} relative shrink-0`}
-                style={{ ...i(n + 3), width: step - 14 }}
-              >
-                {focused ? (
-                  <span
-                    aria-hidden="true"
-                    className="tv-glow absolute -inset-4 rounded-[28px] bg-[radial-gradient(closest-side,rgba(255,158,100,0.5),transparent)]"
-                  />
-                ) : null}
-                <div
-                  className={`relative flex h-[132px] flex-col justify-between rounded-3xl p-4 transition-transform duration-200 ${
-                    focused || chosen === n
-                      ? "scale-105 bg-ink text-canvas"
-                      : "bg-white/[0.08]"
-                  }`}
-                >
-                  <p className="line-clamp-3 text-[18px] leading-tight">
-                    {o.voice ? "🎤 " : ""}
-                    {o.voice && listening !== null && focused
-                      ? listening || "Говорите…"
-                      : o.label}
-                  </p>
-                  {o.hint ? (
-                    <p
-                      className={`line-clamp-2 text-[13px] leading-snug ${focused || chosen === n ? "text-black/60" : "text-white/55"}`}
-                    >
-                      {o.hint}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-            );
-          })}
-        </Rail>
-      </div>
       <p className="absolute bottom-8 left-12 text-[13px] text-white/40">
-        ← → обрати · OK відповісти · «Назад» — попереднє питання
+        ← → обрати · OK відповісти
+        {voiceAt >= 0 ? " · 🎤 — сказати, що хочеш подивитися" : ""} · «Назад» —
+        попереднє питання
       </p>
     </>
   );
@@ -778,7 +843,7 @@ function Eclipse({
             {trail.map((t, n) => (
               <span
                 key={`${n}-${t}`}
-                className={`${n === trail.length - 1 ? "tv-pop" : ""} max-w-[240px] truncate rounded-full bg-accent/20 px-3 py-1 text-[13px] text-accent`}
+                className={`${n === trail.length - 1 ? "tv-pop" : ""} max-w-[520px] rounded-2xl bg-accent/20 px-3 py-1 text-[13px] leading-snug text-accent`}
               >
                 {t}
               </span>
@@ -991,135 +1056,137 @@ function Results({
   return (
     <>
       <Backdrop path={pick?.item.backdrop_path} dim={0.9} />
-      <div className="absolute left-12 top-8 w-[600px]">
-        {taste ? (
-          <p className="tv-rise line-clamp-2 text-[13px] leading-snug text-accent/90">
-            <span className="font-mono uppercase tracking-[0.14em]">
-              Claude зрозумів:{" "}
-            </span>
-            {taste}
-          </p>
-        ) : (
-          <p className="tv-rise font-mono text-[12px] uppercase tracking-[0.2em] text-accent">
-            добірка на вечір
-          </p>
-        )}
-        {pick ? (
-          <div key={pick.key} className="tv-fade mt-4">
-            <h1 className="line-clamp-2 text-[34px] leading-[1.08] tracking-tight">
-              {titleOf(pick.item)}
-            </h1>
-            <p className="mt-2 text-[14px] text-white/70">
-              {[pick.type === "tv" ? "серіал" : "фільм", year, score]
-                .filter(Boolean)
-                .join(" · ")}
-              {pick.where?.length ? (
-                <span className="text-ok">
-                  {" "}
-                  · є на {pick.where.join(", ")}
-                </span>
-              ) : null}
+      <div className="absolute inset-x-0 top-8 bottom-4 flex flex-col">
+        <div className="max-w-[1080px] px-12">
+          {taste ? (
+            <p className="tv-rise text-[13px] leading-snug text-accent/90">
+              <span className="font-mono uppercase tracking-[0.14em]">
+                Claude зрозумів:{" "}
+              </span>
+              {taste}
             </p>
-            {pick.reasons.length ? (
-              <p className="mt-3 line-clamp-3 border-l-2 border-accent pl-3 text-[15px] leading-snug text-white/90">
-                {pick.reasons.join(" · ")}
+          ) : (
+            <p className="tv-rise font-mono text-[12px] uppercase tracking-[0.2em] text-accent">
+              добірка на вечір
+            </p>
+          )}
+          {pick ? (
+            <div key={pick.key} className="tv-fade mt-4">
+              <h1 className="text-[34px] leading-[1.08] tracking-tight">
+                {titleOf(pick.item)}
+              </h1>
+              <p className="mt-2 text-[14px] text-white/70">
+                {[pick.type === "tv" ? "серіал" : "фільм", year, score]
+                  .filter(Boolean)
+                  .join(" · ")}
+                {pick.where?.length ? (
+                  <span className="text-ok">
+                    {" "}
+                    · є на {pick.where.join(", ")}
+                  </span>
+                ) : null}
               </p>
-            ) : pick.item.overview ? (
-              <p className="mt-3 line-clamp-3 text-[15px] leading-snug text-white/80">
-                {pick.item.overview}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
+              {pick.reasons.length ? (
+                <p className="mt-3 border-l-2 border-accent pl-3 text-[15px] leading-snug text-white/90">
+                  {pick.reasons.join(" · ")}
+                </p>
+              ) : pick.item.overview ? (
+                <p className="mt-3 line-clamp-4 text-[15px] leading-snug text-white/80">
+                  {pick.item.overview}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
 
-      <div className="absolute inset-x-0 top-[236px]">
-        <Rail lane="picks" count={picks.length} step={124} col={pickIndex}>
-          {picks.map((p, n) => {
-            const focused = at("picks", n);
-            const how = leaving[p.key];
-            const status = get(p.type, p.item.id)?.status;
-            return (
-              <div
-                key={p.key}
-                data-focused={focused || undefined}
-                className={`${how === "seen" ? "tv-seen" : how === "dismiss" ? "tv-dismiss" : "tv-deal"} relative w-[110px] shrink-0`}
-                style={i(late ? 0 : n)}
-              >
+        <div className="mt-3">
+          <Rail lane="picks" count={picks.length} step={124} col={pickIndex}>
+            {picks.map((p, n) => {
+              const focused = at("picks", n);
+              const how = leaving[p.key];
+              const status = get(p.type, p.item.id)?.status;
+              return (
                 <div
-                  className={`relative h-[165px] overflow-hidden rounded-xl bg-card transition-transform duration-150 ${
-                    focused || (nav.lane === "actions" && pick?.key === p.key)
-                      ? "z-10 scale-110 shadow-[0_0_0_3px_var(--color-accent),0_14px_30px_rgba(0,0,0,0.7)]"
-                      : ""
+                  key={p.key}
+                  data-focused={focused || undefined}
+                  className={`${how === "seen" ? "tv-seen" : how === "dismiss" ? "tv-dismiss" : "tv-deal"} relative w-[110px] shrink-0`}
+                  style={i(late ? 0 : n)}
+                >
+                  <div
+                    className={`relative h-[165px] overflow-hidden rounded-xl bg-card transition-transform duration-150 ${
+                      focused || (nav.lane === "actions" && pick?.key === p.key)
+                        ? "z-10 scale-110 shadow-[0_0_0_3px_var(--color-accent),0_14px_30px_rgba(0,0,0,0.7)]"
+                        : ""
+                    }`}
+                  >
+                    {p.item.poster_path ? (
+                      <img
+                        src={posterUrl(p.item.poster_path)}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <p className="p-2 text-sm text-mute">{titleOf(p.item)}</p>
+                    )}
+                    <RatingBadge type={p.type} id={p.item.id} />
+                    {how === "seen" ? (
+                      <span className="absolute inset-0 flex items-center justify-center bg-ok/70 text-4xl text-black">
+                        ✓
+                      </span>
+                    ) : status === "watchlist" ? (
+                      <span className="absolute left-1.5 top-1.5 rounded-md bg-accent px-1.5 py-0.5 text-[11px] font-bold text-black">
+                        хочу
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </Rail>
+        </div>
+
+        <div>
+          {rating ? (
+            <section
+              data-lane="rate"
+              className="tv-rise flex items-center gap-2.5 px-12"
+            >
+              <p className="mr-2 max-w-[320px] text-[15px] leading-snug text-white/80">
+                Як тобі «{titleOf(rating.item)}»?
+              </p>
+              {Array.from({ length: 10 }, (_, n) => (
+                <span
+                  key={n}
+                  data-focused={at("rate", n) || undefined}
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-mono text-[15px] transition-transform duration-150 ${
+                    at("rate", n)
+                      ? "scale-125 bg-accent text-black"
+                      : "bg-white/10"
                   }`}
                 >
-                  {p.item.poster_path ? (
-                    <img
-                      src={posterUrl(p.item.poster_path)}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <p className="p-2 text-sm text-mute">{titleOf(p.item)}</p>
-                  )}
-                  <RatingBadge type={p.type} id={p.item.id} />
-                  {how === "seen" ? (
-                    <span className="absolute inset-0 flex items-center justify-center bg-ok/70 text-4xl text-black">
-                      ✓
-                    </span>
-                  ) : status === "watchlist" ? (
-                    <span className="absolute left-1.5 top-1.5 rounded-md bg-accent px-1.5 py-0.5 text-[11px] font-bold text-black">
-                      хочу
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            );
-          })}
-        </Rail>
-      </div>
-
-      <div className="absolute inset-x-0 top-[426px]">
-        {rating ? (
-          <section
-            data-lane="rate"
-            className="tv-rise flex items-center gap-2.5 px-12"
-          >
-            <p className="mr-2 max-w-[190px] truncate text-[15px] text-white/80">
-              Як тобі «{titleOf(rating.item)}»?
-            </p>
-            {Array.from({ length: 10 }, (_, n) => (
+                  {n + 1}
+                </span>
+              ))}
               <span
-                key={n}
-                data-focused={at("rate", n) || undefined}
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-mono text-[15px] transition-transform duration-150 ${
-                  at("rate", n)
-                    ? "scale-125 bg-accent text-black"
-                    : "bg-white/10"
+                data-focused={at("rate", 10) || undefined}
+                className={`ml-1 flex h-10 shrink-0 items-center rounded-full px-4 text-[14px] transition-transform duration-150 ${
+                  at("rate", 10)
+                    ? "scale-105 bg-ink text-canvas"
+                    : "bg-white/10 text-white/70"
                 }`}
               >
-                {n + 1}
+                Без оцінки
               </span>
-            ))}
-            <span
-              data-focused={at("rate", 10) || undefined}
-              className={`ml-1 flex h-10 shrink-0 items-center rounded-full px-4 text-[14px] transition-transform duration-150 ${
-                at("rate", 10)
-                  ? "scale-105 bg-ink text-canvas"
-                  : "bg-white/10 text-white/70"
-              }`}
-            >
-              Без оцінки
-            </span>
-          </section>
-        ) : (
-          <ActionLane lane="actions" actions={actions} at={at} />
-        )}
-      </div>
-      <div
-        className={`absolute inset-x-0 top-[484px] transition-opacity duration-200 ${nav.lane === "more" ? "opacity-100" : "opacity-60"}`}
-      >
-        <ActionLane lane="more" actions={extra} at={at} />
+            </section>
+          ) : (
+            <ActionLane lane="actions" actions={actions} at={at} />
+          )}
+        </div>
+        <div
+          className={`mt-1 transition-opacity duration-200 ${nav.lane === "more" ? "opacity-100" : "opacity-60"}`}
+        >
+          <ActionLane lane="more" actions={extra} at={at} />
+        </div>
       </div>
     </>
   );
@@ -1274,10 +1341,17 @@ export function TvTonight() {
           view={{
             key: `ai-${s.steps.length}`,
             title: claude.current.question,
+            // Saying it in your own words is there on every question.
             options: [
               ...claude.current.options,
-              ...(claude.current.allow_custom && canVoice()
-                ? [{ label: "Сказати своїми словами", voice: true }]
+              ...(canVoice()
+                ? [
+                    {
+                      label: "Сказати своїми словами",
+                      hint: "Продиктуй з пульта, що хочеш подивитися",
+                      voice: true,
+                    },
+                  ]
                 : []),
             ],
             index: claude.answered,

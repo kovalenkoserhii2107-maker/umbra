@@ -12,7 +12,9 @@ const cors = {
 
 async function register(page: Page) {
   await page.goto("?tv=1#/login");
-  await page.getByRole("button", { name: "Увійти за email та паролем" }).click();
+  await page
+    .getByRole("button", { name: "Увійти за email та паролем" })
+    .click();
   await page
     .getByRole("button", { name: "Немає акаунту — зареєструватися" })
     .click();
@@ -176,7 +178,9 @@ test("TV evening with Claude: questions fly into the trail, picks are dealt, «�
       `Питання Claude ${n}`,
     );
     for (let k = 1; k < n; k++)
-      await expect(page.getByText(`Відповідь ${k}`, { exact: true })).toBeVisible();
+      await expect(
+        page.getByText(`Відповідь ${k}`, { exact: true }),
+      ).toBeVisible();
     await expect.poll(() => onScreen(page)).toContain(`Відповідь ${n}`);
     await press(page, "Enter");
   }
@@ -302,4 +306,132 @@ test("TV quick evening: four questions, Back goes to the previous one, picks are
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Що подивитися ввечері?",
   );
+});
+
+test("TV Claude: an option shows the film it names, full text, and «своїми словами» on every question", async ({
+  page,
+  context,
+}) => {
+  const long =
+    "Щось схоже на «Ножі наголо»: дотепний детектив, де до останньої сцени не вгадаєш, хто винен";
+  const asked: Array<{ stage: string; steps: Array<{ answer?: string }> }> = [];
+  await context.addInitScript(() => {
+    const send = (state: string, text: string) =>
+      window.dispatchEvent(
+        new CustomEvent("umbratv", { detail: { type: "voice", state, text } }),
+      );
+    (window as unknown as Record<string, unknown>).UmbraTV = {
+      version: () => "test",
+      installedApps: () => "{}",
+      openExternal: () => undefined,
+      launchApp: () => undefined,
+      voiceAvailable: () => true,
+      startVoice: () => {
+        setTimeout(() => send("listening", ""), 50);
+        setTimeout(() => send("result", "хочу щось як Інтерстеллар"), 200);
+        setTimeout(() => send("end", ""), 250);
+      },
+      stopVoice: () => undefined,
+    };
+  });
+  await context.route("https://image.tmdb.org/**", (r) =>
+    r.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="2" height="3"/>',
+    }),
+  );
+  await context.route(`${API}/**`, async (route) => {
+    const request = route.request();
+    if (request.method() === "OPTIONS")
+      return route.fulfill({ status: 204, headers: cors });
+    const url = new URL(request.url());
+    if (url.pathname === "/health")
+      return route.fulfill({
+        headers: cors,
+        json: { ok: true, services: { ai: true } },
+      });
+    if (url.pathname === "/ai/tonight") {
+      asked.push(JSON.parse(request.postData() || "{}"));
+      const n = asked.at(-1)!.steps.length;
+      return route.fulfill({
+        headers: cors,
+        json: {
+          question: `Питання ${n + 1}: який настрій сьогодні?`,
+          options: [
+            {
+              label: long,
+              hint: "Інтрига, гумор і несподіваний фінал — як ти любиш у детективах",
+              film: {
+                title: "Ножі наголо",
+                original_title: "Knives Out",
+                year: 2019,
+                type: "movie",
+              },
+            },
+            { label: "Щось легке", hint: "" },
+          ],
+          // Claude did not ask for a free answer: the voice option is there anyway.
+          allow_custom: false,
+        },
+      });
+    }
+    return route.fulfill({ status: 404, headers: cors, json: {} });
+  });
+  await context.route("https://api.themoviedb.org/**", (route) => {
+    const url = new URL(route.request().url());
+    if (
+      url.pathname === "/3/search/movie" &&
+      url.searchParams.get("query") === "Knives Out"
+    )
+      return route.fulfill({
+        json: {
+          page: 1,
+          total_pages: 1,
+          total_results: 1,
+          results: [
+            {
+              ...film(546554, "Ножі наголо"),
+              release_date: "2019-11-27",
+              poster_path: "/knives.jpg",
+            },
+          ],
+        },
+      });
+    return route.fulfill({
+      json: { page: 1, total_pages: 1, total_results: 0, results: [] },
+    });
+  });
+  await register(page);
+  await page.goto("?tv=1#/tonight");
+  await expect.poll(() => onScreen(page)).toContain("З Claude");
+  await press(page, "Enter");
+
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Питання 1: який настрій сьогодні?",
+  );
+  // The named film's poster and title, and the whole phrase, not cut.
+  const card = page.locator('[data-lane="options"] > div > div').first();
+  await expect(card.locator('img[src*="knives.jpg"]')).toBeVisible();
+  await expect(card).toContainText("Ножі наголо");
+  await expect(card).toContainText("2019");
+  const label = page.getByText(long, { exact: true });
+  await expect(label).toBeVisible();
+  expect(
+    await label.evaluate((e) => e.scrollHeight <= e.clientHeight + 1),
+  ).toBe(true);
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: ".ui-evidence/tv-tonight-options.png" });
+
+  // «Сказати своїми словами» is the last option: say what you want to watch.
+  await press(page, "ArrowRight", "ArrowRight");
+  await expect.poll(() => onScreen(page)).toContain("Сказати своїми словами");
+  await press(page, "Enter");
+  await expect.poll(() => asked.length).toBe(2);
+  expect(asked[1].steps[0].answer).toBe("хочу щось як Інтерстеллар");
+  // And again on the next question.
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Питання 2: який настрій сьогодні?",
+  );
+  await expect(page.getByText("Сказати своїми словами")).toBeVisible();
+  await expect(page.getByText("хочу щось як Інтерстеллар")).toBeVisible();
 });

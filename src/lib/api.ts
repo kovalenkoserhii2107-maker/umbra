@@ -330,7 +330,17 @@ export type AiStep =
 
 export type AiQuestion = {
   question: string;
-  options: Array<{ label: string; hint: string }>;
+  options: Array<{
+    label: string;
+    hint: string;
+    /** The film or series the option names, for its poster. */
+    film?: {
+      title: string;
+      original_title: string;
+      year: number;
+      type: "movie" | "tv";
+    };
+  }>;
   allow_custom: boolean;
 };
 

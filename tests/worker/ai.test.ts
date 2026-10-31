@@ -228,6 +228,49 @@ describe("AI picker", () => {
     expect(sent.messages[0].content).toContain("Watched titles are not wanted");
   });
 
+  it("passes on the film an option names, for its poster", async () => {
+    const { send, calls } = setup(() =>
+      claudeReply({
+        question: "Ближче до чого?",
+        options: [
+          {
+            label: "Як «Ножі наголо»",
+            hint: "",
+            film_title: "Ножі наголо",
+            film_original_title: "Knives Out",
+            film_year: 2019,
+            film_type: "movie",
+          },
+          {
+            label: "Щось легке",
+            hint: "",
+            film_title: "",
+            film_original_title: "",
+            film_year: 0,
+            film_type: "movie",
+          },
+        ],
+        allow_custom: true,
+      }),
+    );
+    const data = (await (await send(body, await token())).json()) as {
+      options: Array<{ label: string; film?: unknown }>;
+    };
+    expect(data.options[0].film).toEqual({
+      title: "Ножі наголо",
+      original_title: "Knives Out",
+      year: 2019,
+      type: "movie",
+    });
+    expect(data.options[1]).not.toHaveProperty("film");
+    const sent = JSON.parse(
+      String(calls.find((c) => c.url.includes("anthropic"))!.init?.body),
+    );
+    const option = sent.output_config.format.schema.properties.options.items;
+    expect(option.required).toContain("film_title");
+    expect(option.additionalProperties).toBe(false);
+  });
+
   it("needs a valid sign-in", async () => {
     const { send, calls } = setup();
     expect((await send(body)).status).toBe(401);

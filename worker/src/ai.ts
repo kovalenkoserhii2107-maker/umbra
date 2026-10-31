@@ -32,7 +32,17 @@ export type AiRequest = {
 
 export type AiQuestion = {
   question: string;
-  options: Array<{ label: string; hint: string }>;
+  options: Array<{
+    label: string;
+    hint: string;
+    /** The film or series the option names, for its poster. */
+    film?: {
+      title: string;
+      original_title: string;
+      year: number;
+      type: "movie" | "tv";
+    };
+  }>;
   allow_custom: boolean;
 };
 
@@ -55,6 +65,7 @@ How a session works:
 - You choose every question and its answer options yourself. Each question must be the single most informative one given everything known so far: the library below, earlier answers, earlier picks and reactions. Never ask what the library or earlier answers already tell you. Do not follow a fixed script (mood, then format, then company...) unless that truly is the most useful path for this person.
 - Good questions cover things like the evening's energy, how much attention they have, film or series and how long, who they watch with, tone (dark, light, bittersweet), pace, setting, era, language, what they are tired of, a recent favourite to match, how familiar or surprising it should be. Concrete beats abstract: options can name example titles from their own library ("Ближче до «Ножі наголо» чи до «Зодіаку»?").
 - Give 3 to 6 short, clearly distinct options that cover the realistic range; a short hint under an option when it helps. Set allow_custom to true when a free-text answer could add something the options miss.
+- When an option names one specific film or series (an example from their library or a well-known title), fill film_title (the usual title in the user's language), film_original_title, film_year (release or first air year) and film_type for it; the app shows its poster next to the option. When an option names no title, or several, leave film_title and film_original_title empty and film_year 0.
 - Answers may be free text, may contradict earlier ones (the latest wins) or say "неважливо".
 
 Recommending:
@@ -79,8 +90,21 @@ const QUESTION_SCHEMA = {
         properties: {
           label: { type: "string" },
           hint: { type: "string" },
+          // The film or series the option names, so the app can show its
+          // poster; film_title is "" when the option names none.
+          film_title: { type: "string" },
+          film_original_title: { type: "string" },
+          film_year: { type: "integer" },
+          film_type: { type: "string", enum: ["movie", "tv"] },
         },
-        required: ["label", "hint"],
+        required: [
+          "label",
+          "hint",
+          "film_title",
+          "film_original_title",
+          "film_year",
+          "film_type",
+        ],
         additionalProperties: false,
       },
     },
@@ -221,7 +245,32 @@ function clean<T>(stage: AiRequest["stage"], data: unknown): T {
   if (stage === "ask") {
     const q = data as AiQuestion;
     const options = (q.options ?? [])
-      .map((o) => ({ label: text(o.label, 120), hint: text(o.hint, 160) }))
+      .map((o) => {
+        const raw = o as typeof o & {
+          film_title?: unknown;
+          film_original_title?: unknown;
+          film_year?: unknown;
+          film_type?: unknown;
+        };
+        const title = text(raw.film_title, 200);
+        const original = text(raw.film_original_title, 200);
+        return {
+          label: text(o.label, 120),
+          hint: text(o.hint, 160),
+          ...(title || original
+            ? {
+                film: {
+                  title: title || original,
+                  original_title: original,
+                  year: Number.isInteger(raw.film_year)
+                    ? (raw.film_year as number)
+                    : 0,
+                  type: raw.film_type === "tv" ? "tv" : "movie",
+                },
+              }
+            : {}),
+        };
+      })
       .filter((o) => o.label)
       .slice(0, 8);
     if (!text(q.question, 300) || options.length < 2)

@@ -2,7 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAsync } from "../components";
 import { FEEDS, loadFeedPage, type FeedId } from "../lib/feeds";
-import { tasteSeed } from "../lib/spotlight";
+import {
+  likedSeeds,
+  loadForYou,
+  pickKey,
+  rankForYou,
+  spotlightMemory,
+  takeTurns,
+  tasteSeed,
+} from "../lib/spotlight";
+import { localIso } from "../lib/releases";
 import {
   continueWatching,
   episodeLabel,
@@ -28,9 +37,7 @@ import {
 const recent = (a: LibraryItem, b: LibraryItem) => b.updatedAt - a.updatedAt;
 
 function useFeed(id: FeedId, seed?: { type: MediaType; id: number }) {
-  const key = seed
-    ? `tv:feed:${id}:${seed.type}:${seed.id}`
-    : `tv:feed:${id}`;
+  const key = seed ? `tv:feed:${id}:${seed.type}:${seed.id}` : `tv:feed:${id}`;
   return useAsync(
     () => loadFeedPage(id, 1, seed),
     [id, seed?.type, seed?.id],
@@ -47,16 +54,26 @@ const feedRow = (id: FeedId, data: { results: TmdbItem[] } | null): CardRow => {
   };
 };
 
-/** Стрічка: what you are watching and want to watch first, then the catalog. */
+/** Стрічка: a personal pick first, then what you watch and want to, then the catalog. */
 export function TvHome() {
   const { uid, libraryReady, items } = useAppState();
   const seed = tasteSeed(items);
+  const today = localIso(new Date());
+  const likedKey = likedSeeds(items, today)
+    .map((x) => `${x.type}-${x.id}`)
+    .join();
+  const [memory] = useState(spotlightMemory.read);
   const watchingItems = items.filter(
     (x) => x.type === "tv" && x.status === "watching",
   );
   const watchingKey = watchingItems.map((x) => x.id).join();
   const trending = useFeed("trending");
   const theaters = useFeed("theaters");
+  const forYou = useAsync(
+    () => loadForYou(items, today),
+    [likedKey, today],
+    `tv:foryou:${uid ?? ""}:${today}:${likedKey}`,
+  );
   const shows = useAsync(
     () => loadWatchingShows(items),
     [watchingKey],
@@ -81,8 +98,40 @@ export function TvHome() {
   const ready =
     libraryReady &&
     (!watchingItems.length || !shows.loading) &&
+    !forYou.loading &&
     !trending.loading &&
     !theaters.loading;
+
+  // "Для тебе" opens the screen: new, popular, highly rated, to the taste.
+  // The first card (and so the backdrop) changes from visit to visit.
+  const picks = useMemo(
+    () =>
+      !libraryReady || forYou.loading || trending.loading
+        ? []
+        : takeTurns(
+            rankForYou({
+              forYou: forYou.data,
+              popular: trending.data?.results ?? [],
+              library: items,
+              today,
+            }),
+            memory,
+          ).slice(0, 20),
+    [
+      libraryReady,
+      forYou.loading,
+      forYou.data,
+      trending.loading,
+      trending.data,
+      items,
+      today,
+      memory,
+    ],
+  );
+  const firstPick = picks[0] ? pickKey(picks[0]) : null;
+  useEffect(() => {
+    if (firstPick) spotlightMemory.remember(firstPick);
+  }, [firstPick]);
   const topSettled = settled || ready;
 
   useEffect(() => {
@@ -98,6 +147,15 @@ export function TvHome() {
   // Rows are rebuilt only when their data changes: posters skip re-rendering.
   const rows: CardRow[] = useMemo(() => {
     const built: CardRow[] = [
+      {
+        key: "for-you",
+        title: items.some(
+          (x) => x.status === "watched" || x.status === "watching",
+        )
+          ? "Для тебе: нове й високо оцінене"
+          : "Нове й високо оцінене",
+        cards: cardsOf(picks.map((p) => ({ ...p.item, media_type: p.media }))),
+      },
       {
         key: "continue",
         title: "Продовжити дивитися",
@@ -126,6 +184,7 @@ export function TvHome() {
   }, [
     topSettled,
     items,
+    picks,
     shows.data,
     trending.data,
     theaters.data,
@@ -142,7 +201,9 @@ export function TvHome() {
       tab="/"
       rows={rows}
       empty={
-        failed ? "Каталог зараз не відповідає. Перевір інтернет." : "Завантажую…"
+        failed
+          ? "Каталог зараз не відповідає. Перевір інтернет."
+          : "Завантажую…"
       }
     />
   );
@@ -404,7 +465,9 @@ export function TvPerson() {
           </p>
         ) : null
       }
-      empty={person.error ? "Не вдалося завантажити фільмографію." : "Завантажую…"}
+      empty={
+        person.error ? "Не вдалося завантажити фільмографію." : "Завантажую…"
+      }
     />
   );
 }

@@ -9,8 +9,14 @@ import {
 } from "../components";
 import { useMarkStartupReady } from "../components/RequireAccount";
 import {
+  likedSeeds,
+  loadForYou,
   loadNewEpisodes,
+  pickKey,
   pickSpotlight,
+  rankForYou,
+  spotlightMemory,
+  takeTurns,
   tasteSeed,
   type Spotlight,
 } from "../lib/spotlight";
@@ -355,6 +361,12 @@ export function HomePage() {
   const animate = !warmOnMount;
 
   const seed = tasteSeed(items);
+  const today = localIso(new Date());
+  const likedKey = likedSeeds(items, today)
+    .map((x) => `${x.type}-${x.id}`)
+    .join();
+  // What the spotlight showed before: read once, so it holds still this visit.
+  const [memory] = useState(spotlightMemory.read);
   const watchlistItems = items.filter((x) => x.status === "watchlist");
   const watchlistKey = watchlistItems.map((x) => `${x.type}-${x.id}`).join();
   const showsKey = items
@@ -376,6 +388,11 @@ export function HomePage() {
     () => loadFeedPage("trending", 1),
     [],
     "home:trending",
+  );
+  const forYou = useAsync(
+    () => loadForYou(items, today),
+    [likedKey, today],
+    `home:foryou:${uid ?? ""}:${today}:${likedKey}`,
   );
   const recs = useAsync(
     () =>
@@ -429,11 +446,24 @@ export function HomePage() {
   );
 
   const firstError = [theaters, trending].find((x) => x.error)?.error;
+  const forYouPending = !libraryReady || forYou.loading || trending.loading;
+  const forYouPicks = forYouPending
+    ? []
+    : takeTurns(
+        rankForYou({
+          forYou: forYou.data,
+          popular: trending.data?.results ?? [],
+          library: items,
+          today,
+        }),
+        memory,
+      );
   const spotlightPending =
-    !libraryReady ||
-    releases.loading ||
-    episodes.loading ||
-    (seed ? recs.loading : trending.loading);
+    forYouPending ||
+    (!forYouPicks.length &&
+      (releases.loading ||
+        episodes.loading ||
+        (seed ? recs.loading : trending.loading)));
 
   const topCatalogReady =
     !theaters.loading || !trending.loading || Boolean(firstError);
@@ -446,6 +476,23 @@ export function HomePage() {
   useEffect(() => {
     if (homeReady) markStartupReady();
   }, [homeReady, markStartupReady]);
+
+  const spotlight = spotlightPending
+    ? null
+    : pickSpotlight({
+        forYou: forYouPicks,
+        releases: releases.data ?? [],
+        episodes: episodes.data ?? [],
+        recommendations: seed ? (recs.data?.results ?? []) : [],
+        popular: trending.data?.results ?? [],
+        seed,
+        library: items,
+      });
+  const spotlightKey =
+    spotlight?.reason === "for-you" ? pickKey(spotlight) : null;
+  useEffect(() => {
+    if (spotlightKey) spotlightMemory.remember(spotlightKey);
+  }, [spotlightKey]);
 
   if (firstError && !theaters.data && !trending.data)
     return <ErrorBox code={firstError} />;
@@ -461,16 +508,6 @@ export function HomePage() {
 
   const preview = (id: (typeof FEEDS)[number]["id"]) =>
     FEEDS.find((f) => f.id === id)!;
-  const spotlight = spotlightPending
-    ? null
-    : pickSpotlight({
-        releases: releases.data ?? [],
-        episodes: episodes.data ?? [],
-        recommendations: seed ? (recs.data?.results ?? []) : [],
-        popular: trending.data?.results ?? [],
-        seed,
-        library: items,
-      });
   const shown = (list: TmdbItem[], fallbackType?: MediaType) =>
     spotlight
       ? list.filter(
@@ -567,7 +604,10 @@ export function HomePage() {
       />
       <Row
         title={preview("recs").title}
-        items={shown(recs.data?.results ?? [], seed?.type as MediaType | undefined)}
+        items={shown(
+          recs.data?.results ?? [],
+          seed?.type as MediaType | undefined,
+        )}
         loading={recs.loading}
         animate={animate}
         type={seed?.type as MediaType | undefined}

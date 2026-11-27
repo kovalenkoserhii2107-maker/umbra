@@ -95,3 +95,55 @@ test("home opens on a fresh, highly rated title that changes between visits", as
     nextHero.getByRole("heading", { name: "Друга новинка" }),
   ).toBeVisible();
 });
+
+test("genre and theme shelves load as the home page scrolls and open in full", async ({
+  page,
+  context,
+}) => {
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="2" height="3"><rect width="2" height="3"/></svg>';
+  await context.route("https://image.tmdb.org/**", (r) =>
+    r.fulfill({ contentType: "image/svg+xml", body: svg }),
+  );
+  const asked: string[] = [];
+  await context.route("https://api.themoviedb.org/**", (route) => {
+    const url = new URL(route.request().url());
+    const p = url.searchParams;
+    if (url.pathname.startsWith("/3/discover/")) asked.push(url.search);
+    if (url.pathname === "/3/discover/movie" && p.get("with_genres") === "878")
+      return route.fulfill({
+        json: list([film(701, "Космічна одіссея", 7.9, 100)]),
+      });
+    if (
+      url.pathname === "/3/discover/movie" &&
+      p.get("with_keywords") === "4379"
+    )
+      return route.fulfill({
+        json: list([film(702, "Петля часу", 7.1, 50)]),
+      });
+    return route.fulfill({ json: list([]) });
+  });
+
+  await register(page);
+  await expect(page.getByRole("heading", { name: "Фантастика" })).toBeVisible();
+  await page.mouse.wheel(0, 20000);
+  await expect(page.getByText("Космічна одіссея")).toBeVisible();
+  await page.mouse.wheel(0, 20000);
+  await expect(
+    page.getByRole("heading", { name: "Подорожі в часі" }),
+  ).toBeVisible();
+  await expect(page.getByText("Петля часу")).toBeVisible();
+  // Empty shelves leave no trace.
+  await expect(page.getByRole("heading", { name: "Антиутопії" })).toHaveCount(
+    0,
+  );
+
+  await page
+    .locator("section")
+    .filter({ has: page.getByRole("heading", { name: "Фантастика" }) })
+    .getByRole("link", { name: "Усі" })
+    .click();
+  await expect(page).toHaveURL(/#\/feed\/g-scifi$/);
+  await expect(page.getByText("Космічна одіссея")).toBeVisible();
+  expect(asked.some((q) => q.includes("with_genres=878"))).toBe(true);
+});

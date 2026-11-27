@@ -110,8 +110,9 @@ test("evening picker asks four questions and picks by mood and services", async 
   await expect(page.getByRole("link", { name: "Страшно смешно" })).toHaveCount(
     0,
   );
+  // The picker's own query (home shelves ask discover too).
   const discover = seen.find(
-    (u) => u.startsWith("/3/discover/movie") && u.includes("with_genres"),
+    (u) => u.startsWith("/3/discover/movie") && u.includes("watch_region"),
   )!;
   expect(discover).toContain("with_genres=35");
   expect(discover).toContain("with_runtime.lte=100");

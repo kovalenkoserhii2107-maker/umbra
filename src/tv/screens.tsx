@@ -9,8 +9,10 @@ import {
   rankForYou,
   spotlightMemory,
   takeTurns,
+  tasteGenres,
   tasteSeed,
 } from "../lib/spotlight";
+import { loadShelf, shelfOrder, SHELVES } from "../lib/shelves";
 import { localIso } from "../lib/releases";
 import {
   continueWatching,
@@ -87,6 +89,22 @@ export function TvHome() {
         : Promise.resolve(null),
     [seed?.type, seed?.id],
     `tv:recs:${seed?.type ?? ""}:${seed?.id ?? ""}`,
+  );
+  // Genre and theme shelves: one low-priority batch, after the top rails.
+  const shelves = useAsync(
+    async () => {
+      const pages = await Promise.all(
+        SHELVES.map((x) =>
+          loadShelf(x.id).then(
+            (page) => [x.id, page.results] as const,
+            () => [x.id, [] as TmdbItem[]] as const,
+          ),
+        ),
+      );
+      return Object.fromEntries(pages) as Record<string, TmdbItem[]>;
+    },
+    [],
+    "tv:shelves",
   );
   const upcoming = useFeed("upcoming");
   const upcomingTv = useFeed("upcoming-tv");
@@ -175,6 +193,13 @@ export function TvHome() {
       feedRow("theaters", theaters.data),
       feedRow("airing", airing.data),
       feedRow("recs", recs.data),
+      ...shelfOrder(forYou.data ? tasteGenres(forYou.data.recs) : null).map(
+        (shelf): CardRow => ({
+          key: shelf.id,
+          title: shelf.title,
+          cards: cardsOf(shelves.data?.[shelf.id] ?? [], shelf.type),
+        }),
+      ),
       feedRow("upcoming", upcoming.data),
       feedRow("upcoming-tv", upcomingTv.data),
       feedRow("imdb250-movie", topMovies.data),
@@ -190,6 +215,8 @@ export function TvHome() {
     theaters.data,
     airing.data,
     recs.data,
+    forYou.data,
+    shelves.data,
     upcoming.data,
     upcomingTv.data,
     topMovies.data,

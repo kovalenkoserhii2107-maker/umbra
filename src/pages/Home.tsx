@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Row,
@@ -17,9 +17,11 @@ import {
   rankForYou,
   spotlightMemory,
   takeTurns,
+  tasteGenres,
   tasteSeed,
   type Spotlight,
 } from "../lib/spotlight";
+import { shelfOrder, type ShelfMeta } from "../lib/shelves";
 import { loadFeedPage, FEEDS } from "../lib/feeds";
 import { useAppState, type LibraryItem } from "../state";
 import { isTv } from "../lib/tvMode";
@@ -352,6 +354,76 @@ function ContinueRow({
   );
 }
 
+/** A genre or theme shelf: asks TMDB only once it nears the screen. */
+function ShelfRow({
+  shelf,
+  animate,
+  hide,
+}: {
+  shelf: ShelfMeta;
+  animate: boolean;
+  hide: (list: TmdbItem[]) => TmdbItem[];
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [near, setNear] = useState(() =>
+    hasWarmCache(`home:shelf:${shelf.id}`),
+  );
+  useEffect(() => {
+    if (near) return;
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setNear(true);
+      return;
+    }
+    const watch = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setNear(true);
+          watch.disconnect();
+        }
+      },
+      { rootMargin: "900px 0px" },
+    );
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [near]);
+  return (
+    <div ref={ref}>
+      {near ? (
+        <ShelfData shelf={shelf} animate={animate} hide={hide} />
+      ) : (
+        <Row title={shelf.title} items={[]} loading animate={false} />
+      )}
+    </div>
+  );
+}
+
+function ShelfData({
+  shelf,
+  animate,
+  hide,
+}: {
+  shelf: ShelfMeta;
+  animate: boolean;
+  hide: (list: TmdbItem[]) => TmdbItem[];
+}) {
+  const data = useAsync(
+    () => loadFeedPage(shelf.id, 1),
+    [shelf.id],
+    `home:shelf:${shelf.id}`,
+  );
+  return (
+    <Row
+      title={shelf.title}
+      items={hide(data.data?.results ?? [])}
+      loading={data.loading}
+      animate={animate}
+      type={shelf.type}
+      to={`/feed/${shelf.id}`}
+    />
+  );
+}
+
 export function HomePage() {
   const { uid, libraryReady, items, settings } = useAppState();
   const markStartupReady = useMarkStartupReady();
@@ -508,6 +580,10 @@ export function HomePage() {
 
   const preview = (id: (typeof FEEDS)[number]["id"]) =>
     FEEDS.find((f) => f.id === id)!;
+  // Genres the user likes come first; themes take turns between them.
+  const shelves = shelfOrder(
+    forYou.data ? tasteGenres(forYou.data.recs) : null,
+  );
   const shown = (list: TmdbItem[], fallbackType?: MediaType) =>
     spotlight
       ? list.filter(
@@ -586,6 +662,14 @@ export function HomePage() {
         items={watchlist}
         animate={animate}
       />
+      {shelves.map((shelf) => (
+        <ShelfRow
+          key={shelf.id}
+          shelf={shelf}
+          animate={animate}
+          hide={(list) => shown(list, shelf.type)}
+        />
+      ))}
       <Row
         title={preview("imdb250-movie").title}
         items={shown(imdbMovies.data?.results ?? [], "movie")}

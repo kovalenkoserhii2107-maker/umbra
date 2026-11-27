@@ -1,5 +1,6 @@
 import { tmdb, type MediaType, type TmdbItem, type TmdbPage } from "./tmdb";
 import { upcomingMovies, upcomingShows } from "./upcoming";
+import { loadShelf, SHELVES, type ShelfId } from "./shelves";
 
 export type FeedId =
   | "theaters"
@@ -10,7 +11,8 @@ export type FeedId =
   | "watchlist"
   | "imdb250-movie"
   | "imdb250-tv"
-  | "recs";
+  | "recs"
+  | ShelfId;
 
 export type FeedMeta = {
   id: FeedId;
@@ -39,7 +41,17 @@ export const FEEDS: FeedMeta[] = [
   },
   { id: "imdb250-tv", title: "Топ 250 серіалів IMDb", type: "tv", more: true },
   { id: "recs", title: "Рекомендації", more: true },
+  ...SHELVES.map((s) => ({
+    id: s.id,
+    title: s.title,
+    type: s.type,
+    more: true,
+  })),
 ];
+
+export function isShelf(id: string): id is ShelfId {
+  return SHELVES.some((s) => s.id === id);
+}
 
 export function feedById(id: string) {
   return FEEDS.find((f) => f.id === id);
@@ -57,6 +69,7 @@ export async function loadFeedPage(
   if (id === "upcoming-tv") return upcomingShows(page);
   if (id === "imdb250-movie") return tmdb.imdbChart("movie", page);
   if (id === "imdb250-tv") return tmdb.imdbChart("tv", page);
+  if (isShelf(id)) return loadShelf(id, page);
   if (id === "recs") {
     if (recSeed) return tmdb.recommendations(recSeed.type, recSeed.id, page);
     return tmdb.trending("week", page);

@@ -534,13 +534,17 @@ export const tmdb = {
   discoverRaw: (
     type: MediaType,
     params: Record<string, string | number | undefined>,
+    priority?: RequestPriority,
   ) =>
-    request<TmdbPage<TmdbItem>>(`/discover/${type}`, params, 3600_000).then(
-      (data) => ({
-        ...data,
-        results: data.results.map((item) => ({ ...item, media_type: type })),
-      }),
-    ),
+    request<TmdbPage<TmdbItem>>(
+      `/discover/${type}`,
+      params,
+      3600_000,
+      priority,
+    ).then((data) => ({
+      ...data,
+      results: data.results.map((item) => ({ ...item, media_type: type })),
+    })),
   airingToday: (page = 1) =>
     request<TmdbPage<TmdbItem>>("/tv/airing_today", { page }),
   popularTv: (page = 1) => request<TmdbPage<TmdbItem>>("/tv/popular", { page }),

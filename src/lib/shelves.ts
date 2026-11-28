@@ -8,11 +8,17 @@ import { tmdb, type MediaType, type TmdbItem, type TmdbPage } from "./tmdb";
 type Shelf = {
   id: string;
   title: string;
-  type: MediaType;
-  /** Genres rows are ordered by taste; themes take turns between them. */
-  kind: "genre" | "theme";
+  /** Films or series; none — both, mixed by popularity. */
+  type: MediaType | undefined;
+  /**
+   * Genres rows are ordered by taste; themes take turns between them;
+   * special shelves stand right after the first genres, every day.
+   */
+  kind: "genre" | "theme" | "special";
   /** TMDB genre ids the shelf is about: used to order by taste. */
   genres?: readonly number[];
+  /** TMDB keywords by name, looked up once (their ids are not fixed here). */
+  keywordQueries?: readonly string[];
   params: Readonly<Record<string, string | number>>;
 };
 
@@ -29,6 +35,47 @@ const TV_GOOD = {
 } as const;
 
 export const SHELVES = [
+  // Special: about the mind.
+  {
+    id: "s-psychology",
+    title: "Психологи й психотерапія",
+    type: undefined,
+    kind: "special",
+    keywordQueries: [
+      "psychologist",
+      "psychotherapist",
+      "psychotherapy",
+      "therapist",
+      "psychoanalysis",
+      "therapy session",
+    ],
+    params: {
+      sort_by: "popularity.desc",
+      "vote_count.gte": 80,
+      "vote_average.gte": 6.5,
+    },
+  },
+  {
+    id: "s-psychiatry",
+    title: "Психи й психіатрія",
+    type: undefined,
+    kind: "special",
+    keywordQueries: [
+      "psychiatrist",
+      "psychiatric hospital",
+      "mental illness",
+      "psychopath",
+      "insanity",
+      "schizophrenia",
+      "psychosis",
+      "mental institution",
+    ],
+    params: {
+      sort_by: "popularity.desc",
+      "vote_count.gte": 80,
+      "vote_average.gte": 6.5,
+    },
+  },
   // Genres: films.
   {
     id: "g-scifi",
@@ -288,19 +335,67 @@ export function shelfById(id: string): Shelf | undefined {
   return SHELVES.find((s) => s.id === id);
 }
 
+/** Keyword ids by name, found once per session. */
+const keywordIds = new Map<string, Promise<number[]>>();
+
+function findKeywords(query: string): Promise<number[]> {
+  let found = keywordIds.get(query);
+  if (!found) {
+    found = tmdb
+      .searchKeyword(query)
+      .then((page) => {
+        const q = query.toLowerCase();
+        // The keyword itself first, then a couple that contain it.
+        const exact = page.results.filter((k) => k.name.toLowerCase() === q);
+        const near = page.results
+          .filter((k) => k.name.toLowerCase() !== q)
+          .filter((k) => k.name.toLowerCase().includes(q))
+          .slice(0, 2);
+        return [...exact, ...near].map((k) => k.id);
+      })
+      .catch(() => {
+        keywordIds.delete(query);
+        return [];
+      });
+    keywordIds.set(query, found);
+  }
+  return found;
+}
+
+async function shelfParams(shelf: Shelf) {
+  if (!shelf.keywordQueries) return shelf.params;
+  const ids = [
+    ...new Set(
+      (await Promise.all(shelf.keywordQueries.map(findKeywords))).flat(),
+    ),
+  ];
+  if (!ids.length) throw new Error("NO_KEYWORDS");
+  return { ...shelf.params, with_keywords: ids.join("|") };
+}
+
 export async function loadShelf(
   id: ShelfId,
   page = 1,
 ): Promise<TmdbPage<TmdbItem>> {
   const shelf = shelfById(id)!;
-  const data = await tmdb.discoverRaw(
-    shelf.type,
-    { ...shelf.params, page },
-    page === 1 ? "low" : "normal",
+  const params = await shelfParams(shelf);
+  const priority = page === 1 ? "low" : "normal";
+  const types: MediaType[] = shelf.type ? [shelf.type] : ["movie", "tv"];
+  const pages = await Promise.all(
+    types.map((type) => tmdb.discoverRaw(type, { ...params, page }, priority)),
   );
+  // Films and series together: interleaved by popularity.
+  const results = pages
+    .flatMap((p) => p.results)
+    .filter((x) => x.poster_path)
+    .sort((a, b) =>
+      types.length > 1 ? (b.popularity ?? 0) - (a.popularity ?? 0) : 0,
+    );
   return {
-    ...data,
-    results: data.results.filter((x) => x.poster_path),
+    page,
+    results,
+    total_pages: Math.max(...pages.map((p) => p.total_pages)),
+    total_results: pages.reduce((n, p) => n + p.total_results, 0),
   };
 }
 
@@ -308,7 +403,8 @@ export type GenreWeights = Record<MediaType, Record<number, number>>;
 
 /**
  * Genres the user likes first (by weights from their recommendations); a
- * theme after every two genres, a different theme leading each day.
+ * theme after every two genres: the special ones first, then a different
+ * theme leading each day.
  */
 export function shelfOrder(
   weights: GenreWeights | null | undefined,
@@ -316,7 +412,7 @@ export function shelfOrder(
 ): ShelfMeta[] {
   const score = (s: ShelfMeta) =>
     ((s as Shelf).genres ?? []).reduce(
-      (sum, g) => sum + (weights?.[s.type][g] ?? 0),
+      (sum, g) => sum + (s.type ? (weights?.[s.type][g] ?? 0) : 0),
       0,
     );
   const genres = SHELVES.filter((s) => s.kind === "genre")
@@ -325,7 +421,11 @@ export function shelfOrder(
     .map((x) => x.s);
   const all: ShelfMeta[] = SHELVES.filter((s) => s.kind === "theme");
   const start = ((day % all.length) + all.length) % all.length;
-  const themes = [...all.slice(start), ...all.slice(0, start)];
+  const themes = [
+    ...SHELVES.filter((s) => s.kind === "special"),
+    ...all.slice(start),
+    ...all.slice(0, start),
+  ];
   const out: ShelfMeta[] = [];
   while (genres.length || themes.length) {
     out.push(...genres.splice(0, 2));

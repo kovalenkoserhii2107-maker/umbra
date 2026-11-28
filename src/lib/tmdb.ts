@@ -721,6 +721,13 @@ export const tmdb = {
       24 * 3600_000,
       "normal",
     ),
+  /** TMDB keywords by name; kept a week. */
+  searchKeyword: (query: string) =>
+    request<TmdbPage<{ id: number; name: string }>>(
+      "/search/keyword",
+      { query },
+      7 * 86400_000,
+    ),
   genres: (type: MediaType) =>
     request<{ genres: Named[] }>(`/genre/${type}/list`, {}, 7 * 86400_000),
   /** Films or series by name and, when given, release year; kept a day. */

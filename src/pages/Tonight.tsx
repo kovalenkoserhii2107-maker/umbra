@@ -1,7 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AiTonight } from "../components/AiTonight";
 import { PickCard } from "../components/TonightCards";
+import {
+  Thinking,
+  libraryPosters,
+  useLingering,
+} from "../components/TonightMotion";
 import { apiHealth, apiUrl } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useAppState } from "../state";
@@ -124,6 +129,10 @@ function QuickPicker({ rewatch }: { rewatch: boolean }) {
     services,
     get,
   } = useQuickTonight(rewatch, { instant: true });
+  const { items } = useAppState();
+  const posters = useMemo(() => libraryPosters(items), [items]);
+  // The show plays for a couple of seconds before the picks are dealt.
+  const showing = useLingering((busy && !shown.length) || !ranked, 2000);
   const set = <K extends keyof Answers>(key: K, value: Answers[K]) =>
     setAnswers((a) => ({ ...a, [key]: value }));
 
@@ -182,12 +191,8 @@ function QuickPicker({ rewatch }: { rewatch: boolean }) {
           {error}
         </p>
       ) : null}
-      {busy && !shown.length ? (
-        <p role="status" className="mt-5 text-sm text-mute">
-          Вивчаю твої оцінки й підбираю…
-        </p>
-      ) : null}
-      {!busy && ranked && !shown.length ? (
+      {showing && !error ? <Thinking kind="pick" posters={posters} /> : null}
+      {!showing && ranked && !shown.length ? (
         <p className="mt-5 text-sm text-mute">
           Нічого не підійшло.{" "}
           {answers.mine
@@ -197,17 +202,25 @@ function QuickPicker({ rewatch }: { rewatch: boolean }) {
         </p>
       ) : null}
       <div className="mt-5 space-y-3">
-        {shown.map((p) => (
-          <PickCard
-            key={p.key}
-            pick={p}
-            saved={get(p.type, p.item.id)?.status === "watchlist"}
-            onSave={() => save(p)}
-            mine={get(p.type, p.item.id)}
-          />
-        ))}
+        {showing
+          ? null
+          : shown.map((p, i) => (
+              <div
+                key={p.key}
+                className="pk-deal"
+                // Each page is dealt in from the top, card by card.
+                style={{ animationDelay: `${(i % 6) * 90}ms` }}
+              >
+                <PickCard
+                  pick={p}
+                  saved={get(p.type, p.item.id)?.status === "watchlist"}
+                  onSave={() => save(p)}
+                  mine={get(p.type, p.item.id)}
+                />
+              </div>
+            ))}
       </div>
-      {ranked && shown.length ? (
+      {!showing && ranked && shown.length ? (
         <div className="mt-5 flex flex-wrap justify-center gap-2">
           {shown.length < ranked.length ? (
             <button

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { LibraryItem } from "../lib/library";
 import type { MetaMap } from "../lib/meta";
 import type { Platform } from "../lib/providers";
@@ -7,6 +7,7 @@ import { titleOf } from "../lib/tmdb";
 import { roundOf } from "../lib/ai";
 import { useAiTonight, type Library, type Verdict } from "../lib/useAiTonight";
 import { Option, PickCard, Question } from "./TonightCards";
+import { Thinking, libraryPosters, useLingering } from "./TonightMotion";
 
 /** A card that can be swiped: right means "seen it", left "not that". */
 function Swipe({
@@ -188,6 +189,13 @@ export function AiTonight({
     current,
     answered,
   } = useAiTonight({ items, meta, region, services, library, rewatch });
+  // The show stays on for a couple of seconds, even for a quick answer.
+  const showing = useLingering(Boolean(busy), 1800);
+  const [shownBusy, setShownBusy] = useState(busy);
+  useEffect(() => {
+    if (busy) setShownBusy(busy);
+  }, [busy]);
+  const posters = useMemo(() => libraryPosters(items), [items]);
 
   const failure = error ? (
     <div role="alert" className="mt-5 text-sm text-accent">
@@ -200,13 +208,17 @@ export function AiTonight({
     </div>
   ) : null;
 
-  if (busy)
+  if (showing)
     return (
-      <p role="status" className="mt-6 text-sm text-mute">
-        {busy === "ask"
-          ? "Claude думає, що запитати…"
-          : "Claude підбирає фільми та серіали під тебе — це до хвилини…"}
-      </p>
+      <Thinking
+        kind={(busy || shownBusy) === "ask" ? "ask" : "ai-pick"}
+        posters={posters}
+        note={
+          (busy || shownBusy) === "pick"
+            ? "Claude підбирає фільми та серіали під тебе — це до хвилини"
+            : undefined
+        }
+      />
     );
 
   if (!session)
@@ -235,6 +247,7 @@ export function AiTonight({
       {failure}
       {current ? (
         <Question
+          key={`${session.steps.length}:${current.question}`}
           step={answered}
           round={roundOf(session.steps)}
           title={current.question}
@@ -294,7 +307,7 @@ export function AiTonight({
             колекцію, а на його місце прийде новий. Не те — ліворуч.
           </p>
           <div className="mt-4 space-y-3">
-            {session.picks.map((p) => {
+            {session.picks.map((p, i) => {
               const verdict = session.verdicts[p.key];
               if (verdict)
                 return (
@@ -310,35 +323,40 @@ export function AiTonight({
                   />
                 );
               return (
-                <Swipe
+                <div
                   key={p.key}
-                  onRight={() => judge(p, "seen")}
-                  onLeft={() => judge(p, "disliked")}
+                  className="pk-deal"
+                  style={{ animationDelay: `${Math.min(i, 8) * 90}ms` }}
                 >
-                  <PickCard
-                    pick={p}
-                    saved={isSaved(p)}
-                    onSave={() => library.upsert(watchlistEntry(p))}
-                    mine={library.get(p.type, p.item.id)}
+                  <Swipe
+                    onRight={() => judge(p, "seen")}
+                    onLeft={() => judge(p, "disliked")}
                   >
-                    {library.get(p.type, p.item.id)?.status !== "watched" ? (
+                    <PickCard
+                      pick={p}
+                      saved={isSaved(p)}
+                      onSave={() => library.upsert(watchlistEntry(p))}
+                      mine={library.get(p.type, p.item.id)}
+                    >
+                      {library.get(p.type, p.item.id)?.status !== "watched" ? (
+                        <button
+                          type="button"
+                          onClick={() => judge(p, "seen")}
+                          className="rounded-full border border-ok/50 px-3 py-1 text-xs text-ok"
+                        >
+                          ✓ Дивився
+                        </button>
+                      ) : null}
                       <button
                         type="button"
-                        onClick={() => judge(p, "seen")}
-                        className="rounded-full border border-ok/50 px-3 py-1 text-xs text-ok"
+                        onClick={() => judge(p, "disliked")}
+                        className="rounded-full border border-hairline px-3 py-1 text-xs text-mute"
                       >
-                        ✓ Дивився
+                        Не те
                       </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={() => judge(p, "disliked")}
-                      className="rounded-full border border-hairline px-3 py-1 text-xs text-mute"
-                    >
-                      Не те
-                    </button>
-                  </PickCard>
-                </Swipe>
+                    </PickCard>
+                  </Swipe>
+                </div>
               );
             })}
           </div>

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { Words, reducedMotion } from "./TonightMotion";
 import { Link } from "react-router-dom";
 import { yearOf } from "../lib/format";
 import type { LibraryItem } from "../lib/library";
@@ -27,6 +28,15 @@ const MINE: Record<LibraryItem["status"], string> = {
   dropped: "покинув",
 };
 
+/** The answer being chosen: it glows while the others step back. */
+const Choice = createContext<{
+  chosen: string | null;
+  choose: (label: string, run: () => void) => void;
+} | null>(null);
+
+/** How long the chosen answer shows before the next step. */
+const CHOSEN_MS = 520;
+
 /** Building blocks shared by both evening pickers. */
 export function Question({
   step,
@@ -42,6 +52,15 @@ export function Question({
   children: React.ReactNode;
   onBack?: () => void;
 }) {
+  const [chosen, setChosen] = useState<string | null>(null);
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const choose = (label: string, run: () => void) => {
+    if (chosen) return;
+    if (reducedMotion()) return run();
+    setChosen(label);
+    timer.current = window.setTimeout(run, CHOSEN_MS);
+  };
   return (
     <section className="rise mt-6">
       <div className="flex items-center justify-between">
@@ -52,13 +71,19 @@ export function Question({
           {[0, 1, 2, 3].map((i) => (
             <span
               key={i}
-              className={`h-1.5 w-6 rounded-full ${i <= step ? "bg-accent" : "bg-hairline"}`}
+              className={`h-1.5 rounded-full transition-all duration-500 ${i < step || (i === step && chosen) ? "w-6 bg-accent" : i === step ? "w-6 bg-accent/50" : "w-4 bg-hairline"}`}
             />
           ))}
         </div>
       </div>
-      <h2 className="mt-2 text-2xl tracking-tight">{title}</h2>
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">{children}</div>
+      <h2 className="mt-2 text-2xl tracking-tight">
+        <Words text={title} />
+      </h2>
+      <Choice.Provider value={{ chosen, choose }}>
+        <div className="q-options mt-4 grid gap-2 sm:grid-cols-2">
+          {children}
+        </div>
+      </Choice.Provider>
       {onBack ? (
         <button
           type="button"
@@ -83,14 +108,24 @@ export function Option({
   active?: boolean;
   onClick: () => void;
 }) {
+  const choice = useContext(Choice);
+  const chosen = choice?.chosen === label;
+  const away = Boolean(choice?.chosen) && !chosen;
   return (
     <button
       type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`rounded-2xl border p-4 text-left transition ${active ? "border-accent bg-accent/10" : "border-hairline bg-card hover:border-accent/50"}`}
+      onClick={() => (choice ? choice.choose(label, onClick) : onClick())}
+      aria-pressed={active || chosen}
+      className={`rounded-2xl border p-4 text-left transition ${active || chosen ? "border-accent bg-accent/10" : "border-hairline bg-card hover:border-accent/50"} ${chosen ? "q-chosen" : away ? "q-away" : ""}`}
     >
-      <span className="block text-base">{label}</span>
+      <span className="flex items-center justify-between gap-2 text-base">
+        {label}
+        {chosen ? (
+          <span aria-hidden="true" className="text-accent">
+            ✓
+          </span>
+        ) : null}
+      </span>
       {hint ? (
         <span className="mt-0.5 block text-xs text-mute">{hint}</span>
       ) : null}

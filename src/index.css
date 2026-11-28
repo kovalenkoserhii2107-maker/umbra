@@ -536,3 +536,214 @@ html.tv {
     animation: none;
   }
 }
+
+/* ---- Evening picker on the web: questions, answers, the eclipse ---- */
+
+.q-word {
+  display: inline-block;
+  animation: q-word 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes q-word {
+  from {
+    opacity: 0;
+    transform: translateY(14px) rotate(2deg);
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+.q-options > * {
+  animation: q-option 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.q-options > :nth-child(1) {
+  animation-delay: 0.18s;
+}
+.q-options > :nth-child(2) {
+  animation-delay: 0.26s;
+}
+.q-options > :nth-child(3) {
+  animation-delay: 0.34s;
+}
+.q-options > :nth-child(4) {
+  animation-delay: 0.42s;
+}
+.q-options > :nth-child(5) {
+  animation-delay: 0.5s;
+}
+.q-options > :nth-child(6) {
+  animation-delay: 0.58s;
+}
+.q-options > :nth-child(n + 7) {
+  animation-delay: 0.66s;
+}
+@keyframes q-option {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.q-options > .q-chosen {
+  animation: q-chosen 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes q-chosen {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.035);
+    box-shadow: 0 0 0 7px
+      color-mix(in srgb, var(--color-accent) 22%, transparent);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+.q-options > .q-away {
+  animation: q-away 0.4s ease both;
+}
+@keyframes q-away {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.15;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+
+.pk-stage {
+  position: relative;
+  width: 200px;
+  height: 200px;
+}
+.pk-glow {
+  position: absolute;
+  inset: 40px;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-accent) 40%, transparent) 0%,
+    transparent 70%
+  );
+  filter: blur(12px);
+  animation: pk-breathe 2.4s ease-in-out infinite;
+}
+.pk-halo {
+  position: absolute;
+  inset: 62px;
+  border-radius: 9999px;
+  box-shadow:
+    0 0 0 2px var(--color-accent),
+    0 0 40px 6px color-mix(in srgb, var(--color-accent) 55%, transparent);
+  animation: pk-breathe 2.4s ease-in-out infinite;
+}
+.pk-disc {
+  position: absolute;
+  inset: 64px;
+  border-radius: 9999px;
+  background: var(--color-canvas);
+  animation: pk-drift 2.4s ease-in-out infinite alternate;
+}
+.pk-orbit {
+  position: absolute;
+  inset: 0;
+  animation: pk-spin 7s linear infinite;
+}
+.pk-arm {
+  position: absolute;
+  inset: 0;
+}
+.pk-sat {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 26px;
+  height: 39px;
+  margin-left: -13px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-accent) 35%, var(--color-card));
+  border: 1px solid var(--color-hairline);
+  animation: pk-fall 2s cubic-bezier(0.55, 0, 0.45, 1) infinite;
+}
+.pk-sat img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+@keyframes pk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes pk-drift {
+  from {
+    transform: translateX(-16px);
+  }
+  to {
+    transform: translateX(16px);
+  }
+}
+@keyframes pk-breathe {
+  50% {
+    opacity: 0.65;
+    transform: scale(1.06);
+  }
+}
+@keyframes pk-fall {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.85);
+  }
+  20% {
+    opacity: 1;
+    transform: none;
+  }
+  70% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(80px) scale(0.2);
+  }
+}
+
+.pk-deal {
+  animation: pk-deal 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes pk-deal {
+  from {
+    opacity: 0;
+    transform: translateY(26px) rotate(-1.5deg) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .q-word,
+  .q-options > *,
+  .q-options > .q-chosen,
+  .q-options > .q-away,
+  .pk-glow,
+  .pk-halo,
+  .pk-disc,
+  .pk-orbit,
+  .pk-sat,
+  .pk-deal {
+    animation: none;
+  }
+}

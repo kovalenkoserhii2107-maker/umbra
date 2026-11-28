@@ -175,7 +175,7 @@ function Intro({
   ai: boolean | null;
   rewatch: boolean;
   resume: boolean;
-  onMode: (mode: "ai" | "quick") => void;
+  onMode: (mode: "ai" | "quick" | "taste") => void;
   onResume: () => void;
   onRewatch: () => void;
 }) {
@@ -192,6 +192,13 @@ function Intro({
           },
         ]
       : []),
+    {
+      key: "taste",
+      icon: "◎",
+      title: "За твоїм смаком",
+      text: "Одразу, без питань: алгоритм Umbra вчиться на твоїх оцінках",
+      run: () => onMode("taste"),
+    },
     ...(ai !== false
       ? [
           {
@@ -209,8 +216,8 @@ function Intro({
     {
       key: "quick",
       icon: "⚡",
-      title: "Швидкий підбір",
-      text: "Настрій, формат, компанія — і добірка за твоїми оцінками",
+      title: "Під настрій",
+      text: "Чотири питання — і добірка за твоїми оцінками",
       run: () => onMode("quick"),
     },
   ];
@@ -1076,7 +1083,12 @@ function Results({
                 {titleOf(pick.item)}
               </h1>
               <p className="mt-2 text-[14px] text-white/70">
-                {[pick.type === "tv" ? "серіал" : "фільм", year, score]
+                {[
+                  pick.type === "tv" ? "серіал" : "фільм",
+                  year,
+                  score,
+                  pick.match ? `збіг ${pick.match}%` : null,
+                ]
                   .filter(Boolean)
                   .join(" · ")}
                 {pick.where?.length ? (
@@ -1265,14 +1277,13 @@ export function TvTonight() {
   const [hidden, setHidden] = useState<string[]>([]);
   const toStart = () => setMode(null);
 
-  function begin(m: "ai" | "quick") {
-    writeStorage(MODE, m);
-    setMode(m);
+  function begin(m: "ai" | "quick" | "taste") {
+    writeStorage(MODE, m === "ai" ? "ai" : "quick");
+    setMode(m === "ai" ? "ai" : "quick");
+    setHidden([]);
     if (m === "ai") claude.start();
-    else {
-      quick.restart();
-      setHidden([]);
-    }
+    else if (m === "taste") quick.startInstant();
+    else quick.restart();
   }
 
   let content: React.ReactNode;
@@ -1481,8 +1492,16 @@ export function TvTonight() {
                 ]
               : []),
             {
+              key: "shuffle",
+              label: "Перемішати",
+              run: () => {
+                setHidden([]);
+                quick.shuffle();
+              },
+            },
+            {
               key: "again",
-              label: "Змінити відповіді",
+              label: "Під настрій",
               run: () => begin("quick"),
             },
             { key: "home", label: "До початку", run: toStart },

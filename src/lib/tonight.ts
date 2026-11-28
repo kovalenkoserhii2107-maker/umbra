@@ -15,7 +15,7 @@ import {
  */
 
 export type Mood =
-  "laugh" | "thrill" | "think" | "cozy" | "action" | "wonder" | "touch";
+  "any" | "laugh" | "thrill" | "think" | "cozy" | "action" | "wonder" | "touch";
 export type Format = "short" | "movie" | "tv" | "any";
 export type Company = "solo" | "couple" | "family" | "friends";
 export type Era = "new" | "classic" | "any";
@@ -37,6 +37,13 @@ export const MOODS: Array<{
   movie: number[];
   tv: number[];
 }> = [
+  {
+    id: "any",
+    label: "Довірюся смаку",
+    hint: "за моїми оцінками",
+    movie: [],
+    tv: [],
+  },
   { id: "laugh", label: "Посміятися", hint: "комедії", movie: [35], tv: [35] },
   {
     id: "thrill",
@@ -102,35 +109,19 @@ export const ERAS: Array<{ id: Era; label: string }> = [
   { id: "any", label: "Байдуже" },
 ];
 
-/** Never offered to a family evening. */
-const FAMILY_BLOCK = [27, 53, 80, 10752];
-
-export type Candidate = {
-  item: TmdbItem;
-  type: MediaType;
-  /** Where it came from, for the reasons shown on the card. */
-  from: "watchlist" | "similar" | "discover";
-  /** The loved title it is similar to. */
-  like?: { title: string; rating: number };
-  /** Genre names, when known (watchlist titles come with names only). */
-  genres?: string[];
-  runtime?: number;
-};
-
 export type Pick = {
   key: string;
   type: MediaType;
   item: TmdbItem;
   score: number;
   reasons: string[];
+  /** How well it fits the person's taste, percent. */
+  match?: number;
   /** My streaming services that have it, e.g. ["Netflix"]. */
   where?: string[];
 };
 
 export const keyOf = (type: MediaType, id: number) => `${type}:${id}`;
-
-const typesFor = (format: Format): MediaType[] =>
-  format === "tv" ? ["tv"] : format === "any" ? ["movie", "tv"] : ["movie"];
 
 /**
  * How much the player likes each genre, from -1 to 1: the average of their
@@ -156,241 +147,6 @@ export function genreTaste(items: LibraryItem[], meta: MetaMap) {
   return taste;
 }
 
-const clamp = (n: number) => Math.max(0, Math.min(1, n));
-
-/** Scores candidates and keeps the best, one entry per title. */
-export function rankTonight(
-  candidates: Candidate[],
-  answers: Answers,
-  ctx: {
-    seen: Set<string>;
-    taste: Map<string, number>;
-    names: Map<number, string>;
-  },
-): Pick[] {
-  const mood = MOODS.find((m) => m.id === answers.mood)!;
-  const best = new Map<string, Pick>();
-  const types = typesFor(answers.format);
-  for (const c of candidates) {
-    if (!types.includes(c.type)) continue;
-    const key = keyOf(c.type, c.item.id);
-    if (ctx.seen.has(key)) continue;
-    const ids = c.item.genre_ids ?? [];
-    const names =
-      c.genres ?? ids.map((id) => ctx.names.get(id)).filter(Boolean);
-    const moodIds = c.type === "tv" ? mood.tv : mood.movie;
-    const moodNames = new Set(
-      moodIds.map((id) => ctx.names.get(id)).filter(Boolean),
-    );
-    const matches = ids.length
-      ? ids.filter((id) => moodIds.includes(id)).length
-      : (names as string[]).filter((n) => moodNames.has(n)).length;
-    if (!matches) continue;
-    if (
-      answers.company === "family" &&
-      ids.some((id) => FAMILY_BLOCK.includes(id))
-    )
-      continue;
-    if (answers.format === "short" && c.runtime && c.runtime > 100) continue;
-    const date = c.item.release_date || c.item.first_air_date || "";
-    if (date && answers.era === "new" && date < yearsAgo(3)) continue;
-    if (date && answers.era === "classic" && date > "2005-12-31") continue;
-
-    const votes = c.item.vote_count ?? 0;
-    const quality =
-      votes >= 50 ? clamp(((c.item.vote_average ?? 0) - 5.5) / 3.5) : 0.3;
-    const popularity = clamp(Math.log10((c.item.popularity ?? 1) + 1) / 3);
-    const tastes = (names as string[])
-      .map((n) => ctx.taste.get(n))
-      .filter((t): t is number => t !== undefined);
-    const taste = tastes.length
-      ? tastes.reduce((a, b) => a + b, 0) / tastes.length
-      : 0;
-    let company = 0;
-    if (answers.company === "couple" && ids.includes(10749)) company = 0.3;
-    if (
-      answers.company === "friends" &&
-      ids.some((id) => [35, 28, 27].includes(id))
-    )
-      company = 0.2;
-    if (
-      answers.company === "family" &&
-      ids.some((id) => [10751, 16].includes(id))
-    )
-      company = 0.3;
-    const bonus = c.from === "watchlist" ? 0.7 : c.from === "similar" ? 0.4 : 0;
-    const score =
-      Math.min(matches, 2) * 0.6 +
-      quality +
-      popularity * 0.4 +
-      taste * 0.8 +
-      company +
-      bonus;
-
-    const reasons: string[] = [];
-    if (c.from === "watchlist") reasons.push("із «Хочу подивитися»");
-    if (c.like)
-      reasons.push(`схоже на «${c.like.title}» — твоя ${c.like.rating}/10`);
-    const loved = (names as string[]).find(
-      (n) => (ctx.taste.get(n) ?? 0) > 0.3,
-    );
-    if (loved && reasons.length < 2)
-      reasons.push(`ти високо цінуєш жанр «${loved.toLowerCase()}»`);
-    if (votes >= 50 && (c.item.vote_average ?? 0) >= 7.5 && reasons.length < 2)
-      reasons.push(`глядачі ставлять ${c.item.vote_average!.toFixed(1)}`);
-
-    const prev = best.get(key);
-    if (!prev || prev.score < score)
-      best.set(key, {
-        key,
-        type: c.type,
-        item: c.item,
-        score,
-        reasons: prev
-          ? [...new Set([...reasons, ...prev.reasons])].slice(0, 2)
-          : reasons.slice(0, 2),
-      });
-  }
-  return [...best.values()].sort((a, b) => b.score - a.score);
-}
-
-/* ------------------------------------------------------------ loading */
-
-const today = () => new Date().toISOString().slice(0, 10);
-const yearsAgo = (n: number) => {
-  const d = new Date();
-  d.setFullYear(d.getFullYear() - n);
-  return d.toISOString().slice(0, 10);
-};
-
-function discoverParams(
-  type: MediaType,
-  a: Answers,
-  ids: number[],
-  sort: "popularity.desc" | "vote_average.desc",
-  region: string,
-  services: number[],
-) {
-  const date = type === "movie" ? "primary_release_date" : "first_air_date";
-  const p: Record<string, string | number | undefined> = {
-    with_genres: ids.join("|"),
-    sort_by: sort,
-    "vote_count.gte":
-      sort === "vote_average.desc" ? (type === "movie" ? 800 : 300) : 100,
-    [`${date}.lte`]: today(),
-  };
-  if (a.era === "new") p[`${date}.gte`] = yearsAgo(3);
-  if (a.era === "classic") p[`${date}.lte`] = "2005-12-31";
-  if (a.format === "short" && type === "movie") p["with_runtime.lte"] = 100;
-  if (a.company === "family") p.without_genres = FAMILY_BLOCK.join(",");
-  if (a.mine && services.length) {
-    p.with_watch_providers = services.join("|");
-    p.watch_region = region;
-    p.with_watch_monetization_types = "flatrate|free|ads";
-  }
-  return p;
-}
-
-/** Everything that could fit tonight: watchlist, titles like loved ones, discover. */
-export async function loadCandidates(
-  a: Answers,
-  items: LibraryItem[],
-  meta: MetaMap,
-  region: string,
-  services: number[],
-) {
-  const mood = MOODS.find((m) => m.id === a.mood)!;
-  const types = typesFor(a.format);
-  const candidates: Candidate[] = [];
-
-  const uncachedWatchlist: Array<{ item: LibraryItem; candidate: Candidate }> =
-    [];
-  for (const x of items)
-    if (x.status === "watchlist" && types.includes(x.type)) {
-      const m = meta[metaKey(x)];
-      const candidate: Candidate = {
-        type: x.type,
-        from: "watchlist",
-        genres: m?.genres,
-        runtime: x.type === "movie" ? m?.runtime : undefined,
-        item: {
-          id: x.id,
-          title: x.title,
-          poster_path: x.poster.match(/\/t\/p\/w\d+(\/.+)$/)?.[1] ?? null,
-          release_date: m?.date || (x.year ? `${x.year}-01-01` : ""),
-          media_type: x.type,
-        },
-      };
-      candidates.push(candidate);
-      if (!m && uncachedWatchlist.length < 12)
-        uncachedWatchlist.push({ item: x, candidate });
-    }
-
-  // Titles similar to the best-rated ones in the same mood.
-  const moodNames = new Set<string>();
-  const names = new Map<number, string>();
-  for (const t of types)
-    for (const g of (await tmdb.genres(t).catch(() => ({ genres: [] })))
-      .genres) {
-      names.set(g.id, g.name);
-      if ((t === "tv" ? mood.tv : mood.movie).includes(g.id))
-        moodNames.add(g.name);
-    }
-  const loved = items
-    .filter(
-      (x) =>
-        (x.rating ?? 0) >= 8 &&
-        types.includes(x.type) &&
-        (meta[metaKey(x)]?.genres ?? []).some((g) => moodNames.has(g)),
-    )
-    .sort(
-      (x, y) => (y.rating ?? 0) - (x.rating ?? 0) || y.updatedAt - x.updatedAt,
-    )
-    .slice(0, 4);
-
-  const jobs: Array<Promise<void>> = loved.map((x) =>
-    tmdb
-      .recommendations(x.type, x.id)
-      .then((page) => {
-        for (const item of page.results.slice(0, 12))
-          candidates.push({
-            item,
-            type: x.type,
-            from: "similar",
-            like: { title: x.title, rating: x.rating! },
-          });
-      })
-      .catch(() => undefined),
-  );
-  for (const { item, candidate } of uncachedWatchlist)
-    jobs.push(
-      tmdb
-        .basic(item.type, item.id)
-        .then((d) => {
-          candidate.genres = (d.genres || []).map((g) => g.name);
-          if (item.type === "movie" && d.runtime) candidate.runtime = d.runtime;
-          const date = (d.release_date || d.first_air_date || "").slice(0, 10);
-          if (date) candidate.item.release_date = date;
-        })
-        .catch(() => undefined),
-    );
-  for (const t of types) {
-    const ids = t === "tv" ? mood.tv : mood.movie;
-    for (const sort of ["popularity.desc", "vote_average.desc"] as const)
-      jobs.push(
-        tmdb
-          .discoverBy(t, discoverParams(t, a, ids, sort, region, services))
-          .then((page) => {
-            for (const item of page.results)
-              candidates.push({ item, type: t, from: "discover" });
-          })
-          .catch(() => undefined),
-      );
-  }
-  await Promise.all(jobs);
-  return { candidates, names };
-}
-
 /** Shows in progress that fit the mood: the easiest choice of all. */
 export function continueShows(
   items: LibraryItem[],
@@ -405,7 +161,8 @@ export function continueShows(
     (x) =>
       x.type === "tv" &&
       x.status === "watching" &&
-      (meta[metaKey(x)]?.genres ?? []).some((g) => wanted.has(g)),
+      (!wanted.size ||
+        (meta[metaKey(x)]?.genres ?? []).some((g) => wanted.has(g))),
   );
 }
 

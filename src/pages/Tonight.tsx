@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AiTonight } from "../components/AiTonight";
-import { Option, PickCard, Question } from "../components/TonightCards";
+import { PickCard } from "../components/TonightCards";
 import { apiHealth, apiUrl } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useAppState } from "../state";
@@ -10,7 +10,8 @@ import { PLATFORMS } from "../lib/providers";
 import { episodeLabel } from "../lib/tracking";
 import { readStorage, writeStorage } from "../lib/storage";
 import { correctPosterUrl } from "../lib/tmdb";
-import { COMPANIES, ERAS, FORMATS, MOODS } from "../lib/tonight";
+import { COMPANIES, ERAS, FORMATS, MOODS, type Answers } from "../lib/tonight";
+import type { TasteSummary } from "../lib/engine";
 import { useQuickTonight } from "../lib/useQuickTonight";
 import type { LibraryItem } from "../state";
 
@@ -42,171 +43,193 @@ function ContinueCard({ item }: { item: LibraryItem }) {
   );
 }
 
-/** The rule-based picker: fixed questions, scored by the library. */
+function Chips<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: Array<{ id: T; label: string }>;
+  value: T | undefined;
+  onChange: (id: T) => void;
+}) {
+  return (
+    <div role="group" aria-label={label} className="flex items-center gap-2">
+      <span className="w-20 shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
+        {label}
+      </span>
+      <div className="row-scroll flex gap-1.5 overflow-x-auto pb-1">
+        {options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            aria-pressed={value === o.id}
+            onClick={() => onChange(o.id)}
+            className={`shrink-0 rounded-full border px-3 py-1 text-xs transition ${value === o.id ? "border-accent bg-accent text-black" : "border-hairline text-mute hover:border-accent/50"}`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TastePanel({ taste }: { taste: TasteSummary }) {
+  const rows: Array<[string, string]> = [];
+  if (taste.genres.length) rows.push(["любиш", taste.genres.join(", ")]);
+  if (taste.directors.length) rows.push(["автори", taste.directors.join(", ")]);
+  if (taste.language) rows.push(["а ще", taste.language]);
+  if (taste.avoid.length) rows.push(["не твоє", taste.avoid.join(", ")]);
+  return (
+    <section
+      aria-label="Твій смак"
+      className="mt-5 rounded-2xl border border-hairline bg-card p-4"
+    >
+      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-accent">
+        твій смак · {taste.engaged} переглянутих, {taste.rated} оцінок
+      </p>
+      <p className="mt-1 text-sm">
+        {[taste.critic, taste.format].filter(Boolean).join(" · ")}
+      </p>
+      {rows.length ? (
+        <dl className="mt-2 grid gap-1 text-xs sm:grid-cols-2">
+          {rows.map(([k, v]) => (
+            <div key={k} className="flex gap-2">
+              <dt className="text-dim">{k}</dt>
+              <dd className="text-mute">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+    </section>
+  );
+}
+
+/** Umbra's own picker: picks by taste at once; answers only refine them. */
 function QuickPicker({ rewatch }: { rewatch: boolean }) {
   const {
-    step,
-    setStep,
     answers,
     setAnswers,
-    answer,
     ranked,
     shown,
     more,
     cont,
+    taste,
     busy,
     error,
     save,
-    restart,
+    shuffle,
     services,
     get,
-  } = useQuickTonight(rewatch);
+  } = useQuickTonight(rewatch, { instant: true });
+  const set = <K extends keyof Answers>(key: K, value: Answers[K]) =>
+    setAnswers((a) => ({ ...a, [key]: value }));
 
   return (
-    <div>
-      {step === 0 ? (
-        <Question step={0} title="Який настрій?">
-          {MOODS.map((m) => (
-            <Option
-              key={m.id}
-              label={m.label}
-              hint={m.hint}
-              active={answers.mood === m.id}
-              onClick={() => answer("mood", m.id, 1)}
-            />
+    <section className="mt-6">
+      <div className="space-y-2">
+        <Chips
+          label="Настрій"
+          options={MOODS}
+          value={answers.mood}
+          onChange={(v) => set("mood", v)}
+        />
+        <Chips
+          label="Формат"
+          options={FORMATS}
+          value={answers.format}
+          onChange={(v) => set("format", v)}
+        />
+        <Chips
+          label="Компанія"
+          options={COMPANIES}
+          value={answers.company}
+          onChange={(v) => set("company", v)}
+        />
+        <Chips
+          label="Епоха"
+          options={ERAS}
+          value={answers.era}
+          onChange={(v) => set("era", v)}
+        />
+      </div>
+      {services.length ? (
+        <label className="mt-3 flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={!!answers.mine}
+            onChange={(e) => set("mine", e.target.checked)}
+            className="h-4 w-4 accent-[#ff9e64]"
+          />
+          Тільки на моїх сервісах ({services.map((s) => s.name).join(", ")})
+        </label>
+      ) : null}
+
+      {taste ? <TastePanel taste={taste} /> : null}
+
+      {cont.length ? (
+        <div className="mt-5 space-y-2">
+          {cont.slice(0, 2).map((x) => (
+            <ContinueCard key={x.id} item={x} />
           ))}
-        </Question>
-      ) : step === 1 ? (
-        <Question step={1} title="Фільм чи серіал?" onBack={() => setStep(0)}>
-          {FORMATS.map((f) => (
-            <Option
-              key={f.id}
-              label={f.label}
-              hint={f.hint}
-              active={answers.format === f.id}
-              onClick={() => answer("format", f.id, 2)}
-            />
-          ))}
-        </Question>
-      ) : step === 2 ? (
-        <Question step={2} title="З ким дивишся?" onBack={() => setStep(1)}>
-          {COMPANIES.map((c) => (
-            <Option
-              key={c.id}
-              label={c.label}
-              active={answers.company === c.id}
-              onClick={() => answer("company", c.id, 3)}
-            />
-          ))}
-        </Question>
-      ) : step === 3 ? (
-        <Question
-          step={3}
-          title="Свіже чи перевірене?"
-          onBack={() => setStep(2)}
-        >
-          {ERAS.map((e) => (
-            <Option
-              key={e.id}
-              label={e.label}
-              active={answers.era === e.id}
-              onClick={() => answer("era", e.id, "done")}
-            />
-          ))}
-        </Question>
-      ) : (
-        <section className="mt-6">
-          <div className="flex flex-wrap items-center gap-2">
-            {[
-              MOODS.find((m) => m.id === answers.mood)?.label,
-              FORMATS.find((f) => f.id === answers.format)?.label,
-              COMPANIES.find((c) => c.id === answers.company)?.label,
-              ERAS.find((e) => e.id === answers.era)?.label,
-            ]
-              .filter(Boolean)
-              .map((label) => (
-                <span
-                  key={label}
-                  className="rounded-full border border-hairline px-3 py-1 text-xs text-mute"
-                >
-                  {label}
-                </span>
-              ))}
+        </div>
+      ) : null}
+
+      {error ? (
+        <p role="alert" className="mt-5 text-sm text-accent">
+          {error}
+        </p>
+      ) : null}
+      {busy && !shown.length ? (
+        <p role="status" className="mt-5 text-sm text-mute">
+          Вивчаю твої оцінки й підбираю…
+        </p>
+      ) : null}
+      {!busy && ranked && !shown.length ? (
+        <p className="mt-5 text-sm text-mute">
+          Нічого не підійшло.{" "}
+          {answers.mine
+            ? "Спробуй без «Тільки на моїх сервісах» або "
+            : "Спробуй "}
+          інший настрій.
+        </p>
+      ) : null}
+      <div className="mt-5 space-y-3">
+        {shown.map((p) => (
+          <PickCard
+            key={p.key}
+            pick={p}
+            saved={get(p.type, p.item.id)?.status === "watchlist"}
+            onSave={() => save(p)}
+            mine={get(p.type, p.item.id)}
+          />
+        ))}
+      </div>
+      {ranked && shown.length ? (
+        <div className="mt-5 flex flex-wrap justify-center gap-2">
+          {shown.length < ranked.length ? (
             <button
               type="button"
-              onClick={restart}
-              className="text-xs text-accent"
+              disabled={busy}
+              onClick={() => void more()}
+              className="rounded-full border border-hairline px-4 py-2 text-sm disabled:opacity-50"
             >
-              Змінити відповіді
+              {busy ? "Підбираю…" : "Ще варіанти"}
             </button>
-          </div>
-          {services.length ? (
-            <label className="mt-3 flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={!!answers.mine}
-                onChange={(e) =>
-                  setAnswers((a) => ({ ...a, mine: e.target.checked }))
-                }
-                className="h-4 w-4 accent-[#ff9e64]"
-              />
-              Тільки на моїх сервісах ({services.map((s) => s.name).join(", ")})
-            </label>
           ) : null}
-
-          {cont.length ? (
-            <div className="mt-5 space-y-2">
-              {cont.slice(0, 2).map((x) => (
-                <ContinueCard key={x.id} item={x} />
-              ))}
-            </div>
-          ) : null}
-
-          {error ? (
-            <p role="alert" className="mt-5 text-sm text-accent">
-              {error}
-            </p>
-          ) : null}
-          {busy && !shown.length ? (
-            <p role="status" className="mt-5 text-sm text-mute">
-              Підбираю під твій настрій…
-            </p>
-          ) : null}
-          {!busy && ranked && !shown.length ? (
-            <p className="mt-5 text-sm text-mute">
-              Нічого не підійшло.{" "}
-              {answers.mine
-                ? "Спробуй без «Тільки на моїх сервісах» або "
-                : "Спробуй "}
-              інший настрій.
-            </p>
-          ) : null}
-          <div className="mt-5 space-y-3">
-            {shown.map((p) => (
-              <PickCard
-                key={p.key}
-                pick={p}
-                saved={get(p.type, p.item.id)?.status === "watchlist"}
-                onSave={() => save(p)}
-                mine={get(p.type, p.item.id)}
-              />
-            ))}
-          </div>
-          {ranked && shown.length && shown.length < ranked.length ? (
-            <div className="mt-5 flex justify-center">
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void more()}
-                className="rounded-full border border-hairline px-4 py-2 text-sm disabled:opacity-50"
-              >
-                {busy ? "Підбираю…" : "Ще варіанти"}
-              </button>
-            </div>
-          ) : null}
-        </section>
-      )}
-    </div>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={shuffle}
+            className="rounded-full border border-hairline px-4 py-2 text-sm disabled:opacity-50"
+          >
+            ↻ Перемішати
+          </button>
+        </div>
+      ) : null}
+    </section>
   );
 }
 
@@ -220,8 +243,9 @@ export function TonightPage() {
   const services = PLATFORMS.filter((p) => settings.subscribed.includes(p.id));
   // Claude is there when the worker has its key; known after one quick check.
   const [ai, setAi] = useState<boolean | null>(apiUrl() ? null : false);
+  // Umbra's own picker by default; Claude when chosen.
   const [mode, setMode] = useState<"ai" | "quick">(() =>
-    readStorage(MODE) === "quick" ? "quick" : "ai",
+    readStorage(MODE) === "ai" ? "ai" : "quick",
   );
   useEffect(() => {
     if (!apiUrl()) return;
@@ -254,7 +278,7 @@ export function TonightPage() {
       <p className="mt-2 text-sm text-mute">
         {useAi
           ? "Питання ставить Claude — під тебе та твою бібліотеку."
-          : "Чотири питання — і добірка з урахуванням того, що ти вже дивився, як оцінював і що відклав."}
+          : "Авторський алгоритм Umbra: вчиться на всьому, що ти дивився, оцінював і відклав, і одразу підбирає — найкраще згори. Уточни настрій чи формат, якщо хочеш."}
       </p>
       {ai ? (
         <div
@@ -264,8 +288,8 @@ export function TonightPage() {
         >
           {(
             [
+              ["quick", "За смаком"],
               ["ai", "З Claude"],
-              ["quick", "Швидкий"],
             ] as const
           ).map(([id, label]) => (
             <button

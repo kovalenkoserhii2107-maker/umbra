@@ -77,7 +77,7 @@ async function tmdb(context: BrowserContext, seen: string[]) {
   });
 }
 
-test("evening picker asks four questions and picks by mood and services", async ({
+test("evening picker picks by taste at once, then by mood and services", async ({
   page,
   context,
 }) => {
@@ -88,20 +88,23 @@ test("evening picker asks four questions and picks by mood and services", async 
   await page.getByRole("link", { name: /Що подивитися ввечері/ }).click();
   await expect(page).toHaveURL(/#\/tonight$/);
 
-  await expect(page.getByText("питання 1 з 4")).toBeVisible();
-  await page.getByRole("button", { name: /Посміятися/ }).click();
-  await page.getByRole("button", { name: /Фільм до 1,5 години/ }).click();
-  // Back keeps the answers and the order of questions.
-  await page.getByRole("button", { name: "← Назад" }).click();
-  await expect(page.getByText("питання 2 з 4")).toBeVisible();
-  await page.getByRole("button", { name: /Фільм до 1,5 години/ }).click();
-  await page.getByRole("button", { name: "Удвох" }).click();
-  await page.getByRole("button", { name: "Щось свіже" }).click();
-
+  // No questions first: picks by taste straight away.
+  await expect(
+    page.getByRole("group", { name: "Настрій" }).getByRole("button", {
+      name: "Довірюся смаку",
+    }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("Твій смак")).toBeVisible();
   const card = page.locator("article", { hasText: "Мальчишник в Вегасе" });
   await expect(card).toBeVisible();
+
+  // The answers refine it.
+  await page.getByRole("button", { name: "Посміятися" }).click();
+  await page.getByRole("button", { name: "Фільм до 1,5 години" }).click();
+  await page.getByRole("button", { name: "Удвох" }).click();
+  await page.getByRole("button", { name: "Щось свіже" }).click();
+  await expect(card).toBeVisible();
   await expect(card).toContainText("Дивитися: Netflix");
-  await expect(card).toContainText("глядачі ставлять 7.8");
   // Only my services: the comedy nobody streams here is left out, and the
   // horror never matched the mood.
   await expect(page.getByRole("link", { name: "Тихая комедия" })).toHaveCount(
@@ -110,12 +113,12 @@ test("evening picker asks four questions and picks by mood and services", async 
   await expect(page.getByRole("link", { name: "Страшно смешно" })).toHaveCount(
     0,
   );
-  // The picker's own query (home shelves ask discover too).
   const discover = seen.find(
-    (u) => u.startsWith("/3/discover/movie") && u.includes("watch_region"),
+    (u) =>
+      u.startsWith("/3/discover/movie") &&
+      u.includes("with_genres=35") &&
+      u.includes("with_runtime.lte=100"),
   )!;
-  expect(discover).toContain("with_genres=35");
-  expect(discover).toContain("with_runtime.lte=100");
   expect(discover).toContain("watch_region=UA");
 
   await page.getByLabel(/Тільки на моїх сервісах/).uncheck();
@@ -125,6 +128,9 @@ test("evening picker asks four questions and picks by mood and services", async 
   await expect(
     card.getByRole("button", { name: "У «Хочу подивитися»" }),
   ).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "↻ Перемішати" }),
+  ).toBeVisible();
   await page.screenshot({
     path: ".ui-evidence/tonight-mobile.png",
     fullPage: true,
@@ -266,6 +272,12 @@ test("Claude asks its own questions, picks titles and refines in a new round", a
   await register(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("#/tonight");
+  // Umbra's own picker is the default; Claude is one tap away.
+  await expect(page.getByRole("tab", { name: "За смаком" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await page.getByRole("tab", { name: "З Claude" }).click();
   await expect(page.getByRole("tab", { name: "З Claude" })).toHaveAttribute(
     "aria-selected",
     "true",

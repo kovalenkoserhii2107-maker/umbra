@@ -169,6 +169,9 @@ test("TV evening with Claude: questions fly into the trail, picks are dealt, «�
 
   await page.goto("?tv=1#/tonight");
   await expect(page.locator('[data-screen="/tonight"]')).toBeVisible();
+  // «За твоїм смаком» comes first; Claude is next to it.
+  await expect.poll(() => onScreen(page)).toContain("За твоїм смаком");
+  await press(page, "ArrowRight");
   await expect.poll(() => onScreen(page)).toContain("З Claude");
   await press(page, "Enter");
 
@@ -267,7 +270,9 @@ test("TV quick evening: four questions, Back goes to the previous one, picks are
   await tmdb(context);
   await register(page);
   await page.goto("?tv=1#/tonight");
-  await expect.poll(() => onScreen(page)).toContain("Швидкий підбір");
+  await expect.poll(() => onScreen(page)).toContain("За твоїм смаком");
+  await press(page, "ArrowRight");
+  await expect.poll(() => onScreen(page)).toContain("Під настрій");
   await press(page, "Enter");
 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
@@ -277,7 +282,7 @@ test("TV quick evening: four questions, Back goes to the previous one, picks are
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Фільм чи серіал?",
   );
-  await expect(page.getByText("Посміятися", { exact: true })).toBeVisible();
+  await expect(page.getByText("Довірюся смаку", { exact: true })).toBeVisible();
   // The remote's Back: the previous question.
   expect(await page.evaluate(() => (window as any).umbraTvBack())).toBe(true);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
@@ -285,7 +290,7 @@ test("TV quick evening: four questions, Back goes to the previous one, picks are
   );
   // Посміятися, «Неважливо» for the format, alone, «Неважливо» for the age.
   for (const [q, right] of [
-    ["Який настрій?", 0],
+    ["Який настрій?", 1],
     ["Фільм чи серіал?", 3],
     ["З ким дивишся?", 0],
     ["Свіже чи перевірене?", 2],
@@ -295,7 +300,7 @@ test("TV quick evening: four questions, Back goes to the previous one, picks are
     for (let k = 0; k < right; k++) await press(page, "ArrowRight");
     await press(page, "Enter");
   }
-  await expect(page.getByText("Змінити відповіді")).toBeVisible({
+  await expect(page.getByText("Перемішати")).toBeVisible({
     timeout: 15_000,
   });
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
@@ -403,6 +408,9 @@ test("TV Claude: an option shows the film it names, full text, and «своїм�
   });
   await register(page);
   await page.goto("?tv=1#/tonight");
+  // «За твоїм смаком» comes first; Claude is next to it.
+  await expect.poll(() => onScreen(page)).toContain("За твоїм смаком");
+  await press(page, "ArrowRight");
   await expect.poll(() => onScreen(page)).toContain("З Claude");
   await press(page, "Enter");
 

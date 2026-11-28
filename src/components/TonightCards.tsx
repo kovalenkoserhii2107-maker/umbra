@@ -151,6 +151,11 @@ export function PickCard({
           {[pick.type === "tv" ? "серіал" : "фільм", year, score]
             .filter(Boolean)
             .join(" · ")}
+          {pick.match ? (
+            <span className="ml-2 rounded-full bg-accent/15 px-1.5 py-0.5 text-accent">
+              збіг {pick.match}%
+            </span>
+          ) : null}
         </p>
         {mine && mine.status !== "watchlist" ? (
           <p className="mt-1 inline-block rounded-full border border-ok/40 px-2 py-0.5 text-[11px] text-ok">

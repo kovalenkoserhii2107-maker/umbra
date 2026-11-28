@@ -709,6 +709,18 @@ export const tmdb = {
       6 * 3600_000,
     ),
   /** Genre names by id, in Russian; they change rarely. */
+  /** What the evening picker learns from a title: keywords, people, recs. */
+  signals: (type: MediaType, id: number) =>
+    request<
+      TitleDetails & {
+        keywords?: { keywords?: Named[]; results?: Named[] };
+      }
+    >(
+      `/${type}/${id}`,
+      { append_to_response: "keywords,credits,recommendations" },
+      24 * 3600_000,
+      "normal",
+    ),
   genres: (type: MediaType) =>
     request<{ genres: Named[] }>(`/genre/${type}/list`, {}, 7 * 86400_000),
   /** Films or series by name and, when given, release year; kept a day. */
